@@ -4,7 +4,7 @@
 -->
 
 <p align="center">
-  <img src="./public/assets/readme.png" width="120px" alt="Deadsmile Games">
+  <img src="https://github.com/teamdeadsmile/launcher/blob/main/public/readme.png?raw=true" width="120px" alt="Deadsmile Games">
 </p>
 
 <h3 align="center">

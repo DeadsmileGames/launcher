@@ -1,15 +1,17 @@
-name: Build Windows Launcher
+name: Build and Release Windows Launcher
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    tags: ['v*.*.*']
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,11 +25,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build launcher
+      - name: Build installer
         run: npm run build:windows
 
-      - name: Upload installer
+      - name: Build unpacked launcher for auto updater
+        run: npm run package:update
+
+      - name: Create updater ZIP and standalone launcher executable
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          Compress-Archive -Path "release/win-unpacked/*" -DestinationPath "release/Deadsmile-Games-Launcher-$version.zip" -Force
+          Copy-Item "release/win-unpacked/Deadsmile Games Launcher.exe" "release/Deadsmile-Games-Launcher.exe" -Force
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DEADSMILE-Launcher-Windows
-          path: release/*.exe
+          name: Deadsmile-Games-Launcher-Windows
+          path: |
+            release/*.exe
+            release/*.zip
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/*.exe
+            release/*.zip

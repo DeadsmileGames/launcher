@@ -6,10 +6,13 @@ import {
     useRef,
     useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
     ArrowLeft,
     ArrowRight,
     ArrowUpRight,
+    ArrowCounterClockwise,
+    ArrowClockwise,
     Bell,
     CaretRight,
     CheckCircle,
@@ -529,6 +532,11 @@ function initials(user) {
         .toUpperCase();
 }
 
+function Portal({ children }) {
+    if (typeof document === "undefined") return null;
+    return createPortal(children, document.body);
+}
+
 const MAX_IMAGE_WIDTH = 1280;
 const MAX_IMAGE_HEIGHT = 720;
 const imageCache = new Map();
@@ -898,16 +906,9 @@ function Login({ onAuthenticated }) {
     );
 }
 
-function Sidebar({ active, setActive, user, logout, openAdmin, language }) {
+function Sidebar({ active, setActive, user, logout, openAdmin, language, openLinks }) {
     return (
         <aside className="sidebar">
-            <button
-                className="side-logo"
-                onClick={() => setActive("explore")}
-                aria-label="Deadsmile Games"
-            >
-                <img src="./assets/branding/deadsmile-mark.svg" alt="" />
-            </button>
             <nav className="main-nav">
                 {TABS.map(({ id, label, icon: Icon }) => (
                     <button
@@ -924,7 +925,7 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language }) {
                 ))}
             </nav>
             <div className="sidebar-bottom">
-                {isAdmin(user) && (
+                {isAdmin(user) ? (
                     <button
                         className={
                             active === "admin"
@@ -935,6 +936,14 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language }) {
                     >
                         <GearSix size={21} />
                         <span>{text(language, "manage")}</span>
+                    </button>
+                ) : (
+                    <button
+                        className="nav-item social-nav"
+                        onClick={openLinks}
+                    >
+                        <LinkSimple size={21} />
+                        <span>{text(language, "linksSocials")}</span>
                     </button>
                 )}
                 <button
@@ -978,11 +987,10 @@ function SocialLinks({ onClose, language }) {
             url: "https://instagram.com/teamdeadsmile",
             icon: InstagramLogo,
         },
-        { label: "Website", url: "https://deadsmile.vercel.app", icon: Globe },
         {
-            label: "Linktree",
-            url: "https://linktr.ee/teamdeadsmile",
-            icon: LinkSimple,
+            label: "Itch.io",
+            url: "https://deadsml.itch.io",
+            icon: GameController,
         },
         {
             label: "GitHub",
@@ -990,33 +998,45 @@ function SocialLinks({ onClose, language }) {
             icon: GithubLogo,
         },
         {
-            label: "Itch.io",
-            url: "https://deadsml.itch.io",
-            icon: GameController,
+            label: "More",
+            url: "https://linktr.ee/teamdeadsmile",
+            icon: LinkSimple,
         },
     ];
+
     return (
         <div
             className="overlay social-overlay"
-            onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+            onMouseDown={(e) =>
+                e.target === e.currentTarget && onClose()
+            }
         >
             <section className="social-modal">
                 <div className="modal-card__head">
                     <div>
-                        <small>{text(language, "launcher")}</small>
-                        <h3>{text(language, "companyLinks")}</h3>
+                        <h3>{text(language, "linksSocials")}</h3>
                     </div>
-                    <button className="modal-close" onClick={onClose}>
+
+                    <button
+                        className="modal-close"
+                        onClick={onClose}
+                    >
                         <X size={18} />
                     </button>
                 </div>
+
                 <div className="social-list">
                     {links.map(({ label, url, icon: Icon }) => (
-                        <button key={url} onClick={() => openExternal(url)}>
+                        <button
+                            key={url}
+                            onClick={() => openExternal(url)}
+                        >
                             <span className="social-icon">
                                 <Icon size={19} />
                             </span>
+
                             <span>{label}</span>
+
                             <ArrowUpRight size={16} />
                         </button>
                     ))}
@@ -1391,7 +1411,10 @@ function Explore({
                                 <button
                                     className="soft-button"
                                     onClick={() =>
-                                        onInstall(hero, Boolean(installed?.[hero.id]))
+                                        onInstall(
+                                            hero,
+                                            Boolean(installed?.[hero.id]),
+                                        )
                                     }
                                     disabled={Boolean(downloading[hero.id])}
                                 >
@@ -1543,7 +1566,15 @@ function Catalog({
         </div>
     );
 }
-function Library({ games, installed, onInstall, onDelete, openGame, setView, setActive }) {
+function Library({
+    games,
+    installed,
+    onInstall,
+    onDelete,
+    openGame,
+    setView,
+    setActive,
+}) {
     const items = games.filter((g) => installed[g.id]);
     return (
         <div className="page">
@@ -1642,15 +1673,15 @@ function Wishlist({
                     ))}
                 </div>
             ) : (
-               <Empty
-                  title={ui("nothingSaved")}
-                  text={ui("nothingSavedText")}
-                  action={ui("exploreGames")}
-                  onAction={() => {
-                      setView(null);
-                      setActive("explore");
-                  }}
-              />
+                <Empty
+                    title={ui("nothingSaved")}
+                    text={ui("nothingSavedText")}
+                    action={ui("exploreGames")}
+                    onAction={() => {
+                        setView(null);
+                        setActive("explore");
+                    }}
+                />
             )}
         </div>
     );
@@ -1794,18 +1825,29 @@ function GameDetails({
                     )}
                 </aside>
             </div>
-            {selected && (
-                <div className="lightbox" onClick={() => setSelected(null)}>
-                    <SmartImage
-                        src={assetUrl(selected, FALLBACK_COVER)}
-                        fallback={FALLBACK_COVER}
-                        alt=""
-                    />
-                    <button onClick={() => setSelected(null)}>
-                        <X size={20} />
-                    </button>
-                </div>
-            )}
+            {selected &&
+                createPortal(
+                    <div
+                        className="lightbox"
+                        onMouseDown={(e) =>
+                            e.target === e.currentTarget && setSelected(null)
+                        }
+                    >
+                        <SmartImage
+                            src={assetUrl(selected, FALLBACK_COVER)}
+                            fallback={FALLBACK_COVER}
+                            alt=""
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setSelected(null)}
+                            aria-label="Close"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }
@@ -2032,45 +2074,124 @@ function Field({ label, as = "input", children, ...props }) {
     );
 }
 
-function AvatarEditor({ onClose, language }) {
+function AvatarEditor({
+    avatarDraft,
+    rotation,
+    zoom,
+    pan,
+    onClose,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onRotateLeft,
+    onRotateRight,
+    onZoomChange,
+    onApply,
+}) {
+    if (!avatarDraft) return null;
+
+    const scale = Math.max(260 / avatarDraft.width, 260 / avatarDraft.height);
+
+    const imageScale = scale * zoom;
+
     return (
         <div
             className="overlay modal-overlay"
-            onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+            onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
+                    onClose();
+                }
+            }}
         >
-            <section className="modal-card avatar-modal website-only-modal">
+            <section className="modal-card avatar-modal">
                 <div className="modal-card__head">
                     <div>
                         <small>Deadsmile Games</small>
-                        <h3>{text(language, "changePicture")}</h3>
+                        <h3>Adjust photo</h3>
                     </div>
+
                     <button
+                        type="button"
                         className="modal-close"
                         onClick={onClose}
-                        aria-label={text(language, "close")}
+                        aria-label="Close"
                     >
                         <X size={18} />
                     </button>
                 </div>
-                <div className="website-only-icon">
-                    <WarningCircle size={28} />
+
+                <div
+                    className="crop-viewport"
+                    onPointerDown={onDragStart}
+                    onPointerMove={onDragMove}
+                    onPointerUp={onDragEnd}
+                    onPointerCancel={onDragEnd}
+                    onPointerLeave={onDragEnd}
+                >
+                    <img
+                        src={avatarDraft.src}
+                        alt=""
+                        draggable={false}
+                        style={{
+                            width: avatarDraft.width * imageScale,
+
+                            height: avatarDraft.height * imageScale,
+
+                            marginLeft: -(avatarDraft.width * imageScale) / 2,
+
+                            marginTop: -(avatarDraft.height * imageScale) / 2,
+
+                            transform: `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg)`,
+                        }}
+                    />
                 </div>
-                <p className="website-only-copy">
-                    {text(language, "websiteOnly")}
-                </p>
-                <p className="website-only-description">
-                    {text(language, "websiteOnlyDescription")}
-                </p>
-                <div className="modal-card__foot">
-                    <button className="soft-button" onClick={onClose}>
-                        {text(language, "close")}
-                    </button>
+
+                <div className="crop-controls">
                     <button
-                        className="primary-button"
-                        onClick={() => openExternal(`${SITE_URL}/account`)}
+                        type="button"
+                        className="crop-icon-btn"
+                        onClick={onRotateLeft}
+                        aria-label="Rotate left"
                     >
-                        {text(language, "openWebsite")}{" "}
-                        <ArrowUpRight size={16} />
+                        <ArrowCounterClockwise weight="bold" />
+                    </button>
+
+                    <input
+                        type="range"
+                        min="1"
+                        max="3"
+                        step="0.05"
+                        value={zoom}
+                        onChange={(e) => onZoomChange(Number(e.target.value))}
+                        aria-label="Zoom"
+                    />
+
+                    <button
+                        type="button"
+                        className="crop-icon-btn"
+                        onClick={onRotateRight}
+                        aria-label="Rotate right"
+                    >
+                        <ArrowClockwise weight="bold" />
+                    </button>
+                </div>
+
+                <div className="modal-card__foot">
+                    <button
+                        type="button"
+                        className="soft-button"
+                        onClick={onClose}
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        className="primary-button"
+                        onClick={onApply}
+                    >
+                        Apply
+                        <Check size={16} />
                     </button>
                 </div>
             </section>
@@ -2098,32 +2219,200 @@ function Account({
         websiteUrl: user?.websiteUrl || "",
         location: user?.location || "",
         email: user?.email || "",
+        avatarUrl: user?.avatarUrl || null,
     });
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState("");
-    const [avatarOpen, setAvatarOpen] = useState(false);
     const [totp, setTotp] = useState({ enabled: false });
     const [totpLoading, setTotpLoading] = useState(false);
+
+    const [message, setMessage] = useState("");
+
+    const [avatarOpen, setAvatarOpen] = useState(false);
+
+    const [avatarDraft, setAvatarDraft] = useState(null);
+    const [rotation, setRotation] = useState(0);
+    const [zoom, setZoom] = useState(1);
+    const [pan, setPan] = useState({
+        x: 0,
+        y: 0,
+    });
+
+    const dragState = useRef(null);
+
     useEffect(() => {
         api.get("/account/totp/status")
             .then((d) => setTotp({ enabled: Boolean(d?.enabled) }))
             .catch(() => {});
     }, []);
+
+    const CROP_VIEWPORT = 260;
+    const OUTPUT_SIZE = 420;
+
+    async function onAvatarSelect(e) {
+        const file = e.target.files?.[0];
+
+        e.target.value = "";
+
+        if (!file) return;
+
+        if (
+            !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+            file.size > 5_000_000
+        ) {
+            setMessage("Use PNG, JPG ou WEBP up to 5 MB.");
+            return;
+        }
+
+        try {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (event) => resolve(event.target.result);
+
+                reader.onerror = reject;
+
+                reader.readAsDataURL(file);
+            });
+
+            const img = await new Promise((resolve, reject) => {
+                const image = new Image();
+
+                image.onload = () => resolve(image);
+                image.onerror = reject;
+
+                image.src = dataUrl;
+            });
+
+            setRotation(0);
+            setZoom(1);
+            setPan({
+                x: 0,
+                y: 0,
+            });
+
+            setAvatarDraft({
+                src: dataUrl,
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+            });
+
+            setMessage("");
+        } catch (error) {
+            console.error(error);
+
+            setMessage("Failed to process image.");
+        }
+    }
+
+    function coverScaleFor(draft) {
+        return Math.max(
+            CROP_VIEWPORT / draft.width,
+            CROP_VIEWPORT / draft.height,
+        );
+    }
+
+    function onDragStart(e) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+
+        dragState.current = {
+            startX: e.clientX - pan.x,
+            startY: e.clientY - pan.y,
+        };
+    }
+
+    function onDragMove(e) {
+        if (!dragState.current) return;
+
+        setPan({
+            x: e.clientX - dragState.current.startX,
+
+            y: e.clientY - dragState.current.startY,
+        });
+    }
+
+    function onDragEnd() {
+        dragState.current = null;
+    }
+
+    function cancelCrop() {
+        setAvatarDraft(null);
+    }
+
+    function applyCrop() {
+        if (!avatarDraft) return;
+
+        const img = new Image();
+
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+
+            canvas.width = OUTPUT_SIZE;
+            canvas.height = OUTPUT_SIZE;
+
+            const ctx = canvas.getContext("2d");
+
+            if (!ctx) return;
+
+            const k = OUTPUT_SIZE / CROP_VIEWPORT;
+
+            const displayScale = coverScaleFor(avatarDraft) * zoom;
+
+            ctx.save();
+
+            ctx.translate(
+                OUTPUT_SIZE / 2 + pan.x * k,
+
+                OUTPUT_SIZE / 2 + pan.y * k,
+            );
+
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            ctx.scale(displayScale * k, displayScale * k);
+
+            ctx.drawImage(img, -avatarDraft.width / 2, -avatarDraft.height / 2);
+
+            ctx.restore();
+
+            const finalUrl = canvas.toDataURL("image/jpeg", 0.88);
+
+            setForm((current) => ({
+                ...current,
+                avatarUrl: finalUrl,
+            }));
+
+            setAvatarDraft(null);
+        };
+
+        img.src = avatarDraft.src;
+    }
+
     async function save(payload) {
         setSaving(true);
         setMessage("");
+
         try {
             const next = await api.patch("/account", payload);
+
             setUser(next);
-            setForm((f) => ({
-                ...f,
-                username: next.username || f.username,
+
+            setForm((current) => ({
+                ...current,
+
+                username: next.username || current.username,
+
                 bio: next.bio || "",
+
                 websiteUrl: next.websiteUrl || "",
+
                 location: next.location || "",
-                email: next.email || f.email,
+
+                email: next.email || current.email,
+
+                avatarUrl: next.avatarUrl || null,
             }));
+
             setMessage(ui("changesSaved"));
+
             setTimeout(() => setMessage(""), 1800);
         } catch (e) {
             setMessage(e?.message || "Unable to save changes.");
@@ -2178,21 +2467,27 @@ function Account({
                 <div className="account-content">
                     <section className="account-hero">
                         <div className="account-avatar">
-                            {user?.avatarUrl ? (
+                            {form.avatarUrl ? (
                                 <SmartImage
-                                    src={user.avatarUrl}
+                                    src={form.avatarUrl}
                                     fallback=""
                                     alt=""
                                 />
                             ) : (
                                 <span>{initials(user)}</span>
                             )}
-                            <button
-                                onClick={() => setAvatarOpen(true)}
+                            <label
+                                className="account-avatar-edit"
                                 aria-label={ui("changePicture")}
                             >
                                 <PencilSimple size={18} weight="bold" />
-                            </button>
+
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={onAvatarSelect}
+                                />
+                            </label>
                         </div>
                         <div>
                             <h1>{user?.username || "Player"}</h1>
@@ -2217,7 +2512,7 @@ function Account({
                                         bio: form.bio,
                                         websiteUrl: form.websiteUrl || null,
                                         location: form.location || null,
-                                        avatarUrl: user?.avatarUrl || null,
+                                        avatarUrl: form.avatarUrl || null,
                                     });
                                 }}
                                 className="account-form"
@@ -2468,13 +2763,30 @@ function Account({
                     )}
                 </div>
             </div>
-            {avatarOpen && (
-                <AvatarEditor
-                    onClose={() => setAvatarOpen(false)}
-                    language={language}
-                />
+            {avatarDraft && (
+                <Portal>
+                    <AvatarEditor
+                        avatarDraft={avatarDraft}
+                        rotation={rotation}
+                        zoom={zoom}
+                        pan={pan}
+                        onClose={cancelCrop}
+                        onDragStart={onDragStart}
+                        onDragMove={onDragMove}
+                        onDragEnd={onDragEnd}
+                        onRotateLeft={() =>
+                            setRotation((r) => r - 90)
+                        }
+                        onRotateRight={() =>
+                            setRotation((r) => r + 90)
+                        }
+                        onZoomChange={setZoom}
+                        onApply={applyCrop}
+                    />
+                </Portal>
             )}
         </div>
+        
     );
 }
 
@@ -3523,6 +3835,7 @@ export default function App() {
                     user={user}
                     logout={logout}
                     openAdmin={() => nav("admin")}
+                    openLinks={() => setLinksOpen(true)}
                     language={language}
                 />
                 <main className="content">
@@ -3591,7 +3904,9 @@ export default function App() {
                 />
             )}{" "}
             {selectedVideo && (
-                <VideoPlayer video={selectedVideo} onClose={goBack} />
+                <Portal>
+                    <VideoPlayer video={selectedVideo} onClose={goBack} />
+                </Portal>
             )}
         </>
     );

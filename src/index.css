@@ -1520,7 +1520,7 @@ img {
 .login-art {
   position: absolute;
   inset: -4%;
-  background-image: url("/assets/branding/backgroundLogin.png");
+  background-image: url("./assets/branding/backgroundLogin.png");
   background-size: cover;
   background-position: center;
   filter: saturate(0.65) brightness(0.52);

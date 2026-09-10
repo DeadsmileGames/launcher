@@ -762,7 +762,7 @@ function Boot() {
         <div className="boot-screen">
             <img
                 className="boot-logo"
-                src="/assets/branding/deadsmile-mark.svg"
+                src="./assets/branding/deadsmile-mark.svg"
                 alt="Deadsmile Games"
             />
             <div className="boot-status">
@@ -884,13 +884,13 @@ function Login({ onAuthenticated }) {
                         type="button"
                         onClick={() => openExternal(`${SITE_URL}/register`)}
                     >
-                        Create account
+                        {ui("createAccount")}
                     </button>
                     <button
                         type="button"
                         onClick={() => openExternal(`${SITE_URL}/support`)}
                     >
-                        Need help?
+                        {ui("needHelp")}
                     </button>
                 </div>
             </section>
@@ -906,6 +906,7 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language }) {
                 onClick={() => setActive("explore")}
                 aria-label="Deadsmile Games"
             >
+                <img src="./assets/branding/deadsmile-mark.svg" alt="" />
             </button>
             <nav className="main-nav">
                 {TABS.map(({ id, label, icon: Icon }) => (
@@ -1308,7 +1309,7 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
         return (
             <div className="update-lock overlay">
                 <section className="update-panel locked">
-                    <img src="/assets/branding/deadsmile-mark.svg" alt="" />
+                    <img src="./assets/branding/deadsmile-mark.svg" alt="" />
                     <h2>{ui("updating")}</h2>
                     <p>{ui("doNotClose")}</p>
                     <LoadingBar
@@ -1325,7 +1326,7 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
     return (
         <div className="update-overlay overlay">
             <section className="update-panel">
-                <img src="/assets/branding/deadsmile-mark.svg" alt="" />
+                <img src="./assets/branding/deadsmile-mark.svg" alt="" />
                 <small>{ui("launcher")}</small>
                 <h2>{ui("updateAvailable")}</h2>
                 <p>
@@ -1389,13 +1390,27 @@ function Explore({
                             {hero.downloadUrl && (
                                 <button
                                     className="soft-button"
-                                    onClick={() => onInstall(hero, false)}
+                                    onClick={() =>
+                                        onInstall(hero, Boolean(installed?.[hero.id]))
+                                    }
                                     disabled={Boolean(downloading[hero.id])}
                                 >
-                                    <DownloadSimple size={17} />{" "}
-                                    {downloading[hero.id]
-                                        ? ui("downloading")
-                                        : ui("download")}
+                                    {downloading[hero.id] ? (
+                                        <>
+                                            <DownloadSimple size={17} />{" "}
+                                            {ui("downloading")}
+                                        </>
+                                    ) : installed?.[hero.id] ? (
+                                        <>
+                                            <Play size={17} weight="fill" />{" "}
+                                            {ui("play")}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <DownloadSimple size={17} />{" "}
+                                            {ui("download")}
+                                        </>
+                                    )}
                                 </button>
                             )}
                         </div>
@@ -3176,10 +3191,14 @@ export default function App() {
     useEffect(() => {
         if (!window.deadsmile?.onDownloadProgress) return;
         return window.deadsmile.onDownloadProgress((p) =>
-            setDownloading((x) => ({
-                ...x,
-                [p.id]: p.status === "complete" ? undefined : p,
-            })),
+            setDownloading((x) => {
+                if (p.status === "complete") {
+                    const n = { ...x };
+                    delete n[p.id];
+                    return n;
+                }
+                return { ...x, [p.id]: p };
+            }),
         );
     }, []);
     useEffect(() => {
@@ -3491,7 +3510,9 @@ export default function App() {
                 openGame={openGame}
             />
         );
-    else current = <Admin onPublished={refreshContent} setView={setView} />;
+    else if (active === "admin" && isAdmin(user))
+        current = <Admin onPublished={refreshContent} setView={setView} />;
+    else current = null;
     return (
         <>
             <WindowChrome locked={updating} />

@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #090909;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+.launcher {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: #090909;
+}
+
+.sidebar {
+  width: 240px;
+  padding: 32px 20px;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 60px;
+}
+
+.brand strong {
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.brand span {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  opacity: 0.55;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+nav button,
+.settings {
+  border: 0;
+  padding: 14px 16px;
+  background: transparent;
+  color: #aaa;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+nav button:hover,
+.settings:hover,
+nav .active {
+  background: #222;
+  color: #fff;
+}
+
+.settings {
+  margin-top: auto;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
+header {
+  height: 72px;
+  padding: 0 36px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #222;
+  color: #888;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+.hero {
+  min-height: calc(100% - 72px);
+  padding: 80px;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(90deg, #090909 0%, rgba(9, 9, 9, 0.7) 45%, rgba(9, 9, 9, 0.15)),
+    #181818;
+}
+
+.hero p {
+  color: #aaa;
+  letter-spacing: 3px;
+}
+
+.hero h1 {
+  margin: 15px 0 30px;
+  font-size: clamp(60px, 8vw, 120px);
+  line-height: 0.88;
+  letter-spacing: -5px;
+}
+
+.play {
+  border: 0;
+  padding: 15px 28px;
+  border-radius: 6px;
+  background: #f80202;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}

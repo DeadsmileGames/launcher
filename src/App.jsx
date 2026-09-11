@@ -2370,7 +2370,6 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
         return (
             <div className="update-lock overlay">
                 <section className="update-panel locked">
-                    <img src="./assets/branding/deadsmile-mark.svg" alt="" />
                     <h2>{t("updating")}</h2>
                     <p>{t("doNotClose")}</p>
                     <LoadingBar

@@ -22,7 +22,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.0.0",
     "electron": "^44.3.0",
-    "electron-builder": "26.0.12",
+    "electron-builder": "^26.0.0",
     "vite": "^7.0.0",
     "wait-on": "^9.0.0"
   },
@@ -30,7 +30,8 @@
     "appId": "com.deadsmile.games.launcher",
     "productName": "Deadsmile Games Launcher",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -46,12 +47,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "installerIcon": "build/installerIcon.ico",
-      "uninstallerIcon": "build/uninstallerIcon.ico",
-      "installerHeader": "build/installerHeader.bmp",
-      "installerSidebar": "build/installerSidebar.bmp",
-      "uninstallerSidebar": "build/installerSidebar.bmp"
+      "createStartMenuShortcut": true
     },
     "asarUnpack": [
       "electron/updater.cjs"

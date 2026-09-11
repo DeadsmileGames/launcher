@@ -1812,7 +1812,7 @@ function Boot() {
                 alt="Deadsmile Games"
             />
             <div className="boot-status">
-                <span>{t("startingLauncher")}</span>
+                <span>FOIIIIIII O UPDATE BROOOO</span>
                 <div className="loading-bar">
                     <i />
                 </div>

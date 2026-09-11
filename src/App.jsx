@@ -1799,9 +1799,6 @@ function DownloadPanel({
     );
 }
 
-
-
-
 function Boot() {
     const { t } = useT();
     return (
@@ -1812,7 +1809,7 @@ function Boot() {
                 alt="Deadsmile Games"
             />
             <div className="boot-status">
-                <span>FOIIIIIII O UPDATE BROOOO</span>
+                <span>{t("startingLauncher")}</span>
                 <div className="loading-bar">
                     <i />
                 </div>

@@ -2387,8 +2387,6 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
     return (
         <div className="update-overlay overlay">
             <section className="update-panel">
-                <img src="./assets/branding/deadsmile-mark.svg" alt="" />
-                <small>{t("launcher")}</small>
                 <h2>{t("updateAvailable")}</h2>
                 <p>
                     {t("updateDescription")}{" "}

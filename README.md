@@ -15,7 +15,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/STATUS-OPERATIONAL-green">
-  <img src="https://img.shields.io/badge/VERSION-1.0.0-gold">
+  <img src="https://img.shields.io/badge/VERSION-1.0.1gold">
   <img src="https://img.shields.io/badge/PLATFORM-WINDOWS-red">
   <img src="https://img.shields.io/badge/ELECTRON-44.3.0-blue">
   <img src="https://img.shields.io/badge/LICENSE-MIT-lightgrey">

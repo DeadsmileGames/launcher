@@ -80,6 +80,7 @@ const GITHUB_REPO = "teamdeadsmile/launcher";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const APP_VERSION = app.getVersion();
 let updateInProgress = false;
+let forceQuit = false;
 
 function sanitizeName(name) {
   return (
@@ -428,8 +429,9 @@ async function updateLauncher(sender) {
     stdio: "ignore",
     windowsHide: true,
   });
-  child.unref();
+child.unref();
   updateInProgress = true;
+  forceQuit = true;
   setTimeout(() => app.quit(), 250);
   return { started: true };
 }
@@ -461,7 +463,7 @@ function createWindow() {
     },
   });
   win.on("close", (event) => {
-    if (updateInProgress) event.preventDefault();
+    if (updateInProgress && !forceQuit) event.preventDefault();
   });
   win.once("ready-to-show", () => win.show());
   if (!app.isPackaged) win.loadURL("http://127.0.0.1:5173");

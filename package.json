@@ -29,13 +29,12 @@
   "build": {
     "appId": "com.deadsmile.games.launcher",
     "productName": "Deadsmile Games Launcher",
-      "publish": {
-        "provider": "github",
-        "releaseType": "draft"
-      },
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "directories": {
-      "output": "release",
-      "buildResources": "build"
+      "output": "release"
     },
     "files": [
       "dist/**/*",

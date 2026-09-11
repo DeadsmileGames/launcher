@@ -1,8 +1,6 @@
 name: Build and Release Windows Launcher
-
 on:
   push:
-    branches: [main]
     tags: ['v*.*.*']
   workflow_dispatch:
 
@@ -31,46 +29,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build installer
+      - name: Build installer and publish to GitHub
         run: npm run build:windows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build unpacked launcher for auto updater
         run: npm run package:update
 
-      - name: Create updater ZIP and standalone launcher executable
+      - name: Create updater ZIP
         shell: pwsh
         run: |
           $version = node -p "require('./package.json').version"
           $zipName = "Deadsmile-Games-Launcher-$version.zip"
 
           if (-not (Test-Path "release/win-unpacked")) {
-            Write-Error "release/win-unpacked not found — package:update failed"
+            Write-Error "release/win-unpacked not found"
             exit 1
           }
 
           Compress-Archive -Path "release/win-unpacked/*" -DestinationPath "release/$zipName" -Force
-
-          Write-Host "✓ Created $zipName"
           Get-ChildItem release -File | Select-Object Name, Length
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Deadsmile-Games-Launcher-Windows
-          path: |
-            release/*.exe
-            release/*.zip
-          if-no-files-found: error
-          retention-days: 14
+      - name: Upload ZIP to the release
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $tag = "${{ github.ref_name }}"
+          $zipName = "Deadsmile-Games-Launcher-$version.zip"
 
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Deadsmile Games Launcher ${{ github.ref_name }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-          files: |
-            release/Deadsmile-Games-Launcher-Setup-*.exe
-            release/Deadsmile-Games-Launcher-*.zip
+          gh release upload $tag "release/$zipName" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

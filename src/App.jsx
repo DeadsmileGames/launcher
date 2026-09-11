@@ -2,6 +2,7 @@ import {
     createContext,
     useContext,
     useEffect,
+    useCallback,
     useMemo,
     useRef,
     useState,
@@ -49,6 +50,8 @@ import {
     GithubLogo,
     Globe,
     LinkSimple,
+    Pause,
+    DotsSixVertical,
 } from "@phosphor-icons/react";
 import { api } from "./services-api";
 
@@ -68,6 +71,26 @@ const LANGUAGES = [
 
 const COPY = {
     en: {
+        error: "Error",
+        unableToUpdateWishlist: "Unable to update wishlist.",
+        wasRemovedFromYourLibrary: "was removed from your library.",
+        unableToDeleteLocalGame: "Unable to delete the local game.",
+        easterTitle: "Easter eggs",
+        easterFoot: "Finding them by accident is more fun",
+        easterCrtHint: "RETRO MODE · click or press ESC to exit",
+        easterKonamiName: "Konami Code",
+        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
+        easterKonamiDesc: "Activates retro CRT mode",
+        easterConfettiName: "Party!",
+        easterConfettiHint: "Ctrl + Shift + C",
+        easterConfettiDesc: "Confetti explosion",
+        easterWordName: "Secret word",
+        easterWordHint: 'Type "deadsmile" anywhere',
+        easterWordDesc: "Skull rain",
+        easterMenuName: "This menu",
+        easterMenuHint: "Ctrl + Shift + E",
+        easterMenuDesc: "You already found this",
+        viewGame: "View game",
         explore: "Explore",
         library: "Library",
         wishlist: "Wishlist",
@@ -197,8 +220,120 @@ const COPY = {
         linksSocials: "Links & socials",
         downloadUnavailable:
             "This game is not available on itch.io for Windows yet.",
+        downloads: "Downloads",
+        downloadActive: "active",
+        downloadActivePlural: "active",
+        downloadQueued: "Queued",
+        downloadPaused: "Paused",
+        downloadCompleted: "Completed",
+        downloadFailedLabel: "Failed",
+        downloadStarting: "Starting…",
+        downloadInstalling: "Installing…",
+        downloadQueuePosition: "Queued",
+        pause: "Pause",
+        resume: "Resume",
+        cancel: "Cancel",
+        maxConcurrent: "Max",
+        continuePlaying: "Continue playing",
+        played: "played",
+        justNow: "just now",
+        minutesAgo: "{n}min ago",
+        hoursAgo: "{n}h ago",
+        daysAgo: "{n}d ago",
+        sortBy: "Sort",
+        sortRecent: "Recently added",
+        sortLastPlayed: "Recently played",
+        sortMostPlayed: "Most played",
+        sortName: "Name (A-Z)",
+        offlineBanner:
+            "You are offline. Showing cached content. Downloads are disabled.",
+        offlineNoDownload:
+            "No connection to download. Try again when you're online.",
+        offlineCacheNotice: "No connection — showing cached content.",
+        downloadCancelled: "download cancelled.",
+                noVideoSourceAvailable: "No video source available.",
+        adjustPhoto: "Adjust photo",
+        rotateLeft: "Rotate left",
+        rotateRight: "Rotate right",
+        zoom: "Zoom",
+        apply: "Apply",
+        usePngJpgWebpMax5MB: "Use PNG, JPG or WEBP up to 5 MB.",
+        failedToProcessImage: "Failed to process image.",
+        created: "Created",
+        deadsmileGamesAccount: "Deadsmile Games account",
+        keepYourAccountProtectedWithTwoFactor: "Keep your account protected with two-factor authentication.",
+        yourAccountIsProtectedByAnAuthenticator: "Your account is protected by an authenticator.",
+        addAnAuthenticatorAppForAnExtraLayerOfSecurity: "Add an authenticator app for an extra layer of security.",
+        publishedSuccessfully: "Published successfully.",
+        unableToPublish: "Unable to publish.",
+        deleteThisItemPermanently: "Delete this item permanently?",
+        publishAndManageGamesNewsAndVideosFromTheLauncher: "Publish and manage games, news and videos from the launcher.",
+        everythingYouPublish: "Everything you publish",
+        nothingPublishedYet: "Nothing published yet.",
+        open: "Open",
+        delete: "Delete",
+        createSomethingNew: "Create something new",
+        addATitleToTheCatalog: "Add a title to the catalog",
+        publishANewswireStory: "Publish a Newswire story",
+        addANativeLauncherVideo: "Add a native launcher video",
+        publishGame: "Publish game",
+        publishNews: "Publish news",
+        publishVideo: "Publish video",
+        publishing: "Publishing…",
+        back: "Back",
+        forward: "Forward",
+        unableToSaveChanges: "Unable to save changes.",
+        writeSomethingAboutYourself: "Write something about yourself.",
+        title: "Title",
+        slug: "Slug",
+        releaseDate: "Release date",
+        shortDescription: "Short description",
+        description: "Description",
+        heroImageURL: "Hero image URL",
+        coverImageURL: "Cover image URL",
+        trailerURL: "Trailer URL",
+        downloadURLItch: "Download URL (itch.io)",
+        actionAdventure: "Action, Adventure",
+        excerpt: "Excerpt",
+        body: "Body",
+        imageURL: "Image URL",
+        category: "Category",
+        videoURL: "Video URL",
+        directMP4WebMWebmOrYouTubeURL: "Direct MP4/WebM or YouTube URL",
+        thumbnailURL: "Thumbnail URL",
+        durationSeconds: "Duration (seconds)",
+        unableToDelete: "Unable to delete.",
+        minimize: "Minimize",
+        maximize: "Maximize",
+        featuredGame: "Featured game",
+        windowsWeb: "Windows, Web",
+        unableToLoadContent: "Unable to load content.",
+        unableToSignIn: "Unable to sign in.",
+        yourPassword: "Your password",
+        cityCountry: "City, Country",
+        windows: "Windows",
     },
     "pt-BR": {
+        error: "Erro",
+        unableToUpdateWishlist: "Não foi possível atualizar a lista.",
+        wasRemovedFromYourLibrary: "foi removido da sua biblioteca.",
+        unableToDeleteLocalGame: "Não foi possível excluir o jogo local.",
+        easterTitle: "Easter eggs",
+        easterFoot: "Descoberta por acaso é mais legal",
+        easterCrtHint: "RETRO MODE · clique ou ESC pra sair",
+        easterKonamiName: "Konami Code",
+        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
+        easterKonamiDesc: "Ativa modo CRT retrô",
+        easterConfettiName: "Festa!",
+        easterConfettiHint: "Ctrl + Shift + C",
+        easterConfettiDesc: "Explosão de confetti",
+        easterWordName: "Palavra secreta",
+        easterWordHint: 'Digite "deadsmile" em qualquer tela',
+        easterWordDesc: "Chuva de caveiras",
+        easterMenuName: "Este menu",
+        easterMenuHint: "Ctrl + Shift + E",
+        easterMenuDesc: "Você já achou esse",
+        viewGame: "Ver jogo",
         explore: "Explorar",
         library: "Biblioteca",
         wishlist: "Lista de desejos",
@@ -329,8 +464,120 @@ const COPY = {
         feedback: "Enviar feedback",
         downloadApp: "Baixar app oficial",
         downloadUnavailable: "Este jogo ainda não está disponível no itch.io.",
+        downloads: "Downloads",
+        downloadActive: "ativo",
+        downloadActivePlural: "ativos",
+        downloadQueued: "Na fila",
+        downloadPaused: "Pausado",
+        downloadCompleted: "Concluído",
+        downloadFailedLabel: "Falhou",
+        downloadStarting: "Baixando…",
+        downloadInstalling: "Instalando…",
+        downloadQueuePosition: "Na fila",
+        pause: "Pausar",
+        resume: "Retomar",
+        cancel: "Cancelar",
+        maxConcurrent: "Máx",
+        continuePlaying: "Continue jogando",
+        played: "jogado",
+        justNow: "agora",
+        minutesAgo: "há {n}min",
+        hoursAgo: "há {n}h",
+        daysAgo: "há {n}d",
+        sortBy: "Ordenar",
+        sortRecent: "Adicionados recentemente",
+        sortLastPlayed: "Jogados recentemente",
+        sortMostPlayed: "Mais jogados",
+        sortName: "Nome (A-Z)",
+        offlineBanner:
+            "Você está offline. Mostrando conteúdo em cache. Downloads estão desativados.",
+        offlineNoDownload:
+            "Sem conexão para baixar. Tente novamente quando estiver online.",
+        offlineCacheNotice: "Sem conexão — mostrando conteúdo em cache.",
+        downloadCancelled: "download cancelado.",
+                noVideoSourceAvailable: "Nenhuma fonte de vídeo disponível.",
+        adjustPhoto: "Ajustar foto",
+        rotateLeft: "Girar à esquerda",
+        rotateRight: "Girar à direita",
+        zoom: "Zoom",
+        apply: "Aplicar",
+        usePngJpgWebpMax5MB: "Use PNG, JPG ou WEBP até 5 MB.",
+        failedToProcessImage: "Falha ao processar a imagem.",
+        created: "Criado em",
+        deadsmileGamesAccount: "Conta Deadsmile Games",
+        keepYourAccountProtectedWithTwoFactor: "Mantenha sua conta protegida com autenticação de dois fatores.",
+        yourAccountIsProtectedByAnAuthenticator: "Sua conta está protegida por um autenticador.",
+        addAnAuthenticatorAppForAnExtraLayerOfSecurity: "Adicione um aplicativo autenticador para uma camada extra de segurança.",
+        publishedSuccessfully: "Publicado com sucesso.",
+        unableToPublish: "Não foi possível publicar.",
+        deleteThisItemPermanently: "Excluir este item permanentemente?",
+        publishAndManageGamesNewsAndVideosFromTheLauncher: "Publique e gerencie jogos, notícias e vídeos pelo launcher.",
+        everythingYouPublish: "Tudo que você publica",
+        nothingPublishedYet: "Nada publicado ainda.",
+        open: "Abrir",
+        delete: "Excluir",
+        createSomethingNew: "Crie algo novo",
+        addATitleToTheCatalog: "Adicione um título ao catálogo",
+        publishANewswireStory: "Publique uma notícia",
+        addANativeLauncherVideo: "Adicione um vídeo nativo ao launcher",
+        publishGame: "Publicar jogo",
+        publishNews: "Publicar notícia",
+        publishVideo: "Publicar vídeo",
+        publishing: "Publicando…",
+                back: "Voltar",
+        forward: "Avançar",
+        unableToSaveChanges: "Não foi possível salvar as alterações.",
+        writeSomethingAboutYourself: "Escreva algo sobre você.",
+        title: "Título",
+        slug: "Slug",
+        releaseDate: "Data de lançamento",
+        shortDescription: "Descrição curta",
+        description: "Descrição",
+        heroImageURL: "URL da imagem hero",
+        coverImageURL: "URL da capa",
+        trailerURL: "URL do trailer",
+        downloadURLItch: "URL de download (itch.io)",
+        actionAdventure: "Ação, Aventura",
+        excerpt: "Resumo",
+        body: "Corpo",
+        imageURL: "URL da imagem",
+        category: "Categoria",
+        videoURL: "URL do vídeo",
+        directMP4WebMWebmOrYouTubeURL: "URL direta MP4/WebM ou do YouTube",
+        thumbnailURL: "URL da miniatura",
+        durationSeconds: "Duração (segundos)",
+        unableToDelete: "Não foi possível excluir.",
+        minimize: "Minimizar",
+        maximize: "Maximizar",
+        featuredGame: "Jogo em destaque",
+        windowsWeb: "Windows, Web",
+        unableToLoadContent: "Não foi possível carregar o conteúdo.",
+        unableToSignIn: "Não foi possível entrar.",
+        yourPassword: "Sua senha",
+        cityCountry: "Cidade, País",
+        windows: "Windows",
     },
     es: {
+        error: "Error",
+        unableToUpdateWishlist: "No se pudo actualizar la lista.",
+        wasRemovedFromYourLibrary: "se eliminó de tu biblioteca.",
+        unableToDeleteLocalGame: "No se pudo eliminar el juego local.",
+        easterTitle: "Easter eggs",
+        easterFoot: "Descubrirlos por accidente es más divertido",
+        easterCrtHint: "MODO RETRO · clic o ESC para salir",
+        easterKonamiName: "Konami Code",
+        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
+        easterKonamiDesc: "Activa el modo CRT retro",
+        easterConfettiName: "¡Fiesta!",
+        easterConfettiHint: "Ctrl + Shift + C",
+        easterConfettiDesc: "Explosión de confeti",
+        easterWordName: "Palabra secreta",
+        easterWordHint: 'Escribe "deadsmile" en cualquier pantalla',
+        easterWordDesc: "Lluvia de calaveras",
+        easterMenuName: "Este menú",
+        easterMenuHint: "Ctrl + Shift + E",
+        easterMenuDesc: "Ya encontraste este",
+        viewGame: "Ver juego",
         explore: "Explorar",
         library: "Biblioteca",
         wishlist: "Lista de deseos",
@@ -460,17 +707,236 @@ const COPY = {
         downloadApp: "Descargar app oficial",
         downloadUnavailable:
             "Este juego todavía no está disponible en itch.io.",
+        downloads: "Descargas",
+        downloadActive: "activo",
+        downloadActivePlural: "activos",
+        downloadQueued: "En cola",
+        downloadPaused: "Pausado",
+        downloadCompleted: "Completado",
+        downloadFailedLabel: "Falló",
+        downloadStarting: "Descargando…",
+        downloadInstalling: "Instalando…",
+        downloadQueuePosition: "En cola",
+        pause: "Pausar",
+        resume: "Reanudar",
+        cancel: "Cancelar",
+        maxConcurrent: "Máx",
+        continuePlaying: "Seguir jugando",
+        played: "jugado",
+        justNow: "ahora",
+        minutesAgo: "hace {n}min",
+        hoursAgo: "hace {n}h",
+        daysAgo: "hace {n}d",
+        sortBy: "Ordenar",
+        sortRecent: "Añadidos recientemente",
+        sortLastPlayed: "Jugados recientemente",
+        sortMostPlayed: "Más jugados",
+        sortName: "Nombre (A-Z)",
+        offlineBanner:
+            "Estás offline. Mostrando contenido en caché. Las descargas están desactivadas.",
+        offlineNoDownload:
+            "Sin conexión para descargar. Inténtalo cuando estés online.",
+        offlineCacheNotice: "Sin conexión — mostrando contenido en caché.",
+        downloadCancelled: "descarga cancelada.",
+                noVideoSourceAvailable: "No hay fuente de vídeo disponible.",
+        adjustPhoto: "Ajustar foto",
+        rotateLeft: "Girar a la izquierda",
+        rotateRight: "Girar a la derecha",
+        zoom: "Zoom",
+        apply: "Aplicar",
+        usePngJpgWebpMax5MB: "Usa PNG, JPG o WEBP hasta 5 MB.",
+        failedToProcessImage: "Error al procesar la imagen.",
+        created: "Creado el",
+        deadsmileGamesAccount: "Cuenta de Deadsmile Games",
+        keepYourAccountProtectedWithTwoFactor: "Mantén tu cuenta protegida con autenticación de dos factores.",
+        yourAccountIsProtectedByAnAuthenticator: "Tu cuenta está protegida por un autenticador.",
+        addAnAuthenticatorAppForAnExtraLayerOfSecurity: "Añade una aplicación autenticadora para una capa extra de seguridad.",
+        publishedSuccessfully: "Publicado correctamente.",
+        unableToPublish: "No se pudo publicar.",
+        deleteThisItemPermanently: "¿Eliminar este elemento permanentemente?",
+        publishAndManageGamesNewsAndVideosFromTheLauncher: "Publica y gestiona juegos, noticias y vídeos desde el launcher.",
+        everythingYouPublish: "Todo lo que publicas",
+        nothingPublishedYet: "Nada publicado todavía.",
+        open: "Abrir",
+        delete: "Eliminar",
+        createSomethingNew: "Crea algo nuevo",
+        addATitleToTheCatalog: "Añade un título al catálogo",
+        publishANewswireStory: "Publica una noticia",
+        addANativeLauncherVideo: "Añade un vídeo nativo al launcher",
+        publishGame: "Publicar juego",
+        publishNews: "Publicar noticia",
+        publishVideo: "Publicar vídeo",
+        publishing: "Publicando…",
+                back: "Atrás",
+        forward: "Adelante",
+        unableToSaveChanges: "No se pudieron guardar los cambios.",
+        writeSomethingAboutYourself: "Escribe algo sobre ti.",
+        title: "Título",
+        slug: "Slug",
+        releaseDate: "Fecha de lanzamiento",
+        shortDescription: "Descripción corta",
+        description: "Descripción",
+        heroImageURL: "URL de la imagen hero",
+        coverImageURL: "URL de la portada",
+        trailerURL: "URL del tráiler",
+        downloadURLItch: "URL de descarga (itch.io)",
+        actionAdventure: "Acción, Aventura",
+        excerpt: "Extracto",
+        body: "Cuerpo",
+        imageURL: "URL de la imagen",
+        category: "Categoría",
+        videoURL: "URL del vídeo",
+        directMP4WebMWebmOrYouTubeURL: "URL directa MP4/WebM o de YouTube",
+        thumbnailURL: "URL de la miniatura",
+        durationSeconds: "Duración (segundos)",
+        unableToDelete: "No se pudo eliminar.",
+        minimize: "Minimizar",
+        maximize: "Maximizar",
+        featuredGame: "Juego destacado",
+        windowsWeb: "Windows, Web",
+        unableToLoadContent: "No se pudo cargar el contenido.",
+        unableToSignIn: "No se pudo iniciar sesión.",
+        yourPassword: "Tu contraseña",
+        cityCountry: "Ciudad, País",
+        windows: "Windows",
     },
 };
 
-let ACTIVE_LANGUAGE = "en";
 function text(language, key) {
     return COPY[language]?.[key] || COPY.en[key] || key;
 }
-function ui(key, fallback = key) {
-    return COPY[ACTIVE_LANGUAGE]?.[key] || COPY.en[key] || fallback;
+
+function interpolate(str, params) {
+    if (!params || !str) return str;
+    return str.replace(/\{(\w+)\}/g, (_, k) =>
+        params[k] !== undefined ? String(params[k]) : `{${k}}`,
+    );
 }
-const FALLBACK_MARK = `${SITE_URL}/assets/branding/deadsmile-mark.svg`;
+
+const CONTENT_CACHE_KEY = "deadsmile.cache.content.v1";
+
+function readContentCache() {
+    try {
+        return JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) || "null");
+    } catch {
+        return null;
+    }
+}
+
+function writeContentCache({ games, news, videos, wishlistIds }) {
+    try {
+        localStorage.setItem(
+            CONTENT_CACHE_KEY,
+            JSON.stringify({
+                ts: Date.now(),
+                games: games || [],
+                news: news || [],
+                videos: videos || [],
+                wishlistIds: wishlistIds || [],
+            }),
+        );
+    } catch {}
+}
+
+function useOnline() {
+    const [online, setOnline] = useState(() =>
+        typeof navigator !== "undefined" ? navigator.onLine : true,
+    );
+    useEffect(() => {
+        const on = () => setOnline(true);
+        const off = () => setOnline(false);
+        window.addEventListener("online", on);
+        window.addEventListener("offline", off);
+        return () => {
+            window.removeEventListener("online", on);
+            window.removeEventListener("offline", off);
+        };
+    }, []);
+    return online;
+}
+
+// Konami Code: ↑↑↓↓←→←→BA
+function useKonamiCode(onUnlock) {
+    useEffect(() => {
+        const sequence = [
+            "ArrowUp",
+            "ArrowUp",
+            "ArrowDown",
+            "ArrowDown",
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowLeft",
+            "ArrowRight",
+            "b",
+            "a",
+        ];
+        let index = 0;
+        const handler = (e) => {
+            const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            if (key === sequence[index]) {
+                index += 1;
+                if (index === sequence.length) {
+                    index = 0;
+                    onUnlock?.();
+                }
+            } else {
+                index = key === sequence[0] ? 1 : 0;
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [onUnlock]);
+}
+
+function useSecretWord(word, onMatch) {
+    useEffect(() => {
+        const lower = word.toLowerCase();
+        let buffer = "";
+        const handler = (e) => {
+            const tag = e.target?.tagName?.toLowerCase();
+            if (
+                tag === "input" ||
+                tag === "textarea" ||
+                e.target?.isContentEditable
+            )
+                return;
+            if (e.key.length !== 1) return;
+            buffer = (buffer + e.key.toLowerCase()).slice(-lower.length);
+            if (buffer === lower) {
+                buffer = "";
+                onMatch?.();
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [word, onMatch]);
+}
+function useHotkey({ key, ctrl = false, shift = false, alt = false }, handler) {
+    useEffect(() => {
+        const onKey = (e) => {
+            const matches =
+                e.key.toLowerCase() === key.toLowerCase() &&
+                e.ctrlKey === ctrl &&
+                e.shiftKey === shift &&
+                e.altKey === alt;
+            if (matches) {
+                e.preventDefault();
+                handler?.();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [key, ctrl, shift, alt, handler]);
+}
+
+const LanguageContext = createContext({
+    language: "en",
+    t: (key, params, fallback) => fallback || key,
+});
+
+function useT() {
+    return useContext(LanguageContext);
+}
 const FALLBACK_COVER = `${SITE_URL}/assets/placeholders/game-cover.svg`;
 const FALLBACK_HERO = `${SITE_URL}/assets/placeholders/game-hero.svg`;
 
@@ -532,6 +998,128 @@ function initials(user) {
         .toUpperCase();
 }
 
+function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let v = bytes;
+    while (v >= 1024 && i < units.length - 1) {
+        v /= 1024;
+        i += 1;
+    }
+    return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
+function formatSpeed(bytesPerSecond) {
+    if (!bytesPerSecond || bytesPerSecond <= 0) return "";
+    return `${formatBytes(bytesPerSecond)}/s`;
+}
+
+function formatEta(seconds) {
+    if (seconds == null || !isFinite(seconds) || seconds <= 0) return "";
+    const s = Math.round(seconds);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ${s % 60}s`;
+    return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
+function formatPlaytime(ms) {
+    if (!ms || ms <= 0) return "0m";
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m`;
+    return `${Math.floor(ms / 1000)}s`;
+}
+
+function formatRelative(ts, t) {
+    if (!ts) return "";
+    const tr = t || ((k, _, fb) => fb || k);
+    const diff = Date.now() - ts;
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return tr("justNow", null, "just now");
+    const m = Math.floor(s / 60);
+    if (m < 60)
+        return tr("minutesAgo", { n: m }, `há ${m}min`);
+    const h = Math.floor(m / 60);
+    if (h < 24) return tr("hoursAgo", { n: h }, `há ${h}h`);
+    const d = Math.floor(h / 24);
+    if (d < 30) return tr("daysAgo", { n: d }, `há ${d}d`);
+    return new Date(ts).toLocaleDateString();
+}
+
+function usePlaytime() {
+    const [playtime, setPlaytime] = useState({});
+
+    useEffect(() => {
+        if (!window.deadsmile?.playtime?.get) return undefined;
+        let alive = true;
+
+        window.deadsmile.playtime
+            .get()
+            .then((data) => {
+                if (alive && data && typeof data === "object") {
+                    setPlaytime(data);
+                }
+            })
+            .catch(() => {});
+
+        const off = window.deadsmile.onPlaytimeUpdate?.((data) => {
+            if (data && typeof data === "object") setPlaytime(data);
+        });
+
+        return () => {
+            alive = false;
+            off?.();
+        };
+    }, []);
+
+    return playtime;
+}
+
+function useDownloadQueue() {
+    const [queue, setQueue] = useState([]);
+
+    useEffect(() => {
+        if (!window.deadsmile?.onDownloadQueue) return undefined;
+        let alive = true;
+
+        window.deadsmile
+            .getDownloadSnapshot?.()
+            .then((snap) => {
+                if (alive && Array.isArray(snap)) setQueue(snap);
+            })
+            .catch(() => {});
+
+        const off = window.deadsmile.onDownloadQueue((next) => {
+            if (Array.isArray(next)) setQueue(next);
+        });
+
+        return () => {
+            alive = false;
+            off?.();
+        };
+    }, []);
+
+    const byId = useMemo(() => {
+        const map = {};
+        for (const item of queue) map[item.id] = item;
+        return map;
+    }, [queue]);
+
+    return {
+        queue,
+        byId,
+        pause: (id) => window.deadsmile?.pauseDownload?.(id),
+        resume: (id) => window.deadsmile?.resumeDownload?.(id),
+        cancel: (id) => window.deadsmile?.cancelDownload?.(id),
+        reorder: (ids) => window.deadsmile?.reorderDownloads?.(ids),
+        setConcurrent: (n) =>
+            window.deadsmile?.setMaxConcurrentDownloads?.(n),
+    };
+}
+
 function Portal({ children }) {
     if (typeof document === "undefined") return null;
     return createPortal(children, document.body);
@@ -585,6 +1173,26 @@ function SmartImage({ src, fallback, alt = "", className = "", ...props }) {
                 setReady(true);
                 return;
             }
+
+                const isOurOrigin = (() => {
+                    try {
+                        const u = new URL(original);
+                        return (
+                            u.origin === API_ASSET_ROOT ||
+                            u.origin === SITE_URL ||
+                            u.hostname === "apideadsmile.vercel.app" ||
+                            u.hostname.endsWith(".deadsmile.vercel.app")
+                        );
+                    } catch {
+                        return false;
+                    }
+                })();
+
+                if (!isOurOrigin) {
+                    setCurrent(original);
+                    setReady(true);
+                    return;
+                }
 
             try {
                 const response = await fetch(original, {
@@ -708,6 +1316,7 @@ function SmartImage({ src, fallback, alt = "", className = "", ...props }) {
 }
 
 function WindowChrome({ locked = false }) {
+    const { t } = useT();
     return (
         <header className="window-chrome">
             <div
@@ -719,14 +1328,14 @@ function WindowChrome({ locked = false }) {
                 <button
                     type="button"
                     onClick={() => window.deadsmile?.window?.minimize()}
-                    aria-label="Minimize"
+                    aria-label={t("minimize")}
                 >
                     <Minus size={18} weight="bold" />
                 </button>
                 <button
                     type="button"
                     onClick={() => window.deadsmile?.window?.toggleMaximize()}
-                    aria-label="Maximize"
+                    aria-label={t("maximize")}
                 >
                     <Square size={16} weight="bold" />
                 </button>
@@ -734,7 +1343,7 @@ function WindowChrome({ locked = false }) {
                     type="button"
                     className="window-close"
                     onClick={() => !locked && window.deadsmile?.window?.close()}
-                    aria-label="Close"
+                    aria-label={t("close")}
                     disabled={locked}
                 >
                     <X size={18} weight="bold" />
@@ -765,7 +1374,433 @@ function LoadingBar({ label, percent, indeterminate = false }) {
     );
 }
 
+function ConfettiBurst({ origin, onDone }) {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+
+        const colors = [
+            "#ff5c7c",
+            "#ffd166",
+            "#7cf7a5",
+            "#6ec8ff",
+            "#c39bff",
+            "#ffffff",
+        ];
+        const particles = Array.from({ length: 140 }, () => {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 4 + Math.random() * 9;
+            return {
+                x: origin.x,
+                y: origin.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 3,
+                size: 4 + Math.random() * 6,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * Math.PI,
+                vr: (Math.random() - 0.5) * 0.3,
+                life: 1,
+            };
+        });
+
+        let raf;
+        const start = performance.now();
+        const tick = (now) => {
+            const elapsed = (now - start) / 1000;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(dpr, dpr);
+
+            for (const p of particles) {
+                p.vy += 0.35;
+                p.vx *= 0.99;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rotation += p.vr;
+                p.life = Math.max(0, 1 - elapsed / 3);
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+                ctx.restore();
+            }
+            ctx.restore();
+
+            if (elapsed < 3) {
+                raf = requestAnimationFrame(tick);
+            } else {
+                onDone?.();
+            }
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [origin, onDone]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: "fixed",
+                inset: 0,
+                width: "100vw",
+                height: "100vh",
+                pointerEvents: "none",
+                zIndex: 3000,
+            }}
+        />
+    );
+}
+
+function SkullRain({ onDone }) {
+    useEffect(() => {
+        const timer = setTimeout(() => onDone?.(), 6000);
+        return () => clearTimeout(timer);
+    }, [onDone]);
+
+    const skulls = useMemo(
+        () =>
+            Array.from({ length: 45 }).map((_, i) => ({
+                id: i,
+                left: Math.random() * 100,
+                delay: Math.random() * 1.5,
+                duration: 2.5 + Math.random() * 2.5,
+                size: 22 + Math.random() * 28,
+                rotation: (Math.random() - 0.5) * 60,
+            })),
+        [],
+    );
+
+    return (
+        <div className="skull-rain" aria-hidden="true">
+            {skulls.map((s) => (
+                <span
+                    key={s.id}
+                    style={{
+                        left: `${s.left}%`,
+                        fontSize: `${s.size}px`,
+                        animationDelay: `${s.delay}s`,
+                        animationDuration: `${s.duration}s`,
+                        "--rot": `${s.rotation}deg`,
+                    }}
+                >
+                    💀
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function CrtOverlay({ onClose }) {
+    const { t } = useT();
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.key === "Escape") onClose?.();
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [onClose]);
+
+    return (
+        <div className="crt-overlay" onClick={onClose}>
+            <div className="crt-hint">{t("easterCrtHint")}</div>
+        </div>
+    );
+}
+
+function EasterEggMenu({ onClose, onTrigger }) {
+    const { t } = useT();
+
+    const eggs = [
+        {
+            id: "konami",
+            name: t("easterKonamiName"),
+            hint: t("easterKonamiHint"),
+            desc: t("easterKonamiDesc"),
+        },
+        {
+            id: "confetti",
+            name: t("easterConfettiName"),
+            hint: t("easterConfettiHint"),
+            desc: t("easterConfettiDesc"),
+        },
+        {
+            id: "word",
+            name: t("easterWordName"),
+            hint: t("easterWordHint"),
+            desc: t("easterWordDesc"),
+        },
+        {
+            id: "menu",
+            name: t("easterMenuName"),
+            hint: t("easterMenuHint"),
+            desc: t("easterMenuDesc"),
+        },
+    ];
+
+    return (
+        <Portal>
+            <div
+                className="overlay easter-overlay"
+                onMouseDown={(e) =>
+                    e.target === e.currentTarget && onClose()
+                }
+            >
+                <section className="modal-card easter-modal">
+                    <div className="modal-card__head">
+                        <div>
+                            <h3>{t("easterTitle")}</h3>
+                        </div>
+                        <button
+                            type="button"
+                            className="modal-close"
+                            onClick={onClose}
+                            aria-label={t("close")}
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="easter-list">
+                        {eggs.map((egg) => (
+                            <button
+                                key={egg.id}
+                                type="button"
+                                className="easter-item"
+                                onClick={() => {
+                                    if (egg.id === "menu") return;
+                                    onTrigger?.(egg.id);
+                                    onClose();
+                                }}
+                            >
+                                <div className="easter-item-copy">
+                                    <strong>{egg.name}</strong>
+                                    <code>{egg.hint}</code>
+                                    <span>{egg.desc}</span>
+                                </div>
+                                <Play
+                                    size={16}
+                                    weight="fill"
+                                    className="easter-item-play"
+                                />
+                            </button>
+                        ))}
+                    </div>
+
+                    <p className="easter-foot">{t("easterFoot")}</p>
+                </section>
+            </div>
+        </Portal>
+    );
+}
+
+function DownloadPanel({
+    queue,
+    onPause,
+    onResume,
+    onCancel,
+    onReorder,
+    onConcurrencyChange,
+}) {
+    const { t } = useT();
+    const [collapsed, setCollapsed] = useState(false);
+    const dragId = useRef(null);
+
+    const active = queue.filter((q) => q.status !== "complete").length;
+    const downloadingCount = queue.filter(
+        (q) => q.status === "downloading",
+    ).length;
+
+    function handleDragStart(e, id) {
+        dragId.current = id;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", id);
+    }
+    function handleDragOver(e, id) {
+        e.preventDefault();
+        if (!dragId.current || dragId.current === id) return;
+        const ids = queue.map((q) => q.id);
+        const from = ids.indexOf(dragId.current);
+        const to = ids.indexOf(id);
+        if (from === -1 || to === -1) return;
+        const next = [...ids];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        onReorder?.(next);
+    }
+    function handleDragEnd() {
+        dragId.current = null;
+    }
+
+    return (
+        <div className={`download-panel${collapsed ? " collapsed" : ""}`}>
+            <button
+                type="button"
+                className="download-panel-head"
+                onClick={() => setCollapsed((v) => !v)}
+            >
+                <div className="download-panel-title">
+                    <strong>
+                        {active > 0
+                            ? t("downloads")
+                            : t("downloads")}
+                    </strong>
+                    <span>
+                        {downloadingCount}{" "}
+                        {downloadingCount === 1
+                            ? t("downloadActive")
+                            : t("downloadActivePlural")}
+                    </span>
+                </div>
+                <div className="download-panel-actions">
+                    <select
+                        value={downloadingCount || 2}
+                        onChange={(e) =>
+                            onConcurrencyChange?.(Number(e.target.value))
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={t("downloads")}
+                    >
+                        {[1, 2, 3, 4, 5].map((n) => (
+                            <option key={n} value={n}>
+                                {t("maxConcurrent")} {n}
+                            </option>
+                        ))}
+                    </select>
+                    <CaretRight
+                        size={16}
+                        style={{
+                            transform: collapsed
+                                ? "rotate(0deg)"
+                                : "rotate(90deg)",
+                            transition: "transform .18s ease",
+                        }}
+                    />
+                </div>
+            </button>
+
+            {!collapsed && (
+                <div className="download-panel-list">
+                    {queue.map((item) => {
+                        const total = item.totalBytes || 0;
+                        const received = item.bytesReceived || 0;
+                        const speed = item.speed || 0;
+                        const eta = item.eta;
+
+                        let subtitle = "";
+                        if (item.status === "downloading") {
+                            const parts = [];
+                            if (total > 0)
+                                parts.push(
+                                    `${formatBytes(received)} / ${formatBytes(total)}`,
+                                );
+                            if (speed > 0) parts.push(formatSpeed(speed));
+                            if (eta != null && eta > 0)
+                                parts.push(`ETA ${formatEta(eta)}`);
+                            subtitle = parts.join(" · ") || t("downloadStarting");
+                        } else if (item.status === "installing") {
+                            subtitle = 	t("downloadInstalling");
+                        } else if (item.status === "queued") {
+                            subtitle = `${t("downloadQueuePosition")} (#${item.queuePosition + 1})`
+                        } else if (item.status === "paused") {
+                            subtitle = 	t("downloadPaused");
+                        } else if (item.status === "complete") {
+                            subtitle = 	t("downloadCompleted");
+                        } else if (item.status === "failed") {
+                            subtitle = `${t("downloadFailedLabel")}: ${item.error || t("error")}`;
+                        }
+
+                        return (
+                            <div
+                                key={item.id}
+                                className={`download-item status-${item.status}`}
+                                draggable
+                                onDragStart={(e) =>
+                                    handleDragStart(e, item.id)
+                                }
+                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <span className="download-grip">
+                                    <DotsSixVertical size={14} />
+                                </span>
+
+                                <div className="download-item-copy">
+                                    <div className="download-item-title">
+                                        <strong>{item.title}</strong>
+                                        <small>{subtitle}</small>
+                                    </div>
+                                    <div className="download-bar">
+                                        <i
+                                            style={{
+                                                width: `${Math.min(
+                                                    100,
+                                                    item.percent || 0,
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="download-item-actions">
+                                    {item.status === "downloading" && (
+                                        <button
+                                            type="button"
+                                            title={t("pause")}
+                                            onClick={() => onPause?.(item.id)}
+                                        >
+                                            <Pause size={14} weight="fill" />
+                                        </button>
+                                    )}
+                                    {item.status === "queued" && (
+                                        <button
+                                            type="button"
+                                            title={t("pause")}
+                                            onClick={() => onPause?.(item.id)}
+                                        >
+                                            <Pause size={14} weight="fill" />
+                                        </button>
+                                    )}
+                                    {item.status === "paused" && (
+                                        <button
+                                            type="button"
+                                            title={t("resume")}
+                                            onClick={() => onResume?.(item.id)}
+                                        >
+                                            <Play size={14} weight="fill" />
+                                        </button>
+                                    )}
+                                    {item.status !== "complete" && (
+                                        <button
+                                            type="button"
+                                            title={t("cancel")}
+                                            className="danger"
+                                            onClick={() => onCancel?.(item.id)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function Boot() {
+    const { t } = useT();
     return (
         <div className="boot-screen">
             <img
@@ -774,7 +1809,7 @@ function Boot() {
                 alt="Deadsmile Games"
             />
             <div className="boot-status">
-                <span>{ui("startingLauncher")}</span>
+                <span>{t("startingLauncher")}</span>
                 <div className="loading-bar">
                     <i />
                 </div>
@@ -784,6 +1819,7 @@ function Boot() {
 }
 
 function Login({ onAuthenticated }) {
+    const { t } = useT();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [token, setToken] = useState("");
@@ -805,7 +1841,7 @@ function Login({ onAuthenticated }) {
                 setToken("");
             } else onAuthenticated(result);
         } catch (err) {
-            setError(err?.message || "Unable to sign in.");
+            setError(err?.message || t("unableToSignIn"));
         } finally {
             setLoading(false);
         }
@@ -816,11 +1852,11 @@ function Login({ onAuthenticated }) {
             <div className="login-vignette" />
             <section className="login-card">
                 <div className="login-heading">
-                    <h1>{twoFactor ? ui("verifyAccount") : ui("welcome")}</h1>
+                    <h1>{twoFactor ? t("verifyAccount") : t("welcome")}</h1>
                     <p>
                         {twoFactor
-                            ? ui("verifyDescription")
-                            : ui("signInDescription")}
+                            ? t("verifyDescription")
+                            : t("signInDescription")}
                     </p>
                 </div>
                 {error && (
@@ -833,7 +1869,7 @@ function Login({ onAuthenticated }) {
                     {!twoFactor ? (
                         <>
                             <label>
-                                {ui("email")}
+                                {t("email")}
                                 <input
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -844,7 +1880,7 @@ function Login({ onAuthenticated }) {
                                 />
                             </label>
                             <label>
-                                {ui("password")}
+                                {t("password")}
                                 <input
                                     value={password}
                                     onChange={(e) =>
@@ -852,14 +1888,14 @@ function Login({ onAuthenticated }) {
                                     }
                                     type="password"
                                     autoComplete="current-password"
-                                    placeholder="Your password"
+                                    placeholder={t("yourPassword")}
                                     required
                                 />
                             </label>
                         </>
                     ) : (
                         <label>
-                            {ui("authCode")}
+                            {t("authCode")}
                             <input
                                 className="code-input"
                                 value={token}
@@ -881,10 +1917,10 @@ function Login({ onAuthenticated }) {
                     )}
                     <button className="primary-button full" disabled={loading}>
                         {loading
-                            ? ui("signingIn")
+                            ? t("signingIn")
                             : twoFactor
-                              ? ui("verifySignIn")
-                              : ui("signIn")}
+                              ? t("verifySignIn")
+                              : t("signIn")}
                     </button>
                 </form>
                 <div className="login-links">
@@ -892,13 +1928,13 @@ function Login({ onAuthenticated }) {
                         type="button"
                         onClick={() => openExternal(`${SITE_URL}/register`)}
                     >
-                        {ui("createAccount")}
+                        {t("createAccount")}
                     </button>
                     <button
                         type="button"
                         onClick={() => openExternal(`${SITE_URL}/support`)}
                     >
-                        {ui("needHelp")}
+                        {t("needHelp")}
                     </button>
                 </div>
             </section>
@@ -1047,14 +2083,15 @@ function SocialLinks({ onClose, language }) {
 }
 
 function SearchBar({ query, setQuery, results, openGame }) {
+    const { t } = useT();
     return (
         <div className="search-wrap">
             <MagnifyingGlass size={18} />
             <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={ui("search")}
-                aria-label={ui("search")}
+                placeholder={t("search")}
+                aria-label={t("search")}
             />
             {query && (
                 <button className="search-clear" onClick={() => setQuery("")}>
@@ -1091,17 +2128,17 @@ function SearchBar({ query, setQuery, results, openGame }) {
                                     <strong>{item.title}</strong>
                                     <small>
                                         {item.type === "game"
-                                            ? ui("game")
+                                            ? t("game")
                                             : item.type === "video"
-                                              ? ui("video")
-                                              : ui("newswire")}
+                                              ? t("video")
+                                              : t("newswire")}
                                     </small>
                                 </span>
                                 <CaretRight size={15} />
                             </button>
                         ))
                     ) : (
-                        <div className="search-empty">{ui("noResults")}</div>
+                        <div className="search-empty">{t("noResults")}</div>
                     )}
                 </div>
             )}
@@ -1118,13 +2155,14 @@ function TopActions({
     onNotifications,
     notificationsUnread,
 }) {
+    const { t } = useT();
     return (
         <div className="content-toolbar">
             <div className="history-buttons">
-                <button onClick={onBack} aria-label="Back">
+                <button onClick={onBack} aria-label={t("back")}>
                     <ArrowLeft size={18} />
                 </button>
-                <button onClick={onForward} aria-label="Forward">
+                <button onClick={onForward} aria-label={t("forward")}>
                     <ArrowRight size={18} />
                 </button>
             </div>
@@ -1137,7 +2175,7 @@ function TopActions({
             <div className="toolbar-spacer" />
             <button
                 className="toolbar-icon notification-trigger"
-                aria-label={ui("notifications")}
+                aria-label={t("notifications")}
                 onClick={onNotifications}
             >
                 <Bell size={19} />
@@ -1155,6 +2193,7 @@ function GameCard({
     installed,
     downloading,
 }) {
+    const { t } = useT();
     const progress = downloading?.percent;
     return (
         <article className="game-card">
@@ -1183,7 +2222,7 @@ function GameCard({
                     <span>
                         {(game.genres || []).slice(0, 2).join(" · ") ||
                             game.status ||
-                            "Game"}
+                            t("game")}
                     </span>
                 </button>
                 <div className="game-card-actions">
@@ -1194,7 +2233,7 @@ function GameCard({
                                 : "round-action"
                         }
                         onClick={() => onWishlist(game)}
-                        aria-label="Wishlist"
+                        aria-label={t("wishlist")}
                     >
                         <HeartStraight
                             size={17}
@@ -1212,12 +2251,12 @@ function GameCard({
                             ) : installed ? (
                                 <>
                                     <Play size={14} weight="fill" />{" "}
-                                    {ui("play")}
+                                    {t("play")}
                                 </>
                             ) : (
                                 <>
                                     <DownloadSimple size={14} />{" "}
-                                    {ui("download")}
+                                    {t("download")}
                                 </>
                             )}
                         </button>
@@ -1278,11 +2317,12 @@ function Empty({ title, text, action, onAction }) {
     );
 }
 function NotificationsPanel({ notifications, onClose, onClear }) {
+    const { t } = useT();
     return (
         <div className="notifications-popover">
             <div className="notifications-head">
                 <div>
-                    <h3>{ui("notifications")}</h3>
+                    <h3>{t("notifications")}</h3>
                 </div>
                 <button onClick={onClose}>
                     <X size={17} />
@@ -1311,12 +2351,12 @@ function NotificationsPanel({ notifications, onClose, onClear }) {
             ) : (
                 <div className="notifications-empty">
                     <Bell size={24} />
-                    <span>{ui("noNotifications")}</span>
+                    <span>{t("noNotifications")}</span>
                 </div>
             )}
             {notifications.length > 0 && (
                 <button className="notifications-clear" onClick={onClear}>
-                    {ui("markRead")}
+                    {t("markRead")}
                 </button>
             )}
         </div>
@@ -1324,19 +2364,20 @@ function NotificationsPanel({ notifications, onClose, onClear }) {
 }
 
 function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
+    const { t } = useT();
     if (!info) return null;
     if (updating)
         return (
             <div className="update-lock overlay">
                 <section className="update-panel locked">
                     <img src="./assets/branding/deadsmile-mark.svg" alt="" />
-                    <h2>{ui("updating")}</h2>
-                    <p>{ui("doNotClose")}</p>
+                    <h2>{t("updating")}</h2>
+                    <p>{t("doNotClose")}</p>
                     <LoadingBar
                         label={
                             progress?.status === "installing"
-                                ? ui("installingUpdate")
-                                : ui("downloadingUpdate")
+                                ? t("installingUpdate")
+                                : t("downloadingUpdate")
                         }
                         percent={progress?.percent || 0}
                     />
@@ -1347,19 +2388,19 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
         <div className="update-overlay overlay">
             <section className="update-panel">
                 <img src="./assets/branding/deadsmile-mark.svg" alt="" />
-                <small>{ui("launcher")}</small>
-                <h2>{ui("updateAvailable")}</h2>
+                <small>{t("launcher")}</small>
+                <h2>{t("updateAvailable")}</h2>
                 <p>
-                    {ui("updateDescription")}{" "}
+                    {t("updateDescription")}{" "}
                     <strong>v{info.latestVersion}</strong>
                 </p>
                 {info.notes && <div className="update-notes">{info.notes}</div>}
                 <div className="update-actions">
                     <button className="soft-button" onClick={onLater}>
-                        {ui("later")}
+                        {t("later")}
                     </button>
                     <button className="primary-button" onClick={onUpdate}>
-                        {ui("update")} <ArrowRight size={16} />
+                        {t("update")} <ArrowRight size={16} />
                     </button>
                 </div>
             </section>
@@ -1377,11 +2418,25 @@ function Explore({
     onInstall,
     downloading,
     installed,
+    playtime,
     openGame,
     openVideo,
     setView,
 }) {
+    const { t } = useT();
     const hero = games.find((g) => g.featured) || games[0];
+    const continuePlaying = useMemo(() => {
+        if (!playtime || !installed) return [];
+        return Object.entries(playtime)
+            .filter(([id]) => installed[id])
+            .sort((a, b) => (b[1].lastPlayedAt || 0) - (a[1].lastPlayedAt || 0))
+            .slice(0, 3)
+            .map(([id, data]) => ({
+                game: games.find((g) => String(g.id) === String(id)),
+                data,
+            }))
+            .filter((x) => x.game);
+    }, [playtime, installed, games]);
     return (
         <div className="page explore-page">
             {hero && (
@@ -1398,14 +2453,14 @@ function Explore({
                         <p>
                             {hero.shortDescription ||
                                 hero.description ||
-                                "Discover the latest from Deadsmile Games."}
+                                t("latest")}
                         </p>
                         <div className="hero-buttons">
                             <button
                                 className="primary-button"
                                 onClick={() => openGame(hero)}
                             >
-                                View game <CaretRight size={17} />
+                                {t("viewGame")} <CaretRight size={17} />
                             </button>
                             {hero.downloadUrl && (
                                 <button
@@ -1421,17 +2476,17 @@ function Explore({
                                     {downloading[hero.id] ? (
                                         <>
                                             <DownloadSimple size={17} />{" "}
-                                            {ui("downloading")}
+                                            {t("downloading")}
                                         </>
                                     ) : installed?.[hero.id] ? (
                                         <>
                                             <Play size={17} weight="fill" />{" "}
-                                            {ui("play")}
+                                            {t("play")}
                                         </>
                                     ) : (
                                         <>
                                             <DownloadSimple size={17} />{" "}
-                                            {ui("download")}
+                                            {t("download")}
                                         </>
                                     )}
                                 </button>
@@ -1440,9 +2495,40 @@ function Explore({
                     </div>
                 </section>
             )}
+
+            {continuePlaying.length > 0 && (
+                <Section title={t("continuePlaying")}>
+                    <div className="continue-grid">
+                        {continuePlaying.map(({ game, data }) => (
+                            <button
+                                key={game.id}
+                                className="continue-card"
+                                onClick={() => onInstall(game, true)}
+                            >
+                                <div className="continue-image">
+                                    <SmartImage
+                                        src={imageOf(game)}
+                                        fallback={FALLBACK_COVER}
+                                        alt=""
+                                    />
+                                    <span className="continue-play">
+                                        <Play size={20} weight="fill" />
+                                    </span>
+                                </div>
+                                <div className="continue-copy">
+                                    <strong>{game.title}</strong>
+                                    <small>
+                                        {formatPlaytime(data.totalMs)} · {formatRelative(data.lastPlayedAt, t)}
+                                    </small>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </Section>
+            )}
             <Section
-                title={ui("games")}
-                action={ui("viewAll")}
+                title={t("games")}
+                action={t("viewAll")}
                 onAction={() => setView({ type: "catalog" })}
             >
                 {loading ? (
@@ -1466,8 +2552,8 @@ function Explore({
             </Section>
             {videos.length > 0 && (
                 <Section
-                    title={ui("videos")}
-                    action={ui("viewAll")}
+                    title={t("videos")}
+                    action={t("viewAll")}
                     onAction={() => setView({ type: "videos" })}
                 >
                     <div className="media-grid">
@@ -1488,7 +2574,7 @@ function Explore({
                                     </span>
                                 </div>
                                 <div>
-                                    <small>{v.category || ui("video")}</small>
+                                    <small>{v.category || t("video")}</small>
                                     <strong>{v.title}</strong>
                                 </div>
                             </button>
@@ -1498,8 +2584,8 @@ function Explore({
             )}
             {news.length > 0 && (
                 <Section
-                    title={ui("newswire")}
-                    action={ui("viewAll")}
+                    title={t("newswire")}
+                    action={t("viewAll")}
                     onAction={() => setView({ type: "news" })}
                 >
                     <div className="news-grid">
@@ -1519,7 +2605,7 @@ function Explore({
                                     />
                                 </div>
                                 <div>
-                                    <small>{ui("newswire")}</small>
+                                    <small>{t("newswire")}</small>
                                     <h3>{n.title}</h3>
                                     <p>{n.excerpt || ""}</p>
                                 </div>
@@ -1543,11 +2629,12 @@ function Catalog({
     setView,
     goBack,
 }) {
+    const { t } = useT();
     return (
         <div className="page">
             <PageHeading
-                title={ui("games")}
-                description={ui("browseCatalog")}
+                title={t("games")}
+                description={t("browseCatalog")}
             />
             <div className="game-grid">
                 {games.map((g) => (
@@ -1571,20 +2658,63 @@ function Library({
     installed,
     onInstall,
     onDelete,
+    playtime,
     openGame,
     setView,
     setActive,
 }) {
-    const items = games.filter((g) => installed[g.id]);
+    const [sort, setSort] = useState("recent");
+    const { t } = useT();
+    const items = useMemo(() => {
+        const list = games.filter((g) => installed[g.id]);
+        const withPlay = list.map((g) => ({
+            game: g,
+            played: playtime?.[g.id]?.totalMs || 0,
+            lastPlayed: playtime?.[g.id]?.lastPlayedAt || 0,
+            addedAt: installed[g.id]?.downloadedAt || 0,
+        }));
+        switch (sort) {
+            case "most-played":
+                return withPlay.sort((a, b) => b.played - a.played);
+            case "last-played":
+                return withPlay.sort((a, b) => b.lastPlayed - a.lastPlayed);
+            case "name":
+                return withPlay.sort((a, b) =>
+                    a.game.title.localeCompare(b.game.title),
+                );
+            case "recent":
+            default:
+                return withPlay.sort((a, b) => b.addedAt - a.addedAt);
+        }
+    }, [games, installed, playtime, sort]);
+
     return (
         <div className="page">
             <PageHeading
-                title={ui("library")}
-                description={ui("yourDownloads")}
+                title={t("library")}
+                description={t("yourDownloads")}
             />
+
+            {items.length > 0 && (
+                <div className="library-toolbar">
+                    <label>
+                        {t("sortBy")}:
+                        <select
+                            value={sort}
+                            onChange={(e) => setSort(e.target.value)}
+                        >
+                            <option value="recent">{t("sortRecent")}</option>
+                            <option value="last-played">{t("sortLastPlayed")}</option>
+                            <option value="most-played">{t("sortMostPlayed")}</option>
+                            <option value="name">{t("sortName")}</option>
+                        </select>
+                    </label>
+                </div>
+            )}
+
             {items.length ? (
                 <div className="library-list">
-                    {items.map((g) => (
+                    {items.map(({ game: g, played, lastPlayed }) => (
                         <article className="library-row" key={g.id}>
                             <SmartImage
                                 src={imageOf(g)}
@@ -1594,19 +2724,29 @@ function Library({
                             <div>
                                 <h3>{g.title}</h3>
                                 <span>
-                                    <CheckCircle size={15} /> {ui("installed")}
+                                    <CheckCircle size={15} /> {t("installed")}
                                 </span>
+                                {(played > 0 || lastPlayed > 0) && (
+                                    <div className="library-playtime">
+                                        {played > 0 && (
+                                            <span>{formatPlaytime(played)} {t("played")}</span>
+                                        )}
+                                        {lastPlayed > 0 && (
+                                            <span>· {formatRelative(lastPlayed, t)}</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="library-meta">
                                 <small>
-                                    {installed[g.id]?.filename || "Local game"}
+                                    {installed[g.id]?.filename || t("localGame")}
                                 </small>
                                 <button
                                     className="soft-button"
                                     onClick={() => onInstall(g, true)}
                                 >
                                     <Play size={16} weight="fill" />{" "}
-                                    {ui("play")}
+                                    {t("play")}
                                 </button>
                                 <button
                                     className="round-action"
@@ -1617,7 +2757,7 @@ function Library({
                                 <button
                                     className="round-action delete-local"
                                     onClick={() => onDelete(g)}
-                                    aria-label={`Delete ${g.title}`}
+                                    aria-label={`${t("delete")} ${g.title}`}
                                 >
                                     <Trash size={17} />
                                 </button>
@@ -1627,9 +2767,9 @@ function Library({
                 </div>
             ) : (
                 <Empty
-                    title={ui("emptyLibrary")}
-                    text={ui("emptyLibraryText")}
-                    action={ui("exploreGames")}
+                    title={t("emptyLibrary")}
+                    text={t("emptyLibraryText")}
+                    action={t("exploreGames")}
                     onAction={() => {
                         setView(null);
                         setActive("explore");
@@ -1650,12 +2790,13 @@ function Wishlist({
     setView,
     setActive,
 }) {
+    const { t } = useT();
     const items = games.filter((g) => wishlisted.has(g.id));
     return (
         <div className="page">
             <PageHeading
-                title={ui("wishlist")}
-                description={ui("wishlistDesc")}
+                title={t("wishlist")}
+                description={t("wishlistDesc")}
             />
             {items.length ? (
                 <div className="game-grid">
@@ -1674,9 +2815,9 @@ function Wishlist({
                 </div>
             ) : (
                 <Empty
-                    title={ui("nothingSaved")}
-                    text={ui("nothingSavedText")}
-                    action={ui("exploreGames")}
+                    title={t("nothingSaved")}
+                    text={t("nothingSavedText")}
+                    action={t("exploreGames")}
                     onAction={() => {
                         setView(null);
                         setActive("explore");
@@ -1696,6 +2837,7 @@ function GameDetails({
     installed,
     downloading,
 }) {
+    const { t } = useT();
     const [detail, setDetail] = useState(game);
     const [selected, setSelected] = useState(null);
     useEffect(() => {
@@ -1736,16 +2878,16 @@ function GameDetails({
                                 disabled={Boolean(downloading)}
                             >
                                 {downloading ? (
-                                    ui("downloading")
+                                    t("downloading")
                                 ) : installed ? (
                                     <>
                                         <Play size={17} weight="fill" />{" "}
-                                        {ui("play")}
+                                        {t("play")}
                                     </>
                                 ) : (
                                     <>
                                         <DownloadSimple size={17} />{" "}
-                                        {ui("download")}
+                                        {t("download")}
                                     </>
                                 )}
                             </button>
@@ -1758,7 +2900,7 @@ function GameDetails({
                                 size={17}
                                 weight={wishlisted ? "fill" : "regular"}
                             />{" "}
-                            {wishlisted ? ui("wishlisted") : ui("wishlist")}
+                            {wishlisted ? t("wishlisted") : t("wishlist")}
                         </button>
                         {detail?.trailerUrl && (
                             <button
@@ -1767,7 +2909,7 @@ function GameDetails({
                                     openExternal(mediaUrl(detail.trailerUrl))
                                 }
                             >
-                                <Play size={16} /> {ui("trailer")}
+                                <Play size={16} /> {t("trailer")}
                             </button>
                         )}
                     </div>
@@ -1776,11 +2918,11 @@ function GameDetails({
             <div className="detail-columns">
                 <main>
                     <section className="detail-section">
-                        <h2>{ui("about")}</h2>
+                        <h2>{t("about")}</h2>
                         <p>{detail?.description || detail?.shortDescription}</p>
                     </section>
                     <section className="detail-section">
-                        <h2>{ui("screenshots")}</h2>
+                        <h2>{t("screenshots")}</h2>
                         <div className="screenshots-grid">
                             {screenshots.map((src, i) => (
                                 <button
@@ -1799,7 +2941,7 @@ function GameDetails({
                 </main>
                 <aside className="detail-side">
                     <div>
-                        <small>{ui("status")}</small>
+                        <small>{t("status")}</small>
                         <strong>
                             {String(detail?.status || "released").replaceAll(
                                 "_",
@@ -1808,18 +2950,18 @@ function GameDetails({
                         </strong>
                     </div>
                     <div>
-                        <small>{ui("genres")}</small>
+                        <small>{t("genres")}</small>
                         <strong>{detail?.genres?.join(" · ") || "—"}</strong>
                     </div>
                     <div>
-                        <small>{ui("platforms")}</small>
+                        <small>{t("platforms")}</small>
                         <strong>
-                            {detail?.platforms?.join(" · ") || "Windows"}
+                            {detail?.platforms?.join(" · ") || t("windows")}
                         </strong>
                     </div>
                     {detail?.releaseDate && (
                         <div>
-                            <small>{ui("release")}</small>
+                            <small>{t("release")}</small>
                             <strong>{detail.releaseDate}</strong>
                         </div>
                     )}
@@ -1841,7 +2983,7 @@ function GameDetails({
                         <button
                             type="button"
                             onClick={() => setSelected(null)}
-                            aria-label="Close"
+                            aria-label={t("close")}
                         >
                             <X size={20} />
                         </button>
@@ -1869,6 +3011,7 @@ function videoEmbed(url) {
 function VideoPlayer({ video, onClose }) {
     const src = mediaUrl(video.video_url || video.videoUrl);
     const embed = videoEmbed(src);
+    const { t } = useT();
     return (
         <div
             className="overlay"
@@ -1891,12 +3034,12 @@ function VideoPlayer({ video, onClose }) {
                     ) : (
                         <div className="empty-video">
                             <VideoCamera size={34} />
-                            <span>No video source available.</span>
+                            <span>{t("noVideoSourceAvailable")}</span>
                         </div>
                     )}
                 </div>
                 <div className="video-modal-copy">
-                    <small>{video.category || "Video"}</small>
+                    <small>{video.category || t("video")}</small>
                     <h2>{video.title}</h2>
                 </div>
             </div>
@@ -1905,9 +3048,10 @@ function VideoPlayer({ video, onClose }) {
 }
 
 function VideosPage({ videos, openVideo, setView, goBack }) {
+    const { t } = useT();
     return (
         <div className="page">
-            <PageHeading title={ui("videos")} description={ui("watchVideos")} />
+            <PageHeading title={t("videos")} description={t("watchVideos")} />
             <div className="media-grid media-grid-large">
                 {videos.map((v) => (
                     <button
@@ -1926,7 +3070,7 @@ function VideosPage({ videos, openVideo, setView, goBack }) {
                             </span>
                         </div>
                         <div>
-                            <small>{v.category || ui("video")}</small>
+                            <small>{v.category || t("video")}</small>
                             <strong>{v.title}</strong>
                         </div>
                     </button>
@@ -1936,12 +3080,13 @@ function VideosPage({ videos, openVideo, setView, goBack }) {
     );
 }
 function VideoDetail({ video, setView, goBack }) {
+    const { t } = useT();
     const src = mediaUrl(video?.video_url || video?.videoUrl);
     const embed = videoEmbed(src);
     return (
         <div className="page video-detail-page">
             <PageHeading
-                title={video?.title || "Video"}
+                title={video?.title || t("video")}
                 description={video?.category || "Deadsmile Games video"}
             />
             <article className="video-detail">
@@ -1958,12 +3103,12 @@ function VideoDetail({ video, setView, goBack }) {
                     ) : (
                         <div className="empty-video">
                             <VideoCamera size={34} />
-                            <span>No video source available.</span>
+                            <span>{t("noVideoSourceAvailable")}</span>
                         </div>
                     )}
                 </div>
                 <div className="video-detail-copy">
-                    <small>{video?.category || "Video"}</small>
+                    <small>{video?.category || t("video")}</small>
                     <h2>{video?.title}</h2>
                     {video?.published_at && (
                         <p>
@@ -1976,9 +3121,10 @@ function VideoDetail({ video, setView, goBack }) {
     );
 }
 function NewsPage({ news, setView, goBack }) {
+    const { t } = useT();
     return (
         <div className="page">
-            <PageHeading title={ui("newswire")} description={ui("latest")} />
+            <PageHeading title={t("newswire")} description={t("latest")} />
             <div className="news-grid news-grid-large">
                 {news.map((n) => (
                     <button
@@ -1994,7 +3140,7 @@ function NewsPage({ news, setView, goBack }) {
                             />
                         </div>
                         <div>
-                            <small>{n.category || "Newswire"}</small>
+                            <small>{n.category || t("newswire")}</small>
                             <h3>{n.title}</h3>
                             <p>{n.excerpt || ""}</p>
                         </div>
@@ -2005,6 +3151,7 @@ function NewsPage({ news, setView, goBack }) {
     );
 }
 function NewsDetail({ item, setView, goBack }) {
+    const { t } = useT();
     const [detail, setDetail] = useState(item);
     useEffect(() => {
         if (!item?.slug) return;
@@ -2016,7 +3163,7 @@ function NewsDetail({ item, setView, goBack }) {
         <div className="page">
             <PageHeading
                 title={detail?.title || ""}
-                description={detail?.category || "Newswire"}
+                description={detail?.category || t("newswire")}
             />
             <article className="news-detail">
                 <SmartImage
@@ -2025,7 +3172,7 @@ function NewsDetail({ item, setView, goBack }) {
                     alt=""
                 />
                 <div>
-                    <small>{detail?.category || "Newswire"}</small>
+                    <small>{detail?.category || t("newswire")}</small>
                     <p className="news-date">
                         {detail?.published_at
                             ? new Date(detail.published_at).toLocaleDateString()
@@ -2088,6 +3235,7 @@ function AvatarEditor({
     onZoomChange,
     onApply,
 }) {
+    const { t } = useT();
     if (!avatarDraft) return null;
 
     const scale = Math.max(260 / avatarDraft.width, 260 / avatarDraft.height);
@@ -2106,15 +3254,14 @@ function AvatarEditor({
             <section className="modal-card avatar-modal">
                 <div className="modal-card__head">
                     <div>
-                        <small>Deadsmile Games</small>
-                        <h3>Adjust photo</h3>
+                        <h3>{t("adjustPhoto")}</h3>
                     </div>
 
                     <button
                         type="button"
                         className="modal-close"
                         onClick={onClose}
-                        aria-label="Close"
+                        aria-label={t("close")}
                     >
                         <X size={18} />
                     </button>
@@ -2151,7 +3298,7 @@ function AvatarEditor({
                         type="button"
                         className="crop-icon-btn"
                         onClick={onRotateLeft}
-                        aria-label="Rotate left"
+                        aria-label={t("rotateLeft")}
                     >
                         <ArrowCounterClockwise weight="bold" />
                     </button>
@@ -2163,14 +3310,14 @@ function AvatarEditor({
                         step="0.05"
                         value={zoom}
                         onChange={(e) => onZoomChange(Number(e.target.value))}
-                        aria-label="Zoom"
+                        aria-label={t("zoom")}
                     />
 
                     <button
                         type="button"
                         className="crop-icon-btn"
                         onClick={onRotateRight}
-                        aria-label="Rotate right"
+                        aria-label={t("rotateRight")}
                     >
                         <ArrowClockwise weight="bold" />
                     </button>
@@ -2182,7 +3329,7 @@ function AvatarEditor({
                         className="soft-button"
                         onClick={onClose}
                     >
-                        Cancel
+                        {t("cancel")}
                     </button>
 
                     <button
@@ -2190,7 +3337,7 @@ function AvatarEditor({
                         className="primary-button"
                         onClick={onApply}
                     >
-                        Apply
+                        {t("apply")}
                         <Check size={16} />
                     </button>
                 </div>
@@ -2212,6 +3359,7 @@ function Account({
     downloading,
     openGame,
 }) {
+    const { t } = useT();
     const [tab, setTab] = useState("profile");
     const [form, setForm] = useState({
         username: user?.username || "",
@@ -2224,11 +3372,7 @@ function Account({
     const [saving, setSaving] = useState(false);
     const [totp, setTotp] = useState({ enabled: false });
     const [totpLoading, setTotpLoading] = useState(false);
-
     const [message, setMessage] = useState("");
-
-    const [avatarOpen, setAvatarOpen] = useState(false);
-
     const [avatarDraft, setAvatarDraft] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [zoom, setZoom] = useState(1);
@@ -2259,7 +3403,7 @@ function Account({
             !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
             file.size > 5_000_000
         ) {
-            setMessage("Use PNG, JPG ou WEBP up to 5 MB.");
+            setMessage(t("usePngJpgWebpMax5MB"));
             return;
         }
 
@@ -2300,7 +3444,7 @@ function Account({
         } catch (error) {
             console.error(error);
 
-            setMessage("Failed to process image.");
+            setMessage(t("failedToProcessImage"));
         }
     }
 
@@ -2411,11 +3555,11 @@ function Account({
                 avatarUrl: next.avatarUrl || null,
             }));
 
-            setMessage(ui("changesSaved"));
+            setMessage(t("changesSaved"));
 
             setTimeout(() => setMessage(""), 1800);
         } catch (e) {
-            setMessage(e?.message || "Unable to save changes.");
+            setMessage(e?.message || t("unableToSaveChanges"));
         } finally {
             setSaving(false);
         }
@@ -2423,7 +3567,7 @@ function Account({
     async function setup2fa() {
         setTotpLoading(true);
         try {
-            const data = await api.get("/account/totp/setup");
+            await api.get("/account/totp/setup");
             openExternal(`${SITE_URL}/account#security`);
         } catch {
             openExternal(`${SITE_URL}/account#security`);
@@ -2445,23 +3589,23 @@ function Account({
         <div className="page account-page">
             <div className="account-layout">
                 <aside className="account-nav">
-                    <span className="account-nav-title">{ui("account")}</span>
-                    {tabs.map((t) => (
+                    <span className="account-nav-title">{t("account")}</span>
+                    {tabs.map((item) => (
                         <button
-                            key={t.id}
-                            className={tab === t.id ? "is-active" : ""}
-                            onClick={() => setTab(t.id)}
+                            key={item.id}
+                            className={tab === item.id ? "is-active" : ""}
+                            onClick={() => setTab(item.id)}
                         >
-                            <t.icon size={18} weight="bold" />
-                            <span>{t.label}</span>
+                            <item.icon size={18} weight="bold" />
+                            <span>{item.label}</span>
                         </button>
                     ))}
                     <span className="account-nav-title related">
-                        {ui("launcher")}
+                        {t("launcher")}
                     </span>
                     <button onClick={() => setTab("wishlist")}>
                         <HeartStraight size={18} />
-                        <span>{ui("wishlist")}</span>
+                        <span>{t("wishlist")}</span>
                     </button>
                 </aside>
                 <div className="account-content">
@@ -2478,7 +3622,7 @@ function Account({
                             )}
                             <label
                                 className="account-avatar-edit"
-                                aria-label={ui("changePicture")}
+                                aria-label={t("changePicture")}
                             >
                                 <PencilSimple size={18} weight="bold" />
 
@@ -2493,16 +3637,16 @@ function Account({
                             <h1>{user?.username || "Player"}</h1>
                             <span>
                                 {user?.createdAt
-                                    ? `Created ${new Date(user.createdAt).toLocaleDateString()}`
-                                    : "Deadsmile Games account"}
+                                    ? `${t("created")} ${new Date(user.createdAt).toLocaleDateString()}`
+                                    : t("deadsmileGamesAccount")}
                             </span>
                         </div>
                     </section>
                     {tab === "profile" && (
                         <section className="account-block">
                             <div className="account-block-head">
-                                <h2>{ui("profileDetails")}</h2>
-                                <p>{ui("profileDescription")}</p>
+                                <h2>{t("profileDetails")}</h2>
+                                <p>{t("profileDescription")}</p>
                             </div>
                             <form
                                 onSubmit={(e) => {
@@ -2518,7 +3662,7 @@ function Account({
                                 className="account-form"
                             >
                                 <Field
-                                    label={ui("username")}
+                                    label={t("username")}
                                     value={form.username}
                                     onChange={(e) =>
                                         setForm({
@@ -2531,7 +3675,7 @@ function Account({
                                     maxLength={24}
                                 />
                                 <Field
-                                    label={ui("bio")}
+                                    label={t("bio")}
                                     as="textarea"
                                     value={form.bio}
                                     onChange={(e) =>
@@ -2542,10 +3686,10 @@ function Account({
                                     }
                                     maxLength={500}
                                     rows={4}
-                                    placeholder="Write something about yourself."
+                                    placeholder={t("writeSomethingAboutYourself")}
                                 />
                                 <Field
-                                    label={ui("website")}
+                                    label={t("website")}
                                     value={form.websiteUrl}
                                     onChange={(e) =>
                                         setForm({
@@ -2556,7 +3700,7 @@ function Account({
                                     placeholder="https://…"
                                 />
                                 <Field
-                                    label={ui("location")}
+                                    label={t("location")}
                                     value={form.location}
                                     onChange={(e) =>
                                         setForm({
@@ -2564,13 +3708,13 @@ function Account({
                                             location: e.target.value,
                                         })
                                     }
-                                    placeholder="City, Country"
+                                    placeholder={t("cityCountry")}
                                 />
                                 <div className="account-form-foot">
                                     {message && (
                                         <span
                                             className={
-                                                message === ui("changesSaved")
+                                                message === t("changesSaved")
                                                     ? "success-text"
                                                     : "error-text"
                                             }
@@ -2583,8 +3727,8 @@ function Account({
                                         disabled={saving}
                                     >
                                         {saving
-                                            ? ui("saving")
-                                            : ui("saveProfile")}{" "}
+                                            ? t("saving")
+                                            : t("saveProfile")}{" "}
                                         <FloppyDisk size={16} />
                                     </button>
                                 </div>
@@ -2594,8 +3738,8 @@ function Account({
                     {tab === "account" && (
                         <section className="account-block">
                             <div className="account-block-head">
-                                <h2>{ui("account")}</h2>
-                                <p>{ui("accountDescription")}</p>
+                                <h2>{t("account")}</h2>
+                                <p>{t("accountDescription")}</p>
                             </div>
                             <form
                                 onSubmit={(e) => {
@@ -2605,7 +3749,7 @@ function Account({
                                 className="account-form"
                             >
                                 <Field
-                                    label={ui("email")}
+                                    label={t("email")}
                                     type="email"
                                     value={form.email}
                                     onChange={(e) =>
@@ -2625,7 +3769,7 @@ function Account({
                                         className="primary-button"
                                         disabled={saving}
                                     >
-                                        {ui("save")} <FloppyDisk size={16} />
+                                        {t("save")} <FloppyDisk size={16} />
                                     </button>
                                 </div>
                             </form>
@@ -2634,10 +3778,9 @@ function Account({
                     {tab === "security" && (
                         <section className="account-block">
                             <div className="account-block-head">
-                                <h2>{ui("security")}</h2>
+                                <h2>{t("security")}</h2>
                                 <p>
-                                    Keep your account protected with two-factor
-                                    authentication.
+                                    {t("keepYourAccountProtectedWithTwoFactor")}
                                 </p>
                             </div>
                             <div className="security-row">
@@ -2645,11 +3788,11 @@ function Account({
                                     <ShieldCheck size={23} />
                                 </div>
                                 <div>
-                                    <h3>{ui("twoFactor")}</h3>
+                                    <h3>{t("twoFactor")}</h3>
                                     <p>
                                         {totp.enabled
-                                            ? "Your account is protected by an authenticator."
-                                            : "Add an authenticator app for an extra layer of security."}
+                                            ? t("yourAccountIsProtectedByAnAuthenticator")
+                                            : t("addAnAuthenticatorAppForAnExtraLayerOfSecurity")}
                                     </p>
                                 </div>
                                 <span
@@ -2660,8 +3803,8 @@ function Account({
                                     }
                                 >
                                     {totp.enabled
-                                        ? ui("enabled")
-                                        : ui("notEnabled")}
+                                        ? t("enabled")
+                                        : t("notEnabled")}
                                 </span>
                                 <button
                                     className="soft-button"
@@ -2673,15 +3816,15 @@ function Account({
                                     disabled={totpLoading}
                                 >
                                     {totp.enabled
-                                        ? ui("manage2fa")
-                                        : ui("setUp2fa")}{" "}
+                                        ? t("manage2fa")
+                                        : t("setUp2fa")}{" "}
                                     <ArrowUpRight size={16} />
                                 </button>
                             </div>
                             <div className="security-danger">
                                 <div>
-                                    <h3>{ui("accountManagement")}</h3>
-                                    <p>{ui("accountManagementDescription")}</p>
+                                    <h3>{t("accountManagement")}</h3>
+                                    <p>{t("accountManagementDescription")}</p>
                                 </div>
                                 <button
                                     className="soft-button"
@@ -2689,7 +3832,7 @@ function Account({
                                         openExternal(`${SITE_URL}/account`)
                                     }
                                 >
-                                    {ui("openAccountCenter")}{" "}
+                                    {t("openAccountCenter")}{" "}
                                     <ArrowUpRight size={16} />
                                 </button>
                             </div>
@@ -2729,11 +3872,11 @@ function Account({
                     {tab === "wishlist" && (
                         <section className="account-block account-wishlist">
                             <div className="account-block-head">
-                                <h2>{ui("wishlist")}</h2>
-                                <p>{ui("wishlistAccount")}</p>
+                                <h2>{t("wishlist")}</h2>
+                                <p>{t("wishlistAccount")}</p>
                             </div>
                             {games.filter((g) => wishlist.has(g.id)).length ? (
-                                <div className="game-grid">
+                                <div className="game-grid" style={{ padding: '0px 28px 28px' }}>
                                     {games
                                         .filter((g) => wishlist.has(g.id))
                                         .map((g) => (
@@ -2755,8 +3898,8 @@ function Account({
                                 </div>
                             ) : (
                                 <Empty
-                                    title={ui("nothingSaved")}
-                                    text={ui("nothingSavedText")}
+                                    title={t("nothingSaved")}
+                                    text={t("nothingSavedText")}
                                 />
                             )}
                         </section>
@@ -2797,6 +3940,7 @@ function Admin({ onPublished, setView }) {
     const [items, setItems] = useState({ games: [], news: [], videos: [] });
     const [loading, setLoading] = useState(false);
     const [selected, setSelected] = useState(null);
+    const { t } = useT();
     const set = (key) => (e) =>
         setForm((f) => ({
             ...f,
@@ -2819,7 +3963,7 @@ function Admin({ onPublished, setView }) {
                 videos: listFrom(v, "videos"),
             });
         } catch (e) {
-            setMessage(e?.message || "Unable to load content.");
+            setMessage(e?.message || t("unableToLoadContent"));
         } finally {
             setLoading(false);
         }
@@ -2879,18 +4023,18 @@ function Admin({ onPublished, setView }) {
                 };
             }
             await api.post(path, payload);
-            setMessage("Published successfully.");
+            setMessage(t("publishedSuccessfully"));
             setForm(initialAdmin);
             await loadContent();
             onPublished?.();
         } catch (e) {
-            setMessage(e?.message || "Unable to publish.");
+            setMessage(e?.message || t("unableToPublish"));
         } finally {
             setSaving(false);
         }
     }
     async function remove(kind, id) {
-        if (!window.confirm("Delete this item permanently?")) return;
+        if (!window.confirm(t("deleteThisItemPermanently"))) return;
         const endpoint =
             kind === "games"
                 ? "game"
@@ -2905,7 +4049,7 @@ function Admin({ onPublished, setView }) {
             }));
             setSelected(null);
         } catch (e) {
-            setMessage(e?.message || "Unable to delete.");
+            setMessage(e?.message || t("unableToDelete"));
         }
     }
     const selectedKind = selected?.kind;
@@ -2913,21 +4057,20 @@ function Admin({ onPublished, setView }) {
     return (
         <div className="page admin-page">
             <PageHeading
-                title="Manage content"
-                description="Publish and manage games, news and videos from the launcher."
+                title={t("manageContent")}
+                description={t("publishAndManageGamesNewsAndVideosFromTheLauncher")}
             />
             <section className="manage-overview">
                 <div className="manage-overview-head">
                     <div>
-                        <span>Content library</span>
-                        <h2>Everything you publish</h2>
+                        <h2>{t("everythingYouPublish")}</h2>
                     </div>
                     <button
                         className="soft-button"
                         onClick={loadContent}
                         disabled={loading}
                     >
-                        <ArrowRight size={16} /> Refresh
+                        <ArrowRight size={16} /> {t("refresh")}
                     </button>
                 </div>
                 <div className="manage-columns">
@@ -2936,10 +4079,10 @@ function Admin({ onPublished, setView }) {
                             <div className="manage-column-head">
                                 <span>
                                     {kind === "games"
-                                        ? "Games"
+                                        ? t("games")
                                         : kind === "news"
-                                          ? "Newswire"
-                                          : "Videos"}
+                                        ? t("newswire")
+                                        : t("videos")}
                                 </span>
                                 <strong>{items[kind].length}</strong>
                             </div>
@@ -2959,7 +4102,7 @@ function Admin({ onPublished, setView }) {
                             ))}
                             {!items[kind].length && (
                                 <span className="muted">
-                                    Nothing published yet.
+                                    {t("nothingPublishedYet")}
                                 </span>
                             )}
                         </div>
@@ -2987,7 +4130,7 @@ function Admin({ onPublished, setView }) {
                             {selectedItem.shortDescription ||
                                 selectedItem.excerpt ||
                                 selectedItem.category ||
-                                "Published content"}
+                                t("publishedContent")}
                         </p>
                         <div className="manage-detail-actions">
                             <button
@@ -3010,7 +4153,7 @@ function Admin({ onPublished, setView }) {
                                         });
                                 }}
                             >
-                                Open
+                                {t("open")}
                             </button>
                             <button
                                 className="danger-button"
@@ -3018,7 +4161,7 @@ function Admin({ onPublished, setView }) {
                                     remove(selectedKind, selectedItem.id)
                                 }
                             >
-                                <Trash size={16} /> Delete
+                                <Trash size={16} /> {t("delete")}
                             </button>
                         </div>
                     </div>
@@ -3026,8 +4169,8 @@ function Admin({ onPublished, setView }) {
             )}
             <div className="create-heading">
                 <div>
-                    <span>Publish</span>
-                    <h2>Create something new</h2>
+                    <span>{t("publish")}</span>
+                    <h2>{t("createSomethingNew")}</h2>
                 </div>
             </div>
             <div className="create-actions">
@@ -3036,8 +4179,8 @@ function Admin({ onPublished, setView }) {
                 >
                     <GameController size={22} />
                     <span>
-                        <strong>New game</strong>
-                        <small>Add a title to the catalog</small>
+                        <strong>{t("newGame")}</strong>
+                        <small>{t("addATitleToTheCatalog")}</small>
                     </span>
                     <Plus size={18} />
                 </button>
@@ -3046,8 +4189,8 @@ function Admin({ onPublished, setView }) {
                 >
                     <Newspaper size={22} />
                     <span>
-                        <strong>New news</strong>
-                        <small>Publish a Newswire story</small>
+                        <strong>{t("newNews")}</strong>
+                        <small>{t("publishANewswireStory")}</small>
                     </span>
                     <Plus size={18} />
                 </button>
@@ -3056,8 +4199,8 @@ function Admin({ onPublished, setView }) {
                 >
                     <FilmStrip size={22} />
                     <span>
-                        <strong>New video</strong>
-                        <small>Add a native launcher video</small>
+                        <strong>{t("newVideo")}</strong>
+                        <small>{t("addANativeLauncherVideo")}</small>
                     </span>
                     <Plus size={18} />
                 </button>
@@ -3077,6 +4220,7 @@ function Admin({ onPublished, setView }) {
     );
 }
 function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
+    const { t } = useT();
     return (
         <div
             className="overlay form-overlay"
@@ -3085,13 +4229,12 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
             <section className="modal-card admin-form-card">
                 <div className="modal-card__head">
                     <div>
-                        <small>Manage content</small>
                         <h3>
                             {form.type === "game"
-                                ? "Publish game"
+                                ? t("publishGame")
                                 : form.type === "news"
-                                  ? "Publish news"
-                                  : "Publish video"}
+                                  ? t("publishNews")
+                                  : t("publishVideo")}
                         </h3>
                     </div>
                     <button className="modal-close" onClick={onClose}>
@@ -3102,33 +4245,33 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                     {form.type === "game" && (
                         <>
                             <Field
-                                label="Title"
+                                label={t("title")}
                                 value={form.title}
                                 onChange={set("title")}
                                 required
                             />
                             <div className="field-row">
                                 <Field
-                                    label="Slug"
+                                    label={t("slug")}
                                     value={form.slug}
                                     onChange={set("slug")}
                                     required
                                 />
                                 <Field
-                                    label="Release date"
+                                    label={t("releaseDate")}
                                     type="date"
                                     value={form.releaseDate}
                                     onChange={set("releaseDate")}
                                 />
                             </div>
                             <Field
-                                label="Short description"
+                                label={t("shortDescription")}
                                 value={form.shortDescription}
                                 onChange={set("shortDescription")}
                                 required
                             />
                             <Field
-                                label="Description"
+                                label={t("description")}
                                 as="textarea"
                                 value={form.description}
                                 onChange={set("description")}
@@ -3136,13 +4279,13 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                             />
                             <div className="field-row">
                                 <Field
-                                    label="Hero image URL"
+                                    label={t("heroImageURL")}
                                     value={form.heroImage}
                                     onChange={set("heroImage")}
                                     placeholder="https://…"
                                 />
                                 <Field
-                                    label="Cover image URL"
+                                    label={t("coverImageURL")}
                                     value={form.coverImage}
                                     onChange={set("coverImage")}
                                     placeholder="https://…"
@@ -3150,13 +4293,13 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                             </div>
                             <div className="field-row">
                                 <Field
-                                    label="Trailer URL"
+                                    label={t("trailerURL")}
                                     value={form.trailerUrl}
                                     onChange={set("trailerUrl")}
                                     placeholder="https://…"
                                 />
                                 <Field
-                                    label="Download URL (itch.io)"
+                                    label={t("downloadURLItch")}
                                     value={form.downloadUrl}
                                     onChange={set("downloadUrl")}
                                     placeholder="https://…"
@@ -3164,16 +4307,16 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                             </div>
                             <div className="field-row">
                                 <Field
-                                    label="Genres"
+                                    label={t("genres")}
                                     value={form.genres}
                                     onChange={set("genres")}
-                                    placeholder="Action, Adventure"
+                                    placeholder={t("actionAdventure")}
                                 />
                                 <Field
-                                    label="Platforms"
+                                    label={t("platforms")}
                                     value={form.platforms}
                                     onChange={set("platforms")}
-                                    placeholder="Windows, Web"
+                                    placeholder={t("windowsWeb")}
                                 />
                             </div>
                             <label className="check-field">
@@ -3182,25 +4325,25 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                                     checked={form.featured}
                                     onChange={set("featured")}
                                 />{" "}
-                                Featured game
+                                {t("featuredGame")}
                             </label>
                         </>
                     )}
                     {form.type === "news" && (
                         <>
                             <Field
-                                label="Title"
+                                label={t("title")}
                                 value={form.title}
                                 onChange={set("title")}
                                 required
                             />
                             <Field
-                                label="Excerpt"
+                                label={t("excerpt")}
                                 value={form.excerpt}
                                 onChange={set("excerpt")}
                             />
                             <Field
-                                label="Body"
+                                label={t("body")}
                                 as="textarea"
                                 value={form.body}
                                 onChange={set("body")}
@@ -3208,7 +4351,7 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                                 required
                             />
                             <Field
-                                label="Image URL"
+                                label={t("imageURL")}
                                 value={form.image}
                                 onChange={set("image")}
                                 placeholder="https://…"
@@ -3218,31 +4361,31 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                     {form.type === "video" && (
                         <>
                             <Field
-                                label="Title"
+                                label={t("title")}
                                 value={form.title}
                                 onChange={set("title")}
                                 required
                             />
                             <Field
-                                label="Category"
+                                label={t("category")}
                                 value={form.category}
                                 onChange={set("category")}
                                 required
                             />
                             <Field
-                                label="Video URL"
+                                label={t("videoURL")}
                                 value={form.videoUrl}
                                 onChange={set("videoUrl")}
-                                placeholder="Direct MP4/WebM or YouTube URL"
+                                placeholder={t("directMP4WebMWebmOrYouTubeURL")}
                             />
                             <Field
-                                label="Thumbnail URL"
+                                label={t("thumbnailURL")}
                                 value={form.thumbnail}
                                 onChange={set("thumbnail")}
                                 placeholder="https://…"
                             />
                             <Field
-                                label="Duration (seconds)"
+                                label={t("durationSeconds")}
                                 type="number"
                                 min="0"
                                 value={form.durationSeconds}
@@ -3252,7 +4395,7 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                     )}
                     <div className="admin-submit">
                         <button className="primary-button" disabled={saving}>
-                            {saving ? "Publishing…" : "Publish"}{" "}
+                            {saving ? t("publishing") : t("publish")}{" "}
                             <UploadSimple size={17} />
                         </button>
                         {message && (
@@ -3301,7 +4444,6 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [selectedGame, setSelectedGame] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
-    const [downloading, setDownloading] = useState({});
     const [notice, setNotice] = useState("");
     const [query, setQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -3321,7 +4463,47 @@ export default function App() {
     const [updateProgress, setUpdateProgress] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [linksOpen, setLinksOpen] = useState(false);
-    ACTIVE_LANGUAGE = language;
+    const {
+            queue: downloadQueue,
+            byId: downloadsById,
+            pause: pauseDownload,
+            resume: resumeDownload,
+            cancel: cancelDownload,
+            reorder: reorderDownloads,
+            setConcurrent: setDownloadConcurrency,
+        } = useDownloadQueue();
+        const playtime = usePlaytime();
+        const [confettiOrigin, setConfettiOrigin] = useState(null);
+        const [skullRain, setSkullRain] = useState(false);
+        const [crtMode, setCrtMode] = useState(false);
+        const [easterMenuOpen, setEasterMenuOpen] = useState(false);
+        const triggerKonami = useCallback(() => setCrtMode(true), []);
+        const triggerSkullRain = useCallback(() => setSkullRain(true), []);
+        const triggerConfetti = useCallback(
+            () =>
+                setConfettiOrigin({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 3,
+                }),
+            [],
+        );
+        const triggerMenu = useCallback(() => setEasterMenuOpen(true), []);
+
+        useKonamiCode(triggerKonami);
+        useSecretWord("deadsmile", triggerSkullRain);
+        useHotkey({ key: "c", ctrl: true, shift: true }, triggerConfetti);
+        useHotkey({ key: "e", ctrl: true, shift: true }, triggerMenu);
+        const online = useOnline();
+
+        const t = useMemo(
+            () => (key, params, fallback) => {
+                const dict = COPY[language] || COPY.en;
+                const raw = dict[key] || COPY.en[key] || fallback || key;
+                return interpolate(raw, params);
+            },
+            [language],
+        );
+        const languageCtx = useMemo(() => ({ language, t }), [language, t]);
     useEffect(() => {
         let alive = true;
         window.deadsmile?.storage
@@ -3414,33 +4596,61 @@ export default function App() {
             alive = false;
         };
     }, []);
-    useEffect(() => {
-        if (status !== "ready") return;
-        let alive = true;
-        setLoading(true);
-        Promise.all([
-            api.get("/games?page=1&limit=48"),
-            api.get("/news?limit=48"),
-            api.get("/videos?limit=48"),
-            api.get("/wishlist"),
-        ])
-            .then(([g, n, v, w]) => {
-                if (!alive) return;
-                setGames(listFrom(g, "games"));
-                setNews(listFrom(n, "news"));
-                setVideos(listFrom(v, "videos"));
-                setWishlist(new Set(listFrom(w, "games").map((x) => x.id)));
-            })
-            .catch(
-                (e) =>
-                    alive &&
-                    setNotice(e?.message || "Unable to load launcher content."),
-            )
-            .finally(() => alive && setLoading(false));
-        return () => {
-            alive = false;
-        };
-    }, [status]);
+useEffect(() => {
+    if (status !== "ready") return;
+    let alive = true;
+    setLoading(true);
+    const cached = readContentCache();
+    if (cached) {
+        setGames(cached.games || []);
+        setNews(cached.news || []);
+        setVideos(cached.videos || []);
+        if (Array.isArray(cached.wishlistIds)) {
+            setWishlist(new Set(cached.wishlistIds));
+        }
+    }
+    Promise.all([
+        api.get("/games?page=1&limit=48"),
+        api.get("/news?limit=48"),
+        api.get("/videos?limit=48"),
+        api.get("/wishlist"),
+    ])
+        .then(([g, n, v, w]) => {
+            if (!alive) return;
+            const gs = listFrom(g, "games");
+            const ns = listFrom(n, "news");
+            const vs = listFrom(v, "videos");
+            const ids = listFrom(w, "games").map((x) => x.id);
+
+            setGames(gs);
+            setNews(ns);
+            setVideos(vs);
+            setWishlist(new Set(ids));
+
+            writeContentCache({
+                games: gs,
+                news: ns,
+                videos: vs,
+                wishlistIds: ids,
+            });
+        })
+        .catch((e) => {
+            if (!alive) return;
+            if (cached) {
+                setNotice(
+                    COPY[language]?.offlineCacheNotice ||
+                        "Sem conexão — mostrando conteúdo em cache.",
+                );
+            } else {
+                setNotice(e?.message || "Unable to load launcher content.");
+            }
+        })
+        .finally(() => alive && setLoading(false));
+
+    return () => {
+        alive = false;
+    };
+}, [status]);
     useEffect(() => {
         if (status !== "ready" || !window.deadsmile?.checkForUpdate) return;
         let alive = true;
@@ -3452,7 +4662,7 @@ export default function App() {
                 setNotifications((n) => [
                     {
                         id: `update-${info.latestVersion}`,
-                        title: ui("updateAvailable"),
+                        title: t("updateAvailable"),
                         message: `v${info.latestVersion}`,
                         time: Date.now(),
                         unread: true,
@@ -3501,19 +4711,6 @@ export default function App() {
         return () => clearTimeout(timer);
     }, [query, games]);
     useEffect(() => {
-        if (!window.deadsmile?.onDownloadProgress) return;
-        return window.deadsmile.onDownloadProgress((p) =>
-            setDownloading((x) => {
-                if (p.status === "complete") {
-                    const n = { ...x };
-                    delete n[p.id];
-                    return n;
-                }
-                return { ...x, [p.id]: p };
-            }),
-        );
-    }, []);
-    useEffect(() => {
         try {
             localStorage.setItem(
                 "deadsmile.notifications",
@@ -3535,85 +4732,93 @@ export default function App() {
                 setWishlist((s) => new Set(s).add(game.id));
             }
         } catch (e) {
-            setNotice(e?.message || "Unable to update wishlist.");
+            setNotice(e?.message || t("unableToUpdateWishlist"));
         }
     }
     async function installGame(game, play = false) {
         if (play && installed[game.id]?.path) {
-            const error = await window.deadsmile?.openPath(
-                installed[game.id].path,
-            );
-            if (error) setNotice(error);
+            if (window.deadsmile?.playGame) {
+                const result = await window.deadsmile.playGame({
+                    id: game.id,
+                    exePath: installed[game.id].path,
+                });
+                if (result?.error) setNotice(result.error);
+            } else {
+                const error = await window.deadsmile?.openPath(
+                    installed[game.id].path,
+                );
+                if (error) setNotice(error);
+            }
             return;
         }
-        if (!game.downloadUrl) {
-            setNotice(ui("downloadUnavailable"));
+
+        if (!online) {
+            setNotice(t("offlineNoDownload"));
             return;
         }
-        setDownloading((x) => ({
-            ...x,
-            [game.id]: { percent: 0, status: "starting" },
-        }));
-        try {
-            const result = await window.deadsmile.downloadGame({
-                id: game.id,
-                slug: game.slug,
-                title: game.title,
-                url: game.downloadUrl,
-            });
-            setInstalled((x) => {
-                const n = {
-                    ...x,
-                    [game.id]: {
-                        path: result.path,
-                        folderPath: result.folderPath,
-                        filename: result.filename,
-                        downloadedAt: Date.now(),
-                    },
-                };
-                localStorage.setItem("deadsmile.library", JSON.stringify(n));
-                return n;
-            });
-            setDownloading((x) => {
-                const n = { ...x };
-                delete n[game.id];
-                return n;
-            });
-            setNotifications((n) => [
-                {
-                    id: `game-${game.id}-${Date.now()}`,
-                    title: ui("downloadComplete"),
-                    message: `${game.title} ${ui("gameReady")}`,
-                    time: Date.now(),
-                    unread: true,
-                },
-                ...n,
-            ]);
-            setNotice(`${game.title} ${ui("gameReady")}`);
-        } catch (e) {
-            setDownloading((x) => {
-                const n = { ...x };
-                delete n[game.id];
-                return n;
-            });
-            setNotifications((n) => [
-                {
-                    id: `error-${Date.now()}`,
-                    title: ui("downloadFailed"),
-                    message: e?.message || ui("downloadFailed"),
-                    time: Date.now(),
-                    unread: true,
-                },
-                ...n,
-            ]);
-            setNotice(e?.message || ui("downloadFailed"));
-        }
+
+    if (!game.downloadUrl) {
+        setNotice(t("downloadUnavailable"));
+        return;
     }
+
+    try {
+        const result = await window.deadsmile.downloadGame({
+            id: game.id,
+            slug: game.slug,
+            title: game.title,
+            url: game.downloadUrl,
+        });
+
+        setInstalled((x) => {
+            const n = {
+                ...x,
+                [game.id]: {
+                    path: result.path,
+                    folderPath: result.folderPath,
+                    filename: result.filename,
+                    downloadedAt: Date.now(),
+                },
+            };
+            localStorage.setItem("deadsmile.library", JSON.stringify(n));
+            return n;
+        });
+
+        setNotifications((n) => [
+            {
+                id: `game-${game.id}-${Date.now()}`,
+                title: t("downloadComplete"),
+                message: `${game.title} ${t("gameReady")}`,
+                time: Date.now(),
+                unread: true,
+            },
+            ...n,
+        ]);
+        setNotice(`${game.title} ${t("gameReady")}`);
+    } catch (e) {
+        const msg = e?.message || "";
+        if (msg === "Cancelled") {
+            setNotice(`${game.title}: ${t("downloadCancelled")}`);
+            return;
+        }
+        setNotifications((n) => [
+            {
+                id: `error-${Date.now()}`,
+                title: t("downloadFailed"),
+                message: msg || t("downloadFailed"),
+                time: Date.now(),
+                unread: true,
+            },
+            ...n,
+        ]);
+        setNotice(msg || t("downloadFailed"));
+    }
+}
     async function deleteInstalledGame(game) {
         const entry = installed[game.id];
         if (!entry?.path) return;
         const confirmed = window.confirm(
-            `${ui("deleteItem")}\n\n${game.title}`,
+            `${t("deleteItem")}\n\n${game.title}`,
         );
         if (!confirmed) return;
         try {
@@ -3627,9 +4832,9 @@ export default function App() {
                 localStorage.setItem("deadsmile.library", JSON.stringify(next));
                 return next;
             });
-            setNotice(`${game.title} was removed from your library.`);
+            setNotice(`${game.title} ${t("wasRemovedFromYourLibrary")}`);
         } catch (e) {
-            setNotice(e?.message || "Unable to delete the local game.");
+            setNotice(e?.message || t("unableToDeleteLocalGame"));
         }
     }
     async function startUpdate() {
@@ -3639,7 +4844,7 @@ export default function App() {
             await window.deadsmile.updateLauncher();
         } catch (e) {
             setUpdating(false);
-            setNotice(e?.message || ui("downloadFailed"));
+            setNotice(e?.message || t("downloadFailed"));
         }
     }
     function clearNotifications() {
@@ -3687,24 +4892,24 @@ export default function App() {
     }
     if (status === "booting")
         return (
-            <>
+            <LanguageContext.Provider value={languageCtx}>
                 <WindowChrome />
                 <Boot />
-            </>
+            </LanguageContext.Provider>
         );
-    if (status === "login")
-        return (
-            <>
-                <WindowChrome />
-                <Login
-                    onAuthenticated={(u) => {
-                        setUser(u);
-                        setStatus("ready");
-                        setActive("explore");
-                    }}
-                />
-            </>
-        );
+        if (status === "login")
+            return (
+                <LanguageContext.Provider value={languageCtx}>
+                    <WindowChrome />
+                    <Login
+                        onAuthenticated={(u) => {
+                            setUser(u);
+                            setStatus("ready");
+                            setActive("explore");
+                        }}
+                    />
+                </LanguageContext.Provider>
+            );
     let current;
     if (selectedGame)
         current = (
@@ -3715,7 +4920,7 @@ export default function App() {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={Boolean(installed[selectedGame.id])}
-                downloading={Boolean(downloading[selectedGame.id])}
+                downloading={Boolean(downloadsById[selectedGame.id])}
             />
         );
     else if (view?.type === "catalog")
@@ -3725,7 +4930,7 @@ export default function App() {
                 wishlisted={wishlist}
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
-                downloading={downloading}
+                downloading={downloadsById}
                 installed={installed}
                 openGame={openGame}
                 setView={setView}
@@ -3760,7 +4965,7 @@ export default function App() {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={Boolean(installed[view.item.id])}
-                downloading={Boolean(downloading[view.item.id])}
+                downloading={Boolean(downloadsById[view.item.id])}
             />
         );
     else if (active === "explore")
@@ -3769,11 +4974,12 @@ export default function App() {
                 games={games}
                 news={news}
                 videos={videos}
+                playtime={playtime}
                 loading={loading}
                 wishlisted={wishlist}
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
-                downloading={downloading}
+                downloading={downloadsById}
                 installed={installed}
                 openGame={openGame}
                 openVideo={openVideo}
@@ -3784,6 +4990,7 @@ export default function App() {
         current = (
             <Library
                 games={games}
+                playtime={playtime}
                 installed={installed}
                 onInstall={installGame}
                 onDelete={deleteInstalledGame}
@@ -3800,7 +5007,7 @@ export default function App() {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={installed}
-                downloading={downloading}
+                downloading={downloadsById}
                 openGame={openGame}
                 setView={setView}
                 setActive={nav}
@@ -3818,7 +5025,7 @@ export default function App() {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={installed}
-                downloading={downloading}
+                downloading={downloadsById}
                 openGame={openGame}
             />
         );
@@ -3827,6 +5034,7 @@ export default function App() {
     else current = null;
     return (
         <>
+            <LanguageContext.Provider value={languageCtx}>
             <WindowChrome locked={updating} />
             <div className="launcher">
                 <Sidebar
@@ -3839,6 +5047,12 @@ export default function App() {
                     language={language}
                 />
                 <main className="content">
+                        {!online && (
+                            <div className="offline-banner">
+                                <WarningCircle size={16} weight="bold" />
+                                <span>{t("offlineBanner")}</span>
+                            </div>
+                        )}
                     <TopActions
                         query={query}
                         setQuery={setQuery}
@@ -3875,20 +5089,16 @@ export default function App() {
                             <X size={15} />
                         </button>
                     )}
-                    {Object.values(downloading)
-                        .filter(Boolean)
-                        .map((p) => (
-                            <div className="download-strip" key={p.id}>
-                                <LoadingBar
-                                    label={
-                                        p.status === "installing"
-                                            ? ui("installing")
-                                            : ui("downloading")
-                                    }
-                                    percent={p.percent || 0}
-                                />
-                            </div>
-                        ))}
+                        {downloadQueue.length > 0 && (
+                            <DownloadPanel
+                                queue={downloadQueue}
+                                onPause={pauseDownload}
+                                onResume={resumeDownload}
+                                onCancel={cancelDownload}
+                                onReorder={reorderDownloads}
+                                onConcurrencyChange={setDownloadConcurrency}
+                            />
+                        )}
                     <div
                         className="route-view"
                         key={`${active}-${view?.type || ""}-${view?.item?.id || ""}-${selectedGame?.id || ""}`}
@@ -3908,6 +5118,30 @@ export default function App() {
                     <VideoPlayer video={selectedVideo} onClose={goBack} />
                 </Portal>
             )}
+            {confettiOrigin && (
+                <ConfettiBurst
+                    origin={confettiOrigin}
+                    onDone={() => setConfettiOrigin(null)}
+                />
+            )}
+            {skullRain && <SkullRain onDone={() => setSkullRain(false)} />}
+            {crtMode && <CrtOverlay onClose={() => setCrtMode(false)} />}
+            {easterMenuOpen && (
+                <EasterEggMenu
+                onClose={() => setEasterMenuOpen(false)}
+                    onTrigger={(id) => {
+                        if (id === "konami") setCrtMode(true);
+                        if (id === "confetti") {
+                            setConfettiOrigin({
+                                x: window.innerWidth / 2,
+                                y: window.innerHeight / 3,
+                            });
+                        }
+                        if (id === "word") setSkullRain(true);
+                    }}
+                />
+            )}
+                </LanguageContext.Provider>
         </>
     );
 }

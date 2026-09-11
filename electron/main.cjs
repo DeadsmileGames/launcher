@@ -6,12 +6,29 @@ const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { Readable } = require("node:stream");
 const { downloadGame: downloadItchGame } = require("itchio-downloader");
+const { DownloadQueue } = require("./download-queue.cjs");
 const STORAGE_ROOT = path.join(
   app.getPath("documents"),
   "Deadsmile Games Launcher",
 );
 const SETTINGS_DIR = path.join(STORAGE_ROOT, "settings");
 const GAMES_DIR = path.join(STORAGE_ROOT, "Games");
+const PLAYTIME_FILE = path.join(SETTINGS_DIR, "playtime.json");
+const playSessions = new Map();
+
+function readPlaytime() {
+    try {
+        return JSON.parse(fs.readFileSync(PLAYTIME_FILE, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function writePlaytime(data) {
+    try {
+        fs.writeFileSync(PLAYTIME_FILE, JSON.stringify(data, null, 2));
+    } catch {}
+}
 const LEGACY_USER_DATA = app.getPath("userData");
 const LEGACY_GAMES_DIR = path.join(app.getPath("downloads"), "Deadsmile Games");
 
@@ -185,74 +202,111 @@ async function firstExe(directory) {
   return null;
 }
 
-async function downloadGame({ id, slug, url }, sender) {
-  if (!isItch(url)) throw new Error("This game is not available on itch.io.");
-  const downloadRoot = GAMES_DIR;
-  const gameFolder = path.join(downloadRoot, sanitizeName(slug || id));
-  await fsp.mkdir(downloadRoot, { recursive: true });
-  await fsp.rm(gameFolder, { recursive: true, force: true });
+async function runDownloadWorker(job, ctx) {
+    const { id, slug, url } = job;
 
-  const result = await downloadItchGame({
-    itchGameUrl: url,
-    downloadDirectory: downloadRoot,
-    platform: "windows",
-    resume: true,
-    retries: 2,
-    retryDelayMs: 750,
-    writeMetaData: false,
-    onProgress: ({ bytesReceived, totalBytes, fileName }) => {
-      const total = Number(totalBytes) || 0;
-      const received = Number(bytesReceived) || 0;
-      send(sender, "deadsmile:download-progress", {
-        id,
-        status: "downloading",
-        received,
-        total,
-        percent: total
-          ? Math.min(100, Math.round((received / total) * 100))
-          : 0,
-        fileName: fileName || "",
-      });
-    },
-  });
-  if (!result?.filePath) throw new Error("itch.io download failed.");
+    if (!isItch(url))
+        throw new Error("This game is not available on itch.io.");
 
-  const fileName = path.basename(result.filePath);
-  if (!/\.zip$/i.test(fileName)) {
+    const downloadRoot = GAMES_DIR;
+    const gameFolder = path.join(downloadRoot, sanitizeName(slug || id));
+    await fsp.mkdir(downloadRoot, { recursive: true });
+    await fsp.rm(gameFolder, { recursive: true, force: true });
+
+    const result = await downloadItchGame({
+        itchGameUrl: url,
+        downloadDirectory: downloadRoot,
+        platform: "windows",
+        resume: true,
+        retries: 2,
+        retryDelayMs: 750,
+        writeMetaData: false,
+        onProgress: ({ bytesReceived, totalBytes, fileName }) => {
+            if (ctx.isAborted()) throw new Error("Cancelled");
+            if (ctx.isPaused()) throw new Error("Paused");
+
+            const total = Number(totalBytes) || 0;
+            const received = Number(bytesReceived) || 0;
+            ctx.onProgress({
+                status: "downloading",
+                received,
+                total,
+                percent: total
+                    ? Math.min(100, Math.round((received / total) * 100))
+                    : 0,
+                fileName: fileName || "",
+            });
+        },
+    });
+
+    if (ctx.isAborted()) throw new Error("Cancelled");
+    if (ctx.isPaused()) throw new Error("Paused");
+
+    if (!result?.filePath) throw new Error("itch.io download failed.");
+
+    const fileName = path.basename(result.filePath);
+    if (!/\.zip$/i.test(fileName)) {
+        await fsp.rm(result.filePath, { force: true }).catch(() => {});
+        throw new Error(
+            "This game is not available on itch.io for Windows yet.",
+        );
+    }
+
+    ctx.onProgress({
+        status: "installing",
+        received: result.bytesDownloaded || 0,
+        total: result.bytesDownloaded || 0,
+        percent: 100,
+        fileName,
+    });
+
+    await extractZip(result.filePath, gameFolder);
+
+    if (ctx.isAborted()) throw new Error("Cancelled");
+
+    const exePath = await firstExe(gameFolder);
     await fsp.rm(result.filePath, { force: true }).catch(() => {});
-    throw new Error("This game is not available on itch.io for Windows yet.");
-  }
 
-  send(sender, "deadsmile:download-progress", {
-    id,
-    status: "installing",
-    received: result.bytesDownloaded || 0,
-    total: result.bytesDownloaded || 0,
-    percent: 100,
-    fileName,
-  });
-  await extractZip(result.filePath, gameFolder);
-  const exePath = await firstExe(gameFolder);
-  await fsp.rm(result.filePath, { force: true }).catch(() => {});
-  if (!exePath) {
-    await fsp.rm(gameFolder, { recursive: true, force: true }).catch(() => {});
-    throw new Error("The Windows download does not contain a game executable.");
-  }
-  send(sender, "deadsmile:download-progress", {
-    id,
-    status: "complete",
-    received: result.bytesDownloaded || 0,
-    total: result.bytesDownloaded || 0,
-    percent: 100,
-    fileName: path.basename(exePath),
-  });
-  return {
-    path: exePath,
-    folderPath: gameFolder,
-    filename: path.basename(exePath),
-    slug,
-  };
+    if (!exePath) {
+        await fsp
+            .rm(gameFolder, { recursive: true, force: true })
+            .catch(() => {});
+        throw new Error(
+            "The Windows download does not contain a game executable.",
+        );
+    }
+
+    ctx.onProgress({
+        status: "complete",
+        received: result.bytesDownloaded || 0,
+        total: result.bytesDownloaded || 0,
+        percent: 100,
+        fileName: path.basename(exePath),
+    });
+
+    return {
+        path: exePath,
+        folderPath: gameFolder,
+        filename: path.basename(exePath),
+        slug,
+    };
 }
+
+function broadcast(channel, payload) {
+    for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) {
+            try {
+                win.webContents.send(channel, payload);
+            } catch {}
+        }
+    }
+}
+
+const downloadQueue = new DownloadQueue({
+    worker: runDownloadWorker,
+    broadcast,
+    maxConcurrent: 2,
+});
 
 async function checkForUpdate() {
   if (!app.isPackaged)
@@ -422,6 +476,7 @@ app.whenReady().then(() => {
     settings: SETTINGS_DIR,
     games: GAMES_DIR,
   }));
+  
   ipcMain.handle("deadsmile:normalize-library", (_event, library) => {
     if (!library || typeof library !== "object") return {};
     const legacyRoot = path.resolve(LEGACY_GAMES_DIR);
@@ -466,9 +521,85 @@ app.whenReady().then(() => {
     if (typeof target !== "string") return "Invalid file path.";
     return shell.openPath(target);
   });
-  ipcMain.handle("deadsmile:download-game", async (event, request) =>
-    downloadGame(request, event.sender),
+  ipcMain.handle("deadsmile:download-game", (_event, request) =>
+      downloadQueue.enqueue(request),
   );
+  ipcMain.handle("deadsmile:download-pause", (_event, id) =>
+      downloadQueue.pause(id),
+  );
+  ipcMain.handle("deadsmile:download-resume", (_event, id) =>
+      downloadQueue.resume(id),
+  );
+  ipcMain.handle("deadsmile:download-cancel", (_event, id) =>
+      downloadQueue.cancel(id),
+  );
+  ipcMain.handle("deadsmile:download-reorder", (_event, ids) =>
+      downloadQueue.reorder(ids),
+  );
+  ipcMain.handle("deadsmile:download-set-concurrent", (_event, n) => {
+      downloadQueue.setMaxConcurrent(n);
+      return downloadQueue.maxConcurrent;
+  });
+  ipcMain.handle("deadsmile:download-snapshot", () =>
+      downloadQueue.snapshot(),
+  );
+  ipcMain.handle("deadsmile:playtime-get", () => readPlaytime());
+
+  ipcMain.handle("deadsmile:playtime-clear", () => {
+      writePlaytime({});
+      return {};
+  });
+
+  ipcMain.handle(
+      "deadsmile:play-game",
+      async (_event, { id, exePath, args = [] }) => {
+          if (!id || !exePath) return { error: "Invalid game." };
+          if (playSessions.has(id)) return { error: "Already running." };
+
+          const child = spawn(exePath, args, {
+              detached: true,
+              stdio: "ignore",
+              windowsHide: false,
+          });
+          child.unref();
+
+          const startedAt = Date.now();
+          playSessions.set(id, { startedAt, child });
+
+          const finish = () => {
+              const session = playSessions.get(id);
+              if (!session) return;
+              playSessions.delete(id);
+
+              const durationMs = Date.now() - session.startedAt;
+              const data = readPlaytime();
+              const prev = data[id] || { totalMs: 0, sessions: 0 };
+              data[id] = {
+                  totalMs: prev.totalMs + durationMs,
+                  lastPlayedAt: Date.now(),
+                  sessions: prev.sessions + 1,
+              };
+              writePlaytime(data);
+
+              for (const win of BrowserWindow.getAllWindows()) {
+                  if (!win.isDestroyed()) {
+                      try {
+                          win.webContents.send(
+                              "deadsmile:playtime-update",
+                              data,
+                          );
+                      } catch {}
+                  }
+              }
+          };
+
+          child.on("exit", finish);
+          child.on("error", finish);
+
+          return { pid: child.pid, startedAt };
+      },
+  );
+
   ipcMain.handle("deadsmile:delete-game", async (_event, target) => {
     if (typeof target !== "string" || !target.trim())
       return "Invalid game path.";

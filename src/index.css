@@ -469,6 +469,7 @@ img {
 }
 .primary-button,
 .soft-button,
+.soft-button-2,
 .danger-button,
 .install-button {
   display: inline-flex;
@@ -507,6 +508,18 @@ img {
 .soft-button:hover {
   background: #30333f;
   transform: translateY(-1px);
+}
+.soft-button-2 {
+  background: #272a35;
+  color: #f2f2f4;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.soft-button-2:hover {
+  background: #30333f;
 }
 .danger-button {
   background: var(--danger-bg);
@@ -1709,6 +1722,30 @@ img {
 }
 .login-links button:hover {
   color: #fff;
+}
+
+
+.launcher-version {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  color: #6f727b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}
+.login-version {
+  z-index: 3;
+}
+.account-page {
+  position: relative;
+}
+.account-version {
+  position: fixed;
+  right: 20px;
+  bottom: 14px;
 }
 @media (max-width: 1100px) {
   .sidebar {

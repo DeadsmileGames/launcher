@@ -14,7 +14,7 @@ class DownloadQueue {
         this._emit();
     }
 
-    enqueue({ id, slug, title, url }) {
+    enqueue({ id, slug, title, url, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
         if (this.jobs.has(id)) return this.jobs.get(id).promise;
 
         let resolve, reject;
@@ -28,6 +28,10 @@ class DownloadQueue {
             slug,
             title,
             url,
+            mode,
+            currentVersion,
+            filename,
+            installedPath,
             status: "queued",
             percent: 0,
             bytesReceived: 0,
@@ -102,6 +106,7 @@ class DownloadQueue {
                 id: j.id,
                 slug: j.slug,
                 title: j.title,
+                mode: j.mode,
                 status: j.status,
                 percent: j.percent,
                 bytesReceived: j.bytesReceived,

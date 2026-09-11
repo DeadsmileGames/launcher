@@ -1708,7 +1708,9 @@ function DownloadPanel({
                                 parts.push(`ETA ${formatEta(eta)}`);
                             subtitle = parts.join(" · ") || t("downloadStarting");
                         } else if (item.status === "installing") {
-                            subtitle = 	t("downloadInstalling");
+                            subtitle = t("downloadInstalling");
+                        } else if (item.status === "updating") {
+                            subtitle = t("updating");
                         } else if (item.status === "queued") {
                             subtitle = `${t("downloadQueuePosition")} (#${item.queuePosition + 1})`
                         } else if (item.status === "paused") {
@@ -1818,8 +1820,21 @@ function Boot() {
     );
 }
 
+function useLauncherVersion() {
+    const [version, setVersion] = useState("");
+    useEffect(() => {
+        let alive = true;
+        window.deadsmile?.version?.().then?.((value) => {
+            if (alive) setVersion(String(value || ""));
+        }).catch?.(() => {});
+        return () => { alive = false; };
+    }, []);
+    return version;
+}
+
 function Login({ onAuthenticated }) {
     const { t } = useT();
+    const launcherVersion = useLauncherVersion();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [token, setToken] = useState("");
@@ -1938,6 +1953,7 @@ function Login({ onAuthenticated }) {
                     </button>
                 </div>
             </section>
+            {launcherVersion && <span className="launcher-version login-version">v{launcherVersion}</span>}
         </main>
     );
 }
@@ -2184,6 +2200,84 @@ function TopActions({
     );
 }
 
+const gameUpdateCache = new Map();
+
+function versionFromLocalFilename(filename) {
+  const base = String(filename || "").trim();
+
+  const matches = [...base.matchAll(/v(\d{3})(?!\d)/gi)];
+
+  if (!matches.length) {
+    return null;
+  }
+
+  return String(Number.parseInt(
+    matches[matches.length - 1][1],
+    10
+  ));
+}
+function useGameUpdateStatus(game, installedEntry) {
+    const [state, setState] = useState({ available: false, checking: false });
+    const [retryToken, setRetryToken] = useState(0);
+    const cacheKey = installedEntry?.path
+        ? `${game?.id}:${installedEntry.path}:${installedEntry.filename || ""}:${installedEntry.downloadedAt || ""}`
+        : "";
+
+    useEffect(() => {
+        let alive = true;
+        if (!installedEntry?.path || !game?.downloadUrl || !window.deadsmile?.checkGameUpdate) {
+            setState({ available: false, checking: false });
+            return () => { alive = false; };
+        }
+
+        const cached = gameUpdateCache.get(cacheKey);
+        if (cached) {
+            setState(cached);
+            return () => { alive = false; };
+        }
+
+        setState({ available: false, checking: true });
+        window.deadsmile.checkGameUpdate({
+            id: game.id,
+            slug: game.slug,
+            url: game.downloadUrl,
+            currentVersion:
+                installedEntry.version ||
+                versionFromLocalFilename(installedEntry.filename),
+
+            filename: installedEntry.filename,
+            path: installedEntry.path,
+        }).then((result) => {
+            if (!alive) return;
+            const next = {
+                available: Boolean(result?.available),
+                checking: false,
+                latestVersion: result?.latestVersion || null,
+            };
+            gameUpdateCache.set(cacheKey, next);
+            setState(next);
+        }).catch(() => {
+            if (!alive) return;
+            const next = { available: false, checking: false };
+            gameUpdateCache.set(cacheKey, next);
+            setState(next);
+        });
+
+        return () => { alive = false; };
+    }, [cacheKey, game?.id, game?.downloadUrl, game?.slug, installedEntry?.path, retryToken]);
+
+    useEffect(() => {
+        const handleOnline = () => {
+            gameUpdateCache.delete(cacheKey);
+            setRetryToken((value) => value + 1);
+        };
+        window.addEventListener("online", handleOnline);
+        return () => window.removeEventListener("online", handleOnline);
+    }, [cacheKey]);
+
+    return state;
+}
+
 function GameCard({
     game,
     wishlisted,
@@ -2191,10 +2285,13 @@ function GameCard({
     onOpen,
     onInstall,
     installed,
+    installedEntry,
     downloading,
 }) {
     const { t } = useT();
     const progress = downloading?.percent;
+    const gameUpdate = useGameUpdateStatus(game, installedEntry);
+    const isUpdating = downloading?.mode === "update" || downloading?.status === "updating";
     return (
         <article className="game-card">
             <button className="game-card-image" onClick={() => onOpen(game)}>
@@ -2243,11 +2340,18 @@ function GameCard({
                     {game.downloadUrl && (
                         <button
                             className="install-button"
-                            onClick={() => onInstall(game, installed)}
+                            onClick={() => onInstall(game, installed, gameUpdate.available)}
                             disabled={Boolean(downloading)}
                         >
-                            {downloading ? (
+                            {isUpdating ? (
+                                t("updating")
+                            ) : downloading ? (
                                 `${progress || 0}%`
+                            ) : gameUpdate.available ? (
+                                <>
+                                    <DownloadSimple size={14} />{" "}
+                                    {t("update")}
+                                </>
                             ) : installed ? (
                                 <>
                                     <Play size={14} weight="fill" />{" "}
@@ -2374,7 +2478,7 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
                     <p>{t("doNotClose")}</p>
                     <LoadingBar
                         label={
-                            progress?.status === "installing"
+                            progress?.status === "installing" || progress?.status === "updating"
                                 ? t("installingUpdate")
                                 : t("downloadingUpdate")
                         }
@@ -2422,6 +2526,7 @@ function Explore({
 }) {
     const { t } = useT();
     const hero = games.find((g) => g.featured) || games[0];
+    const heroUpdate = useGameUpdateStatus(hero, hero ? installed?.[hero.id] : null);
     const continuePlaying = useMemo(() => {
         if (!playtime || !installed) return [];
         return Object.entries(playtime)
@@ -2466,14 +2571,22 @@ function Explore({
                                         onInstall(
                                             hero,
                                             Boolean(installed?.[hero.id]),
+                                            heroUpdate.available,
                                         )
                                     }
                                     disabled={Boolean(downloading[hero.id])}
                                 >
-                                    {downloading[hero.id] ? (
+                                    {downloading[hero.id]?.mode === "update" || downloading[hero.id]?.status === "updating" ? (
+                                        t("updating")
+                                    ) : downloading[hero.id] ? (
                                         <>
                                             <DownloadSimple size={17} />{" "}
                                             {t("downloading")}
+                                        </>
+                                    ) : heroUpdate.available ? (
+                                        <>
+                                            <DownloadSimple size={17} />{" "}
+                                            {t("update")}
                                         </>
                                     ) : installed?.[hero.id] ? (
                                         <>
@@ -2541,6 +2654,7 @@ function Explore({
                                 onOpen={openGame}
                                 onInstall={onInstall}
                                 installed={Boolean(installed?.[g.id])}
+                        installedEntry={installed?.[g.id]}
                                 downloading={downloading[g.id]}
                             />
                         ))}
@@ -2643,6 +2757,7 @@ function Catalog({
                         onOpen={openGame}
                         onInstall={onInstall}
                         installed={Boolean(installed?.[g.id])}
+                        installedEntry={installed?.[g.id]}
                         downloading={downloading[g.id]}
                     />
                 ))}
@@ -2650,12 +2765,51 @@ function Catalog({
         </div>
     );
 }
+function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloading, onInstall, onDelete, openGame }) {
+    const { t } = useT();
+    const gameUpdate = useGameUpdateStatus(g, installedEntry);
+    const isUpdating = downloading?.mode === "update" || downloading?.status === "updating";
+    return (
+        <article className="library-row">
+            <SmartImage src={imageOf(g)} fallback={FALLBACK_COVER} alt="" />
+            <div>
+                <h3>{g.title}</h3>
+                <span><CheckCircle size={15} /> {t("installed")}</span>
+                {(played > 0 || lastPlayed > 0) && (
+                    <div className="library-playtime">
+                        {played > 0 && <span>{formatPlaytime(played)} {t("played")}</span>}
+                        {lastPlayed > 0 && <span>· {formatRelative(lastPlayed, t)}</span>}
+                    </div>
+                )}
+            </div>
+            <div className="library-meta">
+                <small>{installedEntry?.filename || t("localGame")}</small>
+                <button
+                    className="soft-button"
+                    onClick={() => onInstall(g, !gameUpdate.available, gameUpdate.available)}
+                    disabled={Boolean(downloading)}
+                >
+                    {isUpdating ? t("updating") : gameUpdate.available ? <DownloadSimple size={16} /> : <Play size={16} weight="fill" />}{" "}
+                    {isUpdating ? t("updating") : gameUpdate.available ? t("update") : t("play")}
+                </button>
+                <button className="round-action" onClick={() => openGame(g)}>
+                    <ArrowUpRight size={17} />
+                </button>
+                <button className="round-action delete-local" onClick={() => onDelete(g)} aria-label={`${t("delete")} ${g.title}`}>
+                    <Trash size={17} />
+                </button>
+            </div>
+        </article>
+    );
+}
+
 function Library({
     games,
     installed,
     onInstall,
     onDelete,
     playtime,
+    downloading,
     openGame,
     setView,
     setActive,
@@ -2712,54 +2866,17 @@ function Library({
             {items.length ? (
                 <div className="library-list">
                     {items.map(({ game: g, played, lastPlayed }) => (
-                        <article className="library-row" key={g.id}>
-                            <SmartImage
-                                src={imageOf(g)}
-                                fallback={FALLBACK_COVER}
-                                alt=""
-                            />
-                            <div>
-                                <h3>{g.title}</h3>
-                                <span>
-                                    <CheckCircle size={15} /> {t("installed")}
-                                </span>
-                                {(played > 0 || lastPlayed > 0) && (
-                                    <div className="library-playtime">
-                                        {played > 0 && (
-                                            <span>{formatPlaytime(played)} {t("played")}</span>
-                                        )}
-                                        {lastPlayed > 0 && (
-                                            <span>· {formatRelative(lastPlayed, t)}</span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="library-meta">
-                                <small>
-                                    {installed[g.id]?.filename || t("localGame")}
-                                </small>
-                                <button
-                                    className="soft-button"
-                                    onClick={() => onInstall(g, true)}
-                                >
-                                    <Play size={16} weight="fill" />{" "}
-                                    {t("play")}
-                                </button>
-                                <button
-                                    className="round-action"
-                                    onClick={() => openGame(g)}
-                                >
-                                    <ArrowUpRight size={17} />
-                                </button>
-                                <button
-                                    className="round-action delete-local"
-                                    onClick={() => onDelete(g)}
-                                    aria-label={`${t("delete")} ${g.title}`}
-                                >
-                                    <Trash size={17} />
-                                </button>
-                            </div>
-                        </article>
+                        <LibraryGameRow
+                            key={g.id}
+                            game={g}
+                            played={played}
+                            lastPlayed={lastPlayed}
+                            installedEntry={installed[g.id]}
+                            downloading={downloading?.[g.id]}
+                            onInstall={onInstall}
+                            onDelete={onDelete}
+                            openGame={openGame}
+                        />
                     ))}
                 </div>
             ) : (
@@ -2806,6 +2923,7 @@ function Wishlist({
                             onOpen={openGame}
                             onInstall={onInstall}
                             installed={Boolean(installed?.[g.id])}
+                        installedEntry={installed?.[g.id]}
                             downloading={downloading[g.id]}
                         />
                     ))}
@@ -2832,11 +2950,15 @@ function GameDetails({
     onWishlist,
     onInstall,
     installed,
+    installedEntry,
     downloading,
 }) {
     const { t } = useT();
     const [detail, setDetail] = useState(game);
     const [selected, setSelected] = useState(null);
+    const gameUpdate = useGameUpdateStatus(detail, installedEntry);
+    const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [manualUpdateCheck, setManualUpdateCheck] = useState(null);
     useEffect(() => {
         let alive = true;
         api.get(`/games/${slugOf(game)}`)
@@ -2846,6 +2968,36 @@ function GameDetails({
             alive = false;
         };
     }, [game]);
+
+    async function checkForGameUpdates() {
+        if (checkingUpdate) return;
+
+        setCheckingUpdate(true);
+        setManualUpdateCheck(null);
+
+        try {
+            const result = await window.deadsmile.checkGameUpdate({
+            id: game.id,
+            slug: game.slug,
+            url: game.downloadUrl,
+            currentVersion:
+                installedEntry?.version ||
+                versionFromLocalFilename(installedEntry?.filename),
+            filename: installedEntry?.filename,
+            path: installedEntry?.path,
+            });
+
+            setManualUpdateCheck(result);
+        } catch (error) {
+            console.error("Failed to check game update:", error);
+
+            setManualUpdateCheck({
+            error: error?.message || "Failed to check for updates.",
+            });
+        } finally {
+            setCheckingUpdate(false);
+        }
+        }
     const screenshots = detail?.screenshots?.length
         ? detail.screenshots
         : Array.from(
@@ -2871,11 +3023,19 @@ function GameDetails({
                         {detail?.downloadUrl && (
                             <button
                                 className="primary-button"
-                                onClick={() => onInstall(detail, installed)}
+                                onClick={() => onInstall(detail, installed, gameUpdate.available)}
                                 disabled={Boolean(downloading)}
                             >
-                                {downloading ? (
+                                
+                                {downloading?.mode === "update" || downloading?.status === "updating" ? (
+                                    t("updating")
+                                ) : downloading ? (
                                     t("downloading")
+                                ) : gameUpdate.available ? (
+                                    <>
+                                        <DownloadSimple size={17} />{" "}
+                                        {t("update")}
+                                    </>
                                 ) : installed ? (
                                     <>
                                         <Play size={17} weight="fill" />{" "}
@@ -2888,6 +3048,7 @@ function GameDetails({
                                     </>
                                 )}
                             </button>
+                            
                         )}
                         <button
                             className="soft-button"
@@ -2909,6 +3070,35 @@ function GameDetails({
                                 <Play size={16} /> {t("trailer")}
                             </button>
                         )}
+                        <button
+                            type="button"
+                            onClick={checkForGameUpdates}
+                            className="soft-button"
+                            disabled={checkingUpdate}
+                        >
+                            <ArrowClockwise size={16} />
+                            {checkingUpdate ? "Checking..." : "Check for updates"}
+                        </button>
+                        {manualUpdateCheck?.error && (
+                            <div>
+                                {manualUpdateCheck.error}
+                            </div>
+                            )}
+
+                            {manualUpdateCheck && !manualUpdateCheck.error && (
+                            <div
+                                className="soft-button-2"
+                                style={{
+                                    color: manualUpdateCheck.available
+                                    ? "#f4f4f5"
+                                    : "#858894",
+                                }}
+                            >
+                                {manualUpdateCheck.available
+                                ? `Update available: v${manualUpdateCheck.latestVersion}`
+                                : "You're up to date."}
+                            </div>
+                            )}
                     </div>
                 </div>
             </section>
@@ -3357,6 +3547,7 @@ function Account({
     openGame,
 }) {
     const { t } = useT();
+    const launcherVersion = useLauncherVersion();
     const [tab, setTab] = useState("profile");
     const [form, setForm] = useState({
         username: user?.username || "",
@@ -3887,6 +4078,7 @@ function Account({
                                                 installed={Boolean(
                                                     installed?.[g.id],
                                                 )}
+                                                installedEntry={installed?.[g.id]}
                                                 downloading={
                                                     downloading?.[g.id]
                                                 }
@@ -3925,6 +4117,7 @@ function Account({
                     />
                 </Portal>
             )}
+        {launcherVersion && <span className="launcher-version account-version">v{launcherVersion}</span>}
         </div>
         
     );
@@ -4732,8 +4925,8 @@ useEffect(() => {
             setNotice(e?.message || t("unableToUpdateWishlist"));
         }
     }
-    async function installGame(game, play = false) {
-        if (play && installed[game.id]?.path) {
+    async function installGame(game, play = false, forceUpdate = false) {
+        if (play && !forceUpdate && installed[game.id]?.path) {
             if (window.deadsmile?.playGame) {
                 const result = await window.deadsmile.playGame({
                     id: game.id,
@@ -4760,11 +4953,17 @@ useEffect(() => {
     }
 
     try {
+        const currentEntry = installed[game.id];
+        const mode = forceUpdate && currentEntry?.path ? "update" : "download";
         const result = await window.deadsmile.downloadGame({
             id: game.id,
             slug: game.slug,
             title: game.title,
             url: game.downloadUrl,
+            mode,
+            currentVersion: currentEntry?.version,
+            filename: currentEntry?.filename,
+            path: currentEntry?.path,
         });
 
         setInstalled((x) => {
@@ -4775,6 +4974,7 @@ useEffect(() => {
                     folderPath: result.folderPath,
                     filename: result.filename,
                     downloadedAt: Date.now(),
+                    version: result.version || versionFromLocalFilename(result.filename),
                 },
             };
             localStorage.setItem("deadsmile.library", JSON.stringify(n));
@@ -4917,7 +5117,8 @@ useEffect(() => {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={Boolean(installed[selectedGame.id])}
-                downloading={Boolean(downloadsById[selectedGame.id])}
+                installedEntry={installed[selectedGame.id]}
+                downloading={downloadsById[selectedGame.id]}
             />
         );
     else if (view?.type === "catalog")
@@ -4962,7 +5163,8 @@ useEffect(() => {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={Boolean(installed[view.item.id])}
-                downloading={Boolean(downloadsById[view.item.id])}
+                installedEntry={installed[view.item.id]}
+                downloading={downloadsById[view.item.id]}
             />
         );
     else if (active === "explore")
@@ -4991,6 +5193,7 @@ useEffect(() => {
                 installed={installed}
                 onInstall={installGame}
                 onDelete={deleteInstalledGame}
+                downloading={downloadsById}
                 openGame={openGame}
                 setView={setView}
                 setActive={nav}

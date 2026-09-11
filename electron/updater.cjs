@@ -1,172 +1,209 @@
-const fs = require('node:fs');
-const fsp = require('node:fs/promises');
-const path = require('node:path');
-const os = require('node:os');
-const { spawn } = require('node:child_process');
+const fs = require("node:fs");
+const fsp = require("node:fs/promises");
+const path = require("node:path");
+const os = require("node:os");
+const { spawn } = require("node:child_process");
 
-// ⬇️ LOG em %TEMP%\updater.log
-const LOG_FILE = path.join(os.tmpdir(), 'updater.log');
-function log(msg) {
-  const line = `[${new Date().toISOString()}] ${msg}\n`;
-  try { fs.appendFileSync(LOG_FILE, line); } catch {}
+const LOG_FILE = path.join(os.tmpdir(), "updater.log");
+function log(message) {
+  try { fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${message}\n`); } catch {}
 }
-
 function arg(name) {
-  const i = process.argv.indexOf(name);
-  return i >= 0 ? process.argv[i + 1] : '';
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : "";
 }
+const zip = arg("--zip");
+const target = path.resolve(arg("--target"));
+const exe = path.resolve(arg("--exe"));
+const confirmFile = path.resolve(arg("--confirm"));
+const expectedVersion = arg("--expected-version").replace(/^v/i, "");
+const tempRoot = path.dirname(zip);
+const oldTarget = `${target}.old`;
 
-const zip = arg('--zip');
-const target = arg('--target');
-const exe = arg('--exe');
-
-log('=== updater started ===');
-log(`zip=${zip}`);
-log(`target=${target}`);
-log(`exe=${exe}`);
-
-if (!zip || !target || !exe) {
-  log('missing args, exit 2');
+if (!zip || !target || !exe || !confirmFile) {
+  log("missing updater arguments");
   process.exit(2);
 }
 
-const progressFile = path.join(path.dirname(zip), 'progress.json');
-async function report(status, percent) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const exists = async (p) => {
+  try { await fsp.access(p); return true; } catch { return false; }
+};
+
+async function report(status, percent, extra = {}) {
   try {
-    await fsp.writeFile(progressFile, JSON.stringify({ status, percent, updatedAt: Date.now() }));
+    await fsp.writeFile(
+      path.join(tempRoot, "progress.json"),
+      JSON.stringify({ status, percent, updatedAt: Date.now(), ...extra }),
+      "utf8",
+    );
   } catch {}
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 async function extract() {
-  const temp = path.join(path.dirname(zip), 'extracted');
-  await fsp.rm(temp, { recursive: true, force: true });
-  await fsp.mkdir(temp, { recursive: true });
-  const command = 'Expand-Archive -LiteralPath $env:DS_ZIP -DestinationPath $env:DS_DEST -Force';
+  const destination = path.join(tempRoot, "extracted");
+  await fsp.rm(destination, { recursive: true, force: true });
+  await fsp.mkdir(destination, { recursive: true });
+  const command = "Expand-Archive -LiteralPath $env:DS_ZIP -DestinationPath $env:DS_DEST -Force";
   await new Promise((resolve, reject) => {
-    const p = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command], {
-      windowsHide: true,
-      env: { ...process.env, DS_ZIP: zip, DS_DEST: temp },
-    });
-    p.once('error', reject);
-    p.once('close', (code) => (code === 0 ? resolve() : reject(new Error(`extract:${code}`))));
+    const child = spawn("powershell.exe", [
+      "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command
+    ], { windowsHide: true, env: { ...process.env, DS_ZIP: zip, DS_DEST: destination } });
+    let stderr = "";
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.once("error", reject);
+    child.once("close", (code) =>
+      code === 0 ? resolve() : reject(new Error(stderr.trim() || `extract:${code}`)));
   });
-  return temp;
+  return destination;
 }
 
-// ⬇️ relança com listener e retry
-async function relaunch() {
-  log('relaunch: waiting 2s for old process to release files');
-  await sleep(2000);
-
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    log(`relaunch attempt ${attempt}: ${exe}`);
+async function waitForProcessExit() {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
-      const child = spawn(exe, [], {
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: false,
-        cwd: path.dirname(exe), // ⬅️ working directory correto
-      });
+      await fsp.rename(exe, `${exe}.update-probe`);
+      await fsp.rename(`${exe}.update-probe`, exe);
+      return;
+    } catch {}
+    await sleep(250);
+  }
+  throw new Error("Launcher process did not release its executable in time.");
+}
 
-      child.on('error', (err) => {
-        log(`relaunch attempt ${attempt} error: ${err.message}`);
-      });
-
-      child.unref();
-      log(`relaunch spawned pid ${child.pid}`);
-      await sleep(800);
-      return true;
-    } catch (err) {
-      log(`relaunch attempt ${attempt} threw: ${err.message}`);
-      await sleep(1500);
+async function moveDirectory(from, to) {
+  await fsp.rm(to, { recursive: true, force: true });
+  let lastError;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      await fsp.rename(from, to);
+      return;
+    } catch (error) {
+      lastError = error;
+      await sleep(250);
     }
   }
-  log('relaunch FAILED after 5 attempts');
-  return false;
+  throw lastError || new Error(`Unable to move ${from} to ${to}.`);
+}
+
+async function validateInstall(directory) {
+  const launcherExe = path.join(directory, path.basename(exe));
+  if (!(await exists(launcherExe))) {
+    throw new Error(`Updated launcher executable is missing: ${launcherExe}`);
+  }
+  const resources = path.join(directory, "resources");
+  if (!(await exists(resources))) throw new Error("Updated launcher resources are missing.");
+  return launcherExe;
+}
+
+async function launchAndConfirm(launcherExe) {
+  await fsp.rm(confirmFile, { force: true });
+  const child = spawn(launcherExe, ["--update-confirm", confirmFile], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    cwd: path.dirname(launcherExe),
+  });
+  child.unref();
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (await exists(confirmFile)) {
+      const raw = await fsp.readFile(confirmFile, "utf8");
+      const result = JSON.parse(raw);
+      if (result?.version && (!expectedVersion || result.version.replace(/^v/i, "") === expectedVersion)) {
+        return { child, version: result.version };
+      }
+      if (result?.version && expectedVersion) {
+        throw new Error(`Startup version mismatch: expected ${expectedVersion}, got ${result.version}.`);
+      }
+    }
+    await sleep(250);
+  }
+
+  try { process.kill(child.pid); } catch {}
+  throw new Error("Updated launcher did not confirm startup.");
+}
+
+async function rollback() {
+  try {
+    await fsp.rm(target, { recursive: true, force: true });
+  } catch {}
+  if (await exists(oldTarget)) {
+    await fsp.rename(oldTarget, target).catch((error) => {
+      log(`rollback rename failed: ${error.message}`);
+    });
+  }
+}
+
+async function relaunchOriginal() {
+  const child = spawn(exe, [], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    cwd: path.dirname(exe),
+  });
+  child.unref();
 }
 
 (async () => {
+  let oldMoved = false;
+  let newMoved = false;
   try {
-    log('waiting for exe to be writable');
-    for (let i = 0; i < 60; i += 1) {
-      try {
-        await fsp.access(exe, fs.constants.W_OK);
-        log(`exe writable after ${i * 250}ms`);
-        break;
-      } catch {}
-      await sleep(250);
-    }
+    log(`=== updater started === zip=${zip} target=${target} exe=${exe}`);
+    await report("installing", 1);
+    await waitForProcessExit();
 
-    await report('installing', 5);
-
-    log('extracting zip');
     const extracted = await extract();
-    log(`extracted to ${extracted}`);
+    await report("installing", 25);
 
-    const countFiles = async (dir) => {
-      let n = 0;
-      for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
-        n += e.isDirectory() ? await countFiles(path.join(dir, e.name)) : 1;
-      }
-      return n;
-    };
+    // electron-builder's --dir artifact contains the launcher files at the
+    // archive root. Reject malformed archives rather than partially replacing
+    // the current installation.
+    const newExe = await validateInstall(extracted);
+    await report("installing", 45);
 
-    const totalFiles = Math.max(1, await countFiles(extracted));
-    log(`total files: ${totalFiles}`);
-
-    let copied = 0;
-    const copyTreeProgress = async (from, to) => {
-      await fsp.mkdir(to, { recursive: true });
-      for (const entry of await fsp.readdir(from, { withFileTypes: true })) {
-        const src = path.join(from, entry.name);
-        const dst = path.join(to, entry.name);
-        if (entry.isDirectory()) await copyTreeProgress(src, dst);
-        else {
-          await fsp.copyFile(src, dst);
-          copied += 1;
-          await report('installing', Math.min(99, 5 + Math.round((copied / totalFiles) * 94)));
-        }
-      }
-    };
-
-    let lastError;
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      try {
-        await copyTreeProgress(extracted, target);
-        lastError = null;
-        log(`copy completed on attempt ${attempt + 1}`);
-        break;
-      } catch (error) {
-        lastError = error;
-        log(`copy attempt ${attempt + 1} failed: ${error.message}`);
-        await sleep(250);
-      }
+    await fsp.rm(oldTarget, { recursive: true, force: true });
+    if (await exists(target)) {
+      await moveDirectory(target, oldTarget);
+      oldMoved = true;
     }
 
-    if (lastError) {
-      log(`copy FAILED after 60 attempts: ${lastError.message}`);
-      throw lastError;
+    try {
+      await moveDirectory(extracted, target);
+      newMoved = true;
+      await report("installing", 75);
+
+      const installedExe = await validateInstall(target);
+      const confirmation = await launchAndConfirm(installedExe);
+      await report("complete", 100, { version: confirmation.version });
+
+      // The new process has confirmed that it booted. The .old tree is now
+      // disposable. If Windows/antivirus temporarily keeps a handle open,
+      // leaving .old behind is safe; it must never invalidate the new install.
+      await fsp.rm(oldTarget, { recursive: true, force: true }).catch((cleanupError) => {
+        log(`old install cleanup deferred: ${cleanupError.message}`);
+      });
+      await fsp.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
+      log(`update successful: ${confirmation.version}`);
+      process.exit(0);
+    } catch (error) {
+      log(`new install failed: ${error.stack || error.message}`);
+      if (newMoved) await fsp.rm(target, { recursive: true, force: true }).catch(() => {});
+      if (oldMoved && await exists(oldTarget)) {
+        await fsp.rename(oldTarget, target).catch((rollbackError) => {
+          log(`rollback failed: ${rollbackError.stack || rollbackError.message}`);
+        });
+      }
+      await report("failed", 0, { error: error.message });
+      await sleep(500);
+      if (await exists(exe)) await relaunchOriginal().catch(() => {});
+      process.exit(1);
     }
-
-    await report('complete', 100);
-    await sleep(250);
-
-    log('cleaning temp dir');
-    await fsp.rm(path.dirname(zip), { recursive: true, force: true }).catch(() => {});
-
-    log('starting relaunch');
-    await relaunch();
-
-    log('done, exit 0');
-    process.exit(0);
   } catch (error) {
-    log(`FATAL: ${error.message}`);
-    log(`stack: ${error.stack}`);
-    await sleep(1000);
-    log('fallback relaunch');
-    await relaunch();
+    log(`fatal: ${error.stack || error.message}`);
+    await report("failed", 0, { error: error.message });
+    if (oldMoved) await rollback();
+    await sleep(500);
+    if (await exists(exe)) await relaunchOriginal().catch(() => {});
     process.exit(1);
   }
 })();

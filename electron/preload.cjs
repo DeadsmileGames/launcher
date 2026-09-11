@@ -10,8 +10,11 @@ contextBridge.exposeInMainWorld('deadsmile', {
   },
   openExternal: (url) => ipcRenderer.invoke('deadsmile:open-external', url),
   openPath: (target) => ipcRenderer.invoke('deadsmile:open-path', target),
+  checkGameUpdate: (game) => ipcRenderer.invoke("check-game-update", game),
   deleteGame: (target) => ipcRenderer.invoke('deadsmile:delete-game', target),
+  version: () => ipcRenderer.invoke('deadsmile:app-version'),
   checkForUpdate: () => ipcRenderer.invoke('deadsmile:update-check'),
+  checkGameUpdate: (payload) => ipcRenderer.invoke('deadsmile:game-update-check', payload),
   updateLauncher: () => ipcRenderer.invoke('deadsmile:update-start'),
   onUpdateProgress: (callback) => {
     const listener = (_event, progress) => callback(progress);

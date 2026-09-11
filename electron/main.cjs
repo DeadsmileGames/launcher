@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain, session, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, session, shell, Menu } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { Readable } = require("node:stream");
+const crypto = require("node:crypto");
 const { downloadGame: downloadItchGame } = require("itchio-downloader");
 const { DownloadQueue } = require("./download-queue.cjs");
 const STORAGE_ROOT = path.join(
@@ -79,6 +80,22 @@ const API_URL = "https://apideadsmile.vercel.app/api";
 const GITHUB_REPO = "teamdeadsmile/launcher";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const APP_VERSION = app.getVersion();
+const UPDATE_CONFIRM_ARG = "--update-confirm";
+const UPDATE_CONFIRM_PATH = (() => {
+  const index = process.argv.indexOf(UPDATE_CONFIRM_ARG);
+  return index >= 0 ? process.argv[index + 1] : "";
+})();
+function confirmUpdatedStartup() {
+  if (!UPDATE_CONFIRM_PATH) return;
+  try {
+    fs.mkdirSync(path.dirname(UPDATE_CONFIRM_PATH), { recursive: true });
+    fs.writeFileSync(
+      UPDATE_CONFIRM_PATH,
+      JSON.stringify({ version: APP_VERSION, pid: process.pid, confirmedAt: Date.now() }),
+      "utf8",
+    );
+  } catch {}
+}
 let updateInProgress = false;
 let forceQuit = false;
 
@@ -158,33 +175,13 @@ async function extractZip(zipPath, destination) {
   await fsp.mkdir(destination, { recursive: true });
   const script = `Expand-Archive -LiteralPath $env:DS_ZIP -DestinationPath $env:DS_DEST -Force`;
   await new Promise((resolve, reject) => {
-    const child = spawn(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        script,
-      ],
-      {
-        windowsHide: true,
-        env: { ...process.env, DS_ZIP: zipPath, DS_DEST: destination },
-      },
-    );
+    const child = spawn("powershell.exe", [
+      "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script
+    ], { windowsHide: true, env: { ...process.env, DS_ZIP: zipPath, DS_DEST: destination }});
     let stderr = "";
-    child.stderr.on("data", (d) => {
-      stderr += d.toString();
-    });
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
     child.once("error", reject);
-    child.once("close", (code) =>
-      code === 0
-        ? resolve()
-        : reject(
-            new Error(stderr.trim() || `Zip extraction failed (${code}).`),
-          ),
-    );
+    child.once("close", (code) => code === 0 ? resolve() : reject(new Error(stderr.trim() || `Zip extraction failed (${code}).`)));
   });
 }
 
@@ -196,103 +193,172 @@ async function firstExe(directory) {
     for (const entry of entries) {
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) queue.push(full);
-      else if (entry.isFile() && entry.name.toLowerCase().endsWith(".exe"))
-        return full;
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith(".exe")) return full;
     }
   }
   return null;
 }
 
+async function pathExists(target) {
+  try { await fsp.access(target); return true; } catch { return false; }
+}
+
+function normalizeVersion(value) {
+  const match = String(value || "").trim().match(/^v?(\d+)$/i);
+  return match ? String(Number.parseInt(match[1], 10)) : null;
+}
+
+function versionFromFilename(filename) {
+  const base = path.basename(String(filename || "")).trim();
+  const matches = [...base.matchAll(/v(\d{3})(?!\d)/gi)];
+  if (!matches.length) {
+    return null;
+  }
+  const version = matches[matches.length - 1][1];
+  return String(Number.parseInt(version, 10));
+}
+
+function isWindowsArtifactName(filename) {
+  const name = path.basename(String(filename || "")).trim();
+  return /\.zip$/i.test(name);
+}
+function parseItchPublicWindowsFiles(html) {
+  const decoded = String(html || "")
+    .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">");
+  const names = new Set();
+  const patterns = [
+    /(?:^|["' >])([^"'<>]{1,220}\.(?:zip|7z|rar|exe))(?=["'<\s]|$)/gi,
+    /(?:filename|name)\s*[:=]\s*["']([^"']+\.(?:zip|7z|rar|exe))["']/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of decoded.matchAll(pattern)) {
+      const name = path.basename(String(match[1]).trim());
+      if (name && !/[\\/:*?"<>|]/.test(name)) names.add(name);
+    }
+  }
+  const allFiles = [...names];
+  const windowsFiles = allFiles.filter(isWindowsArtifactName);
+  return { allFiles, windowsFiles };
+}
+
+async function getItchWindowsUpdate(url, localVersion) {
+  if (!isItch(url)) throw new Error("This game is not available on itch.io.");
+  const response = await session.defaultSession.fetch(url, {
+    headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "Deadsmile-Games-Launcher" },
+  });
+  if (!response.ok) throw new Error(`itch.io returned ${response.status}.`);
+  const parsed = parseItchPublicWindowsFiles(await response.text());
+  const candidates = parsed.windowsFiles
+    .map((name) => ({ name, version: versionFromFilename(name) }))
+    .filter((item) => item.version)
+    .sort((a, b) => compareVersions(a.version, b.version));
+  const currentVersion = normalizeVersion(localVersion) || null;
+  const latest = candidates[candidates.length - 1] || null;
+  return {
+    available: Boolean(latest && currentVersion && compareVersions(latest.version, currentVersion) > 0),
+    currentVersion, latestVersion: latest?.version || null, fileName: latest?.name || null,
+    files: parsed.allFiles, windowsFiles: parsed.windowsFiles,
+  };
+}
+
+async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
+  const oldFolder = `${gameFolder}.old`;
+  await fsp.rm(oldFolder, { recursive: true, force: true });
+  if (ctx.isAborted()) throw new Error("Cancelled");
+  if (ctx.isPaused()) throw new Error("Paused");
+  let movedOld = false, installedNew = false;
+  try {
+    if (await pathExists(gameFolder)) { await fsp.rename(gameFolder, oldFolder); movedOld = true; }
+    await fsp.rename(stagingFolder, gameFolder); installedNew = true;
+    const newExe = await firstExe(gameFolder);
+    if (!newExe) throw new Error("The Windows update does not contain a game executable.");
+    if (ctx.isAborted()) throw new Error("Cancelled");
+    if (ctx.isPaused()) throw new Error("Paused");
+    ctx.onProgress({ status: "updating", percent: 99, fileName: path.basename(newExe) });
+    await fsp.rm(oldFolder, { recursive: true, force: true });
+    return { path: newExe, folderPath: gameFolder, filename: path.basename(newExe) };
+  } catch (error) {
+    if (installedNew) await fsp.rm(gameFolder, { recursive: true, force: true }).catch(() => {});
+    if (movedOld && !(await pathExists(gameFolder))) await fsp.rename(oldFolder, gameFolder).catch(() => {});
+    throw error;
+  }
+}
+
 async function runDownloadWorker(job, ctx) {
-    const { id, slug, url } = job;
+  const { id, slug, url, mode = "download", currentVersion = null } = job;
+  if (!isItch(url)) throw new Error("This game is not available on itch.io.");
+  const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
+  await fsp.mkdir(GAMES_DIR, { recursive: true });
 
-    if (!isItch(url))
-        throw new Error("This game is not available on itch.io.");
+  let remoteUpdate = null;
+  if (mode === "update") {
+    remoteUpdate = await getItchWindowsUpdate(url, currentVersion);
+    if (!remoteUpdate.available) throw new Error("No game update is available.");
+    if (playSessions.has(id)) throw new Error("Close the game before updating it.");
+  }
 
-    const downloadRoot = GAMES_DIR;
-    const gameFolder = path.join(downloadRoot, sanitizeName(slug || id));
-    await fsp.mkdir(downloadRoot, { recursive: true });
-    await fsp.rm(gameFolder, { recursive: true, force: true });
+  const jobRoot = path.join(app.getPath("temp"), "deadsmile-game-downloads",
+    `${sanitizeName(slug || id)}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const downloadRoot = path.join(jobRoot, "download");
+  const stagingFolder = path.join(jobRoot, "staging");
+  await fsp.mkdir(downloadRoot, { recursive: true });
 
+  try {
     const result = await downloadItchGame({
-        itchGameUrl: url,
-        downloadDirectory: downloadRoot,
-        platform: "windows",
-        resume: true,
-        retries: 2,
-        retryDelayMs: 750,
-        writeMetaData: false,
-        onProgress: ({ bytesReceived, totalBytes, fileName }) => {
-            if (ctx.isAborted()) throw new Error("Cancelled");
-            if (ctx.isPaused()) throw new Error("Paused");
-
-            const total = Number(totalBytes) || 0;
-            const received = Number(bytesReceived) || 0;
-            ctx.onProgress({
-                status: "downloading",
-                received,
-                total,
-                percent: total
-                    ? Math.min(100, Math.round((received / total) * 100))
-                    : 0,
-                fileName: fileName || "",
-            });
-        },
+      itchGameUrl: url, downloadDirectory: downloadRoot, platform: "windows",
+      resume: true, retries: 2, retryDelayMs: 750, writeMetaData: false,
+      onProgress: ({ bytesReceived, totalBytes, fileName }) => {
+        if (ctx.isAborted()) throw new Error("Cancelled");
+        if (ctx.isPaused()) throw new Error("Paused");
+        const total = Number(totalBytes) || 0, received = Number(bytesReceived) || 0;
+        ctx.onProgress({
+          status: "downloading", received, total,
+          percent: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
+          fileName: fileName || "",
+        });
+      },
     });
+    if (ctx.isAborted()) throw new Error("Cancelled");
+    if (ctx.isPaused()) throw new Error("Paused");
+    if (!result?.filePath) throw new Error("itch.io download failed.");
+    const fileName = path.basename(result.filePath);
+    if (!/\.zip$/i.test(fileName)) throw new Error("This game is not available on itch.io for Windows yet.");
+    if (mode === "update" && remoteUpdate?.latestVersion) {
+      const downloadedVersion = remoteUpdate.latestVersion;
+      if (!downloadedVersion) {
+        throw new Error("Could not determine the itch.io game version.");
+      }
+    }
 
+    ctx.onProgress({ status: mode === "update" ? "updating" : "installing",
+      received: result.bytesDownloaded || 0, total: result.bytesDownloaded || 0,
+      percent: mode === "update" ? 20 : 100, fileName });
+
+    await extractZip(result.filePath, stagingFolder);
     if (ctx.isAborted()) throw new Error("Cancelled");
     if (ctx.isPaused()) throw new Error("Paused");
 
-    if (!result?.filePath) throw new Error("itch.io download failed.");
+    const exePath = await firstExe(stagingFolder);
+    if (!exePath) throw new Error("The Windows download does not contain a game executable.");
 
-    const fileName = path.basename(result.filePath);
-    if (!/\.zip$/i.test(fileName)) {
-        await fsp.rm(result.filePath, { force: true }).catch(() => {});
-        throw new Error(
-            "This game is not available on itch.io for Windows yet.",
-        );
+    if (mode === "update") {
+      const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
+      return { ...swapped, slug, version: versionFromFilename(path.basename(swapped.path)) || currentVersion };
     }
 
-    ctx.onProgress({
-        status: "installing",
-        received: result.bytesDownloaded || 0,
-        total: result.bytesDownloaded || 0,
-        percent: 100,
-        fileName,
-    });
-
-    await extractZip(result.filePath, gameFolder);
-
-    if (ctx.isAborted()) throw new Error("Cancelled");
-
-    const exePath = await firstExe(gameFolder);
-    await fsp.rm(result.filePath, { force: true }).catch(() => {});
-
-    if (!exePath) {
-        await fsp
-            .rm(gameFolder, { recursive: true, force: true })
-            .catch(() => {});
-        throw new Error(
-            "The Windows download does not contain a game executable.",
-        );
-    }
-
-    ctx.onProgress({
-        status: "complete",
-        received: result.bytesDownloaded || 0,
-        total: result.bytesDownloaded || 0,
-        percent: 100,
-        fileName: path.basename(exePath),
-    });
-
-    return {
-        path: exePath,
-        folderPath: gameFolder,
-        filename: path.basename(exePath),
-        slug,
-    };
+    await fsp.rm(gameFolder, { recursive: true, force: true });
+    await fsp.rename(stagingFolder, gameFolder);
+    const installedExe = await firstExe(gameFolder);
+    if (!installedExe) throw new Error("The Windows download does not contain a game executable.");
+    ctx.onProgress({ status: "complete", received: result.bytesDownloaded || 0,
+      total: result.bytesDownloaded || 0, percent: 100, fileName: path.basename(installedExe) });
+    return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe),
+      version: versionFromFilename(path.basename(installedExe)), slug };
+  } finally {
+    await fsp.rm(jobRoot, { recursive: true, force: true }).catch(() => {});
+  }
 }
-
 function broadcast(channel, payload) {
     for (const win of BrowserWindow.getAllWindows()) {
         if (!win.isDestroyed()) {
@@ -310,130 +376,97 @@ const downloadQueue = new DownloadQueue({
 });
 
 async function checkForUpdate() {
-  if (!app.isPackaged)
-    return {
-      available: false,
-      currentVersion: APP_VERSION,
-      reason: "development",
-    };
+  if (!app.isPackaged) return { available: false, currentVersion: APP_VERSION, reason: "development" };
   try {
     const response = await session.defaultSession.fetch(GITHUB_RELEASES_URL, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "Deadsmile-Games-Launcher",
-      },
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "Deadsmile-Games-Launcher" },
     });
-    if (!response.ok)
-      return {
-        available: false,
-        currentVersion: APP_VERSION,
-        reason: `GitHub returned ${response.status}`,
-      };
+    if (!response.ok) return { available: false, currentVersion: APP_VERSION, reason: `GitHub returned ${response.status}` };
     const release = await response.json();
-    const latestVersion = String(
-      release.tag_name || release.name || "",
-    ).replace(/^v/i, "");
+    const latestVersion = String(release.tag_name || release.name || "").replace(/^v/i, "");
     if (!latestVersion || compareVersions(latestVersion, APP_VERSION) <= 0)
       return { available: false, currentVersion: APP_VERSION, latestVersion };
-    const asset = (release.assets || []).find(
-      (x) =>
-        /launcher/i.test(x.name || "") &&
-        /\.zip$/i.test(x.name || "") &&
-        isHttps(x.browser_download_url),
-    );
-    if (!asset)
-      return {
-        available: false,
-        currentVersion: APP_VERSION,
-        latestVersion,
-        reason: "No launcher update zip was published.",
-      };
-    return {
-      available: true,
-      currentVersion: APP_VERSION,
-      latestVersion,
-      notes: release.body || "",
-      url: asset.browser_download_url,
-      name: asset.name,
-      size: asset.size || 0,
-    };
+    const asset = (release.assets || []).find((x) =>
+      /launcher/i.test(x.name || "") && /\.zip$/i.test(x.name || "") && isHttps(x.browser_download_url));
+    if (!asset) return { available: false, currentVersion: APP_VERSION, latestVersion, reason: "No launcher update zip was published." };
+    return { available: true, currentVersion: APP_VERSION, latestVersion, notes: release.body || "",
+      url: asset.browser_download_url, name: asset.name, size: asset.size || 0, digest: asset.digest || null };
   } catch (error) {
-    return {
-      available: false,
-      currentVersion: APP_VERSION,
-      reason: error?.message || "Update check failed.",
-    };
+    return { available: false, currentVersion: APP_VERSION, reason: error?.message || "Update check failed." };
   }
 }
 
 async function updateLauncher(sender) {
+  if (updateInProgress) throw new Error("Launcher update already in progress.");
   const update = await checkForUpdate();
-  if (!update.available)
-    throw new Error(update.reason || "No update is available.");
-  const tempRoot = path.join(app.getPath("temp"), "deadsmile-launcher-update");
+  if (!update.available) throw new Error(update.reason || "No update is available.");
+
+  const tempRoot = path.join(app.getPath("temp"), `deadsmile-launcher-update-${process.pid}`);
   await fsp.rm(tempRoot, { recursive: true, force: true });
   await fsp.mkdir(tempRoot, { recursive: true });
   const zipPath = path.join(tempRoot, sanitizeName(update.name));
   const response = await session.defaultSession.fetch(update.url, {
-    headers: {
-      Accept: "application/octet-stream",
-      "User-Agent": "Deadsmile-Games-Launcher",
-    },
+    headers: { Accept: "application/octet-stream", "User-Agent": "Deadsmile-Games-Launcher" },
   });
-  if (!response.ok || !response.body)
-    throw new Error(`Unable to download launcher update (${response.status}).`);
-  const total =
-    Number(response.headers.get("content-length")) || update.size || 0;
+  if (!response.ok || !response.body) throw new Error(`Unable to download launcher update (${response.status}).`);
+
+  const total = Number(response.headers.get("content-length")) || update.size || 0;
   let received = 0;
+  const hash = crypto.createHash("sha256");
   const stream = Readable.fromWeb(response.body);
   stream.on("data", (chunk) => {
     received += chunk.length;
+    hash.update(chunk);
     send(sender, "deadsmile:update-progress", {
-      status: "downloading",
-      percent: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
-      received,
-      total,
+      status: "downloading", percent: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
+      received, total,
     });
   });
   await pipeline(stream, fs.createWriteStream(zipPath));
-  send(sender, "deadsmile:update-progress", {
-    status: "installing",
-    percent: 0,
-    received,
-    total,
-  });
+  if (update.digest && /^sha256:/i.test(update.digest)) {
+    const expected = update.digest.slice("sha256:".length).toLowerCase();
+    const actual = hash.digest("hex").toLowerCase();
+    if (actual !== expected) throw new Error("Launcher update checksum verification failed.");
+  }
 
-  const helperCandidates = [
-    path.join(
-      process.resourcesPath,
-      "app.asar.unpacked",
-      "electron",
-      "updater.cjs",
-    ),
+  const helperSourceCandidates = [
+    path.join(process.resourcesPath, "app.asar.unpacked", "electron", "updater.cjs"),
     path.join(process.resourcesPath, "electron", "updater.cjs"),
+    path.join(__dirname, "updater.cjs"),
   ];
-  const helper = helperCandidates.find(fs.existsSync);
-  if (!helper) throw new Error("Updater helper is missing from this build.");
+  const helperSource = helperSourceCandidates.find(fs.existsSync);
+  if (!helperSource) throw new Error("Updater helper is missing from this build.");
+  const helper = path.join(tempRoot, "updater.cjs");
+  await fsp.copyFile(helperSource, helper);
+
   const appDir = path.dirname(process.execPath);
-  const args = [
-    helper,
-    "--zip",
-    zipPath,
-    "--target",
-    appDir,
-    "--exe",
-    process.execPath,
-  ];
-  const child = spawn(process.execPath, args, {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-  });
-child.unref();
+  const confirmFile = path.join(tempRoot, "update-confirmed.json");
+  const args = [helper, "--zip", zipPath, "--target", appDir, "--exe", process.execPath, "--confirm", confirmFile, "--expected-version", update.latestVersion];
+
+  send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
   forceQuit = true;
-  setTimeout(() => app.quit(), 250);
-  return { started: true };
+
+  const child = spawn(process.execPath, args, {
+    detached: true, stdio: "ignore", windowsHide: true, cwd: tempRoot,
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ELECTRON_NO_ATTACH_CONSOLE: "1" },
+  });
+  child.unref();
+  setTimeout(() => app.quit(), 150);
+  return { started: true, latestVersion: update.latestVersion };
+}
+
+async function checkGameUpdate(request) {
+  const { id, slug, url, currentVersion, filename, path: installedPath } = request || {};
+  if (!id || !isItch(url)) return { available: false, reason: "Invalid itch.io game." };
+  const localVersion = normalizeVersion(currentVersion) || versionFromFilename(filename) || versionFromFilename(installedPath);
+  try {
+    const result = await getItchWindowsUpdate(url, localVersion);
+    return { ...result, id, slug, localVersion: localVersion || null };
+  } catch (error) {
+    return { available: false, id, slug, localVersion: localVersion || null,
+      reason: error?.message || "Game update check failed." };
+  }
 }
 
 function createWindow() {
@@ -460,24 +493,65 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      devTools: false,
     },
   });
   win.on("close", (event) => {
     if (updateInProgress && !forceQuit) event.preventDefault();
   });
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => {
+    win.show();
+    confirmUpdatedStartup();
+  });
   if (!app.isPackaged) win.loadURL("http://127.0.0.1:5173");
   else win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   return win;
 }
 
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    const debugArgs = [...process.argv, ...process.execArgv];
+    if (app.commandLine.hasSwitch("remote-debugging-port") ||
+        app.commandLine.hasSwitch("inspect") ||
+        app.commandLine.hasSwitch("inspect-brk") ||
+        debugArgs.some((arg) => /^--inspect(?:-brk)?(?:=|$)/i.test(arg))) {
+      app.quit();
+      return;
+    }
+    Menu.setApplicationMenu(null);
+    app.on("web-contents-created", (_event, contents) => {
+      contents.setWindowOpenHandler(({ url }) => {
+        if (/^(?:https?:|mailto:)/i.test(url)) shell.openExternal(url).catch(() => {});
+        return { action: "deny" };
+      });
+      contents.on("devtools-opened", () => contents.closeDevTools());
+      contents.on("before-input-event", (event, input) => {
+        const key = String(input.key || "").toLowerCase();
+        const blocked = input.type === "keyDown" &&
+          (key === "f12" ||
+            (input.control && input.shift && ["i", "j", "c"].includes(key)) ||
+            (input.meta && input.alt && ["i", "j", "c"].includes(key)));
+        if (blocked) event.preventDefault();
+      });
+    });
+  }
   ipcMain.handle("deadsmile:api", (_event, request) => apiRequest(request));
   ipcMain.handle("deadsmile:storage-paths", () => ({
     root: STORAGE_ROOT,
     settings: SETTINGS_DIR,
     games: GAMES_DIR,
   }));
+
+  ipcMain.handle("check-game-update", async (_event, game) => {
+  if (!game?.downloadUrl) {
+    throw new Error("Game does not have an itch.io URL.");
+  }
+
+  return await getItchWindowsUpdate(
+    game.downloadUrl,
+    game.currentVersion
+  );
+});
   
   ipcMain.handle("deadsmile:normalize-library", (_event, library) => {
     if (!library || typeof library !== "object") return {};
@@ -500,7 +574,9 @@ app.whenReady().then(() => {
     }
     return normalized;
   });
+  ipcMain.handle("deadsmile:app-version", () => APP_VERSION);
   ipcMain.handle("deadsmile:update-check", () => checkForUpdate());
+  ipcMain.handle("deadsmile:game-update-check", (_event, request) => checkGameUpdate(request));
   ipcMain.handle("deadsmile:update-start", (event) =>
     updateLauncher(event.sender),
   );
@@ -521,7 +597,11 @@ app.whenReady().then(() => {
   });
   ipcMain.handle("deadsmile:open-path", async (_event, target) => {
     if (typeof target !== "string") return "Invalid file path.";
-    return shell.openPath(target);
+    const root = path.resolve(GAMES_DIR);
+    const targetPath = path.resolve(target);
+    if (!targetPath.startsWith(`${root}${path.sep}`) || targetPath === root)
+      return "Invalid file path.";
+    return shell.openPath(targetPath);
   });
   ipcMain.handle("deadsmile:download-game", (_event, request) =>
       downloadQueue.enqueue(request),
@@ -556,12 +636,20 @@ app.whenReady().then(() => {
       "deadsmile:play-game",
       async (_event, { id, exePath, args = [] }) => {
           if (!id || !exePath) return { error: "Invalid game." };
+          const gamesRoot = path.resolve(GAMES_DIR);
+          const resolvedExe = path.resolve(exePath);
+          if (!resolvedExe.startsWith(`${gamesRoot}${path.sep}`) ||
+              !resolvedExe.toLowerCase().endsWith(".exe")) {
+              return { error: "Invalid game executable." };
+          }
+          if (!(await pathExists(resolvedExe))) return { error: "Game executable not found." };
           if (playSessions.has(id)) return { error: "Already running." };
 
-          const child = spawn(exePath, args, {
+          const child = spawn(resolvedExe, Array.isArray(args) ? args : [], {
               detached: true,
               stdio: "ignore",
               windowsHide: false,
+              cwd: path.dirname(resolvedExe),
           });
           child.unref();
 

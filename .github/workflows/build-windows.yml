@@ -9,9 +9,15 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,8 +41,20 @@ jobs:
         shell: pwsh
         run: |
           $version = node -p "require('./package.json').version"
-          Compress-Archive -Path "release/win-unpacked/*" -DestinationPath "release/Deadsmile-Games-Launcher-$version.zip" -Force
-          Copy-Item "release/win-unpacked/Deadsmile Games Launcher.exe" "release/Deadsmile-Games-Launcher.exe" -Force
+          $zipName = "Deadsmile-Games-Launcher-$version.zip"
+          $exeName = "Deadsmile-Games-Launcher.exe"
+
+          if (-not (Test-Path "release/win-unpacked")) {
+            Write-Error "release/win-unpacked not found — package:update failed"
+            exit 1
+          }
+
+          Compress-Archive -Path "release/win-unpacked/*" -DestinationPath "release/$zipName" -Force
+          Copy-Item "release/win-unpacked/Deadsmile Games Launcher.exe" "release/$exeName" -Force
+
+          Write-Host "✓ Created $zipName"
+          Write-Host "✓ Created $exeName"
+          Get-ChildItem release -File | Select-Object Name, Length
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -45,12 +63,19 @@ jobs:
           path: |
             release/*.exe
             release/*.zip
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: Deadsmile Games Launcher ${{ github.ref_name }}
           generate_release_notes: true
+          draft: false
+          prerelease: false
           files: |
-            release/*.exe
-            release/*.zip
+            release/Deadsmile-Games-Launcher-Setup-*.exe
+            release/Deadsmile-Games-Launcher-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

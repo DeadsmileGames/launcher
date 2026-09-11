@@ -42,7 +42,6 @@ jobs:
         run: |
           $version = node -p "require('./package.json').version"
           $zipName = "Deadsmile-Games-Launcher-$version.zip"
-          $exeName = "Deadsmile-Games-Launcher.exe"
 
           if (-not (Test-Path "release/win-unpacked")) {
             Write-Error "release/win-unpacked not found — package:update failed"
@@ -50,10 +49,8 @@ jobs:
           }
 
           Compress-Archive -Path "release/win-unpacked/*" -DestinationPath "release/$zipName" -Force
-          Copy-Item "release/win-unpacked/Deadsmile Games Launcher.exe" "release/$exeName" -Force
 
           Write-Host "✓ Created $zipName"
-          Write-Host "✓ Created $exeName"
           Get-ChildItem release -File | Select-Object Name, Length
 
       - name: Upload build artifacts
@@ -77,5 +74,3 @@ jobs:
           files: |
             release/Deadsmile-Games-Launcher-Setup-*.exe
             release/Deadsmile-Games-Launcher-*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

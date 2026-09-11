@@ -47,13 +47,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "installerIcon": "build/installerIcon.ico",
-      "uninstallerIcon": "build/uninstallerIcon.ico",
-      "installerHeader": "build/installerHeader.bmp",
-      "installerSidebar": "build/installerSidebar.bmp",
-      "uninstallerSidebar": "build/installerSidebar.bmp",
-      "installerHeaderIcon": "build/installerIcon.ico",
-      "uninstallerHeaderIcon": "build/installerIcon.ico"
+      "customNsisResources": "build"
     },
     "icon": "public/favicon.ico",
     "asarUnpack": [

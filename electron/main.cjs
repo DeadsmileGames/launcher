@@ -424,6 +424,9 @@ async function updateLauncher(sender) {
   });
   if (!response.ok || !response.body) throw new Error(`Unable to download launcher update (${response.status}).`);
 
+
+
+  
   const total = Number(response.headers.get("content-length")) || update.size || 0;
   let received = 0;
   const hash = crypto.createHash("sha256");

@@ -1488,11 +1488,6 @@ function Boot() {
     const { t } = useT();
     return (
         <div className="boot-screen">
-            <img
-                className="boot-logo"
-                src="./assets/branding/deadsmile-mark.svg"
-                alt="Deadsmile Games"
-            />
             <div className="boot-status">
                 <span>{t("startingLauncher")}</span>
                 <div className="loading-bar">

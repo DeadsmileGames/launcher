@@ -16,6 +16,20 @@ const SETTINGS_DIR = path.join(STORAGE_ROOT, "settings");
 const GAMES_DIR = path.join(STORAGE_ROOT, "Games");
 const PLAYTIME_FILE = path.join(SETTINGS_DIR, "playtime.json");
 const playSessions = new Map();
+const API_ALLOWED_PATHS = [
+  /^\/csrf$/,
+  /^\/auth\/me$/,
+  /^\/auth\/mobile-login$/,
+  /^\/auth\/verify-2fa$/,
+  /^\/auth\/logout$/,
+  /^\/games(\?|\/|$)/,
+  /^\/news(\?|\/|$)/,
+  /^\/videos(\?|\/|$)/,
+  /^\/search(\?|$)/,
+  /^\/wishlist(\?|\/|$)/,
+  /^\/account(\?|\/|$)/,
+  /^\/admin\/(game|newsletter|video)(\/|$)/,
+];
 
 function readPlaytime() {
     try {
@@ -615,7 +629,22 @@ app.whenReady().then(() => {
       });
     });
   }
-  ipcMain.handle("deadsmile:api", (_event, request) => apiRequest(request));
+  ipcMain.handle("deadsmile:api", (_event, request) => {
+  const reqPath = String(request?.path || "");
+  if (!API_ALLOWED_PATHS.some((re) => re.test(reqPath))) {
+    return {
+      ok: false,
+      status: 403,
+      data: {
+        error: {
+          code: "BLOCKED_PATH",
+          message: `API path is not allowed: ${reqPath}`,
+        },
+      },
+    };
+  }
+  return apiRequest(request);
+});
     ipcMain.handle("deadsmile:consume-pending-update", async () => {
     const pendingPath = path.join(SETTINGS_DIR, "pending-update.json");
     try {

@@ -3,14 +3,14 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/assets/fonts/inter-variable.ttf") format("truetype");
+  src: url("/assets/fonts/IV.ttf") format("truetype");
 }
 @font-face {
   font-family: "Space Grotesk";
   font-style: normal;
   font-weight: 300 700;
   font-display: swap;
-  src: url("/assets/fonts/space-grotesk-variable.ttf") format("truetype");
+  src: url("/assets/fonts/SPV.ttf") format("truetype");
 }
 
 :root {
@@ -706,13 +706,24 @@ img {
   border-radius: 18px;
   overflow: hidden;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.media-card > div:last-child,
+.news-card > div:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .media-image{
   aspect-ratio: 1.7;
   background: #24262e;
   position: relative;
   border-radius: 12px;
-  margin-top: 5px;
+  margin: 8px;
   overflow: hidden;
 }
 .news-image {
@@ -720,7 +731,7 @@ img {
   background: #24262e;
   position: relative;
   border-radius: 12px;
-  margin-top: 5px;
+  margin: 8px;
   overflow: hidden;
 }
 .media-image img,
@@ -772,6 +783,7 @@ img {
   line-height: 1.5;
   margin: 0;
 }
+
 .page-heading {
   padding: 24px 0 22px;
 }
@@ -1628,7 +1640,6 @@ img {
 }
 .boot-logo {
   animation: logoBreath 2.8s ease-in-out infinite;
-  filter: drop-shadow(0 0 22px #ffffff12);
 }
 .boot-screen span {
   color: #6f727b;
@@ -2177,10 +2188,9 @@ img {
     transform: none;
   }
 }.boot-logo {
-  width: 138px !important;
-  height: 138px !important;
+  width: 200px !important;
+  height: 200px !important;
   animation: logoBreath 2.8s ease-in-out infinite;
-  filter: drop-shadow(0 0 22px #ffffff12);
 }
 .boot-status {
   position: absolute;

@@ -1,6 +1,6 @@
 {
   "name": "deadsmile-games-launcher",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "Deadsmile Games Launcher",
   "private": true,
   "main": "electron/main.cjs",

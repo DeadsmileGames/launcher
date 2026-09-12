@@ -75,21 +75,6 @@ const COPY = {
         unableToUpdateWishlist: "Unable to update wishlist.",
         wasRemovedFromYourLibrary: "was removed from your library.",
         unableToDeleteLocalGame: "Unable to delete the local game.",
-        easterTitle: "Easter eggs",
-        easterFoot: "Finding them by accident is more fun",
-        easterCrtHint: "RETRO MODE · click or press ESC to exit",
-        easterKonamiName: "Konami Code",
-        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
-        easterKonamiDesc: "Activates retro CRT mode",
-        easterConfettiName: "Party!",
-        easterConfettiHint: "Ctrl + Shift + C",
-        easterConfettiDesc: "Confetti explosion",
-        easterWordName: "Secret word",
-        easterWordHint: 'Type "deadsmile" anywhere',
-        easterWordDesc: "Skull rain",
-        easterMenuName: "This menu",
-        easterMenuHint: "Ctrl + Shift + E",
-        easterMenuDesc: "You already found this",
         viewGame: "View game",
         explore: "Explore",
         library: "Library",
@@ -166,7 +151,7 @@ const COPY = {
         notifications: "Notifications",
         noNotifications: "No recent notifications.",
         markRead: "Mark all read",
-        updateAvailable: "Launcher update available",
+        updateAvailable: "Update available",
         updateDescription:
             "A newer version of Deadsmile Games Launcher is ready.",
         update: "Update",
@@ -312,27 +297,15 @@ const COPY = {
         yourPassword: "Your password",
         cityCountry: "City, Country",
         windows: "Windows",
+        checkForUpdates: "Check for updates",
+        checkingUpdate: "Checking…",
+        youAreUpToDate: "You're up to date.",
     },
     "pt-BR": {
         error: "Erro",
         unableToUpdateWishlist: "Não foi possível atualizar a lista.",
         wasRemovedFromYourLibrary: "foi removido da sua biblioteca.",
         unableToDeleteLocalGame: "Não foi possível excluir o jogo local.",
-        easterTitle: "Easter eggs",
-        easterFoot: "Descoberta por acaso é mais legal",
-        easterCrtHint: "RETRO MODE · clique ou ESC pra sair",
-        easterKonamiName: "Konami Code",
-        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
-        easterKonamiDesc: "Ativa modo CRT retrô",
-        easterConfettiName: "Festa!",
-        easterConfettiHint: "Ctrl + Shift + C",
-        easterConfettiDesc: "Explosão de confetti",
-        easterWordName: "Palavra secreta",
-        easterWordHint: 'Digite "deadsmile" em qualquer tela',
-        easterWordDesc: "Chuva de caveiras",
-        easterMenuName: "Este menu",
-        easterMenuHint: "Ctrl + Shift + E",
-        easterMenuDesc: "Você já achou esse",
         viewGame: "Ver jogo",
         explore: "Explorar",
         library: "Biblioteca",
@@ -412,7 +385,7 @@ const COPY = {
         notifications: "Notificações",
         noNotifications: "Nenhuma notificação recente.",
         markRead: "Marcar todas como lidas",
-        updateAvailable: "Atualização do launcher disponível",
+        updateAvailable: "Atualização disponível",
         updateDescription:
             "Uma versão mais nova do Deadsmile Games Launcher está pronta.",
         update: "Atualizar",
@@ -556,27 +529,15 @@ const COPY = {
         yourPassword: "Sua senha",
         cityCountry: "Cidade, País",
         windows: "Windows",
+        checkForUpdates: "Verificar atualizações",
+        checkingUpdate: "Verificando…",
+        youAreUpToDate: "Você está atualizado.",
     },
     es: {
         error: "Error",
         unableToUpdateWishlist: "No se pudo actualizar la lista.",
         wasRemovedFromYourLibrary: "se eliminó de tu biblioteca.",
         unableToDeleteLocalGame: "No se pudo eliminar el juego local.",
-        easterTitle: "Easter eggs",
-        easterFoot: "Descubrirlos por accidente es más divertido",
-        easterCrtHint: "MODO RETRO · clic o ESC para salir",
-        easterKonamiName: "Konami Code",
-        easterKonamiHint: "↑ ↑ ↓ ↓ ← → ← → B A",
-        easterKonamiDesc: "Activa el modo CRT retro",
-        easterConfettiName: "¡Fiesta!",
-        easterConfettiHint: "Ctrl + Shift + C",
-        easterConfettiDesc: "Explosión de confeti",
-        easterWordName: "Palabra secreta",
-        easterWordHint: 'Escribe "deadsmile" en cualquier pantalla',
-        easterWordDesc: "Lluvia de calaveras",
-        easterMenuName: "Este menú",
-        easterMenuHint: "Ctrl + Shift + E",
-        easterMenuDesc: "Ya encontraste este",
         viewGame: "Ver juego",
         explore: "Explorar",
         library: "Biblioteca",
@@ -654,7 +615,7 @@ const COPY = {
         notifications: "Notificaciones",
         noNotifications: "No hay notificaciones recientes.",
         markRead: "Marcar todas como leídas",
-        updateAvailable: "Actualización del launcher disponible",
+        updateAvailable: "Actualización disponible",
         updateDescription:
             "Ya está disponible una versión más nueva de Deadsmile Games Launcher.",
         update: "Actualizar",
@@ -799,6 +760,9 @@ const COPY = {
         yourPassword: "Tu contraseña",
         cityCountry: "Ciudad, País",
         windows: "Windows",
+        checkForUpdates: "Verificar actualizaciones",
+        checkingUpdate: "Verificando…",
+        youAreUpToDate: "Estás actualizado.",
     },
 };
 
@@ -855,79 +819,6 @@ function useOnline() {
     return online;
 }
 
-// Konami Code: ↑↑↓↓←→←→BA
-function useKonamiCode(onUnlock) {
-    useEffect(() => {
-        const sequence = [
-            "ArrowUp",
-            "ArrowUp",
-            "ArrowDown",
-            "ArrowDown",
-            "ArrowLeft",
-            "ArrowRight",
-            "ArrowLeft",
-            "ArrowRight",
-            "b",
-            "a",
-        ];
-        let index = 0;
-        const handler = (e) => {
-            const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-            if (key === sequence[index]) {
-                index += 1;
-                if (index === sequence.length) {
-                    index = 0;
-                    onUnlock?.();
-                }
-            } else {
-                index = key === sequence[0] ? 1 : 0;
-            }
-        };
-        window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
-    }, [onUnlock]);
-}
-
-function useSecretWord(word, onMatch) {
-    useEffect(() => {
-        const lower = word.toLowerCase();
-        let buffer = "";
-        const handler = (e) => {
-            const tag = e.target?.tagName?.toLowerCase();
-            if (
-                tag === "input" ||
-                tag === "textarea" ||
-                e.target?.isContentEditable
-            )
-                return;
-            if (e.key.length !== 1) return;
-            buffer = (buffer + e.key.toLowerCase()).slice(-lower.length);
-            if (buffer === lower) {
-                buffer = "";
-                onMatch?.();
-            }
-        };
-        window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
-    }, [word, onMatch]);
-}
-function useHotkey({ key, ctrl = false, shift = false, alt = false }, handler) {
-    useEffect(() => {
-        const onKey = (e) => {
-            const matches =
-                e.key.toLowerCase() === key.toLowerCase() &&
-                e.ctrlKey === ctrl &&
-                e.shiftKey === shift &&
-                e.altKey === alt;
-            if (matches) {
-                e.preventDefault();
-                handler?.();
-            }
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [key, ctrl, shift, alt, handler]);
-}
 
 const LanguageContext = createContext({
     language: "en",
@@ -1371,235 +1262,6 @@ function LoadingBar({ label, percent, indeterminate = false }) {
                 />
             </div>
         </div>
-    );
-}
-
-function ConfettiBurst({ origin, onDone }) {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-
-        const colors = [
-            "#ff5c7c",
-            "#ffd166",
-            "#7cf7a5",
-            "#6ec8ff",
-            "#c39bff",
-            "#ffffff",
-        ];
-        const particles = Array.from({ length: 140 }, () => {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 4 + Math.random() * 9;
-            return {
-                x: origin.x,
-                y: origin.y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 3,
-                size: 4 + Math.random() * 6,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                rotation: Math.random() * Math.PI,
-                vr: (Math.random() - 0.5) * 0.3,
-                life: 1,
-            };
-        });
-
-        let raf;
-        const start = performance.now();
-        const tick = (now) => {
-            const elapsed = (now - start) / 1000;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.scale(dpr, dpr);
-
-            for (const p of particles) {
-                p.vy += 0.35;
-                p.vx *= 0.99;
-                p.x += p.vx;
-                p.y += p.vy;
-                p.rotation += p.vr;
-                p.life = Math.max(0, 1 - elapsed / 3);
-
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation);
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
-                ctx.restore();
-            }
-            ctx.restore();
-
-            if (elapsed < 3) {
-                raf = requestAnimationFrame(tick);
-            } else {
-                onDone?.();
-            }
-        };
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [origin, onDone]);
-
-    return (
-        <canvas
-            ref={canvasRef}
-            style={{
-                position: "fixed",
-                inset: 0,
-                width: "100vw",
-                height: "100vh",
-                pointerEvents: "none",
-                zIndex: 3000,
-            }}
-        />
-    );
-}
-
-function SkullRain({ onDone }) {
-    useEffect(() => {
-        const timer = setTimeout(() => onDone?.(), 6000);
-        return () => clearTimeout(timer);
-    }, [onDone]);
-
-    const skulls = useMemo(
-        () =>
-            Array.from({ length: 45 }).map((_, i) => ({
-                id: i,
-                left: Math.random() * 100,
-                delay: Math.random() * 1.5,
-                duration: 2.5 + Math.random() * 2.5,
-                size: 22 + Math.random() * 28,
-                rotation: (Math.random() - 0.5) * 60,
-            })),
-        [],
-    );
-
-    return (
-        <div className="skull-rain" aria-hidden="true">
-            {skulls.map((s) => (
-                <span
-                    key={s.id}
-                    style={{
-                        left: `${s.left}%`,
-                        fontSize: `${s.size}px`,
-                        animationDelay: `${s.delay}s`,
-                        animationDuration: `${s.duration}s`,
-                        "--rot": `${s.rotation}deg`,
-                    }}
-                >
-                    💀
-                </span>
-            ))}
-        </div>
-    );
-}
-
-function CrtOverlay({ onClose }) {
-    const { t } = useT();
-
-    useEffect(() => {
-        const handler = (e) => {
-            if (e.key === "Escape") onClose?.();
-        };
-        window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
-    }, [onClose]);
-
-    return (
-        <div className="crt-overlay" onClick={onClose}>
-            <div className="crt-hint">{t("easterCrtHint")}</div>
-        </div>
-    );
-}
-
-function EasterEggMenu({ onClose, onTrigger }) {
-    const { t } = useT();
-
-    const eggs = [
-        {
-            id: "konami",
-            name: t("easterKonamiName"),
-            hint: t("easterKonamiHint"),
-            desc: t("easterKonamiDesc"),
-        },
-        {
-            id: "confetti",
-            name: t("easterConfettiName"),
-            hint: t("easterConfettiHint"),
-            desc: t("easterConfettiDesc"),
-        },
-        {
-            id: "word",
-            name: t("easterWordName"),
-            hint: t("easterWordHint"),
-            desc: t("easterWordDesc"),
-        },
-        {
-            id: "menu",
-            name: t("easterMenuName"),
-            hint: t("easterMenuHint"),
-            desc: t("easterMenuDesc"),
-        },
-    ];
-
-    return (
-        <Portal>
-            <div
-                className="overlay easter-overlay"
-                onMouseDown={(e) =>
-                    e.target === e.currentTarget && onClose()
-                }
-            >
-                <section className="modal-card easter-modal">
-                    <div className="modal-card__head">
-                        <div>
-                            <h3>{t("easterTitle")}</h3>
-                        </div>
-                        <button
-                            type="button"
-                            className="modal-close"
-                            onClick={onClose}
-                            aria-label={t("close")}
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-
-                    <div className="easter-list">
-                        {eggs.map((egg) => (
-                            <button
-                                key={egg.id}
-                                type="button"
-                                className="easter-item"
-                                onClick={() => {
-                                    if (egg.id === "menu") return;
-                                    onTrigger?.(egg.id);
-                                    onClose();
-                                }}
-                            >
-                                <div className="easter-item-copy">
-                                    <strong>{egg.name}</strong>
-                                    <code>{egg.hint}</code>
-                                    <span>{egg.desc}</span>
-                                </div>
-                                <Play
-                                    size={16}
-                                    weight="fill"
-                                    className="easter-item-play"
-                                />
-                            </button>
-                        ))}
-                    </div>
-
-                    <p className="easter-foot">{t("easterFoot")}</p>
-                </section>
-            </div>
-        </Portal>
     );
 }
 
@@ -3070,6 +2732,7 @@ function GameDetails({
                                 <Play size={16} /> {t("trailer")}
                             </button>
                         )}
+                        {(detail?.downloadUrl) && (
                         <button
                             type="button"
                             onClick={checkForGameUpdates}
@@ -3077,8 +2740,9 @@ function GameDetails({
                             disabled={checkingUpdate}
                         >
                             <ArrowClockwise size={16} />
-                            {checkingUpdate ? "Checking..." : "Check for updates"}
+                            {checkingUpdate ? t("checkingUpdate") : t("checkForUpdates")}
                         </button>
+                        )}
                         {manualUpdateCheck?.error && (
                             <div>
                                 {manualUpdateCheck.error}
@@ -3095,8 +2759,8 @@ function GameDetails({
                                 }}
                             >
                                 {manualUpdateCheck.available
-                                ? `Update available: v${manualUpdateCheck.latestVersion}`
-                                : "You're up to date."}
+                                ? `${t("updateAvailable")}: v${manualUpdateCheck.latestVersion}`
+                                : t("youAreUpToDate")}
                             </div>
                             )}
                     </div>
@@ -4663,26 +4327,6 @@ export default function App() {
             setConcurrent: setDownloadConcurrency,
         } = useDownloadQueue();
         const playtime = usePlaytime();
-        const [confettiOrigin, setConfettiOrigin] = useState(null);
-        const [skullRain, setSkullRain] = useState(false);
-        const [crtMode, setCrtMode] = useState(false);
-        const [easterMenuOpen, setEasterMenuOpen] = useState(false);
-        const triggerKonami = useCallback(() => setCrtMode(true), []);
-        const triggerSkullRain = useCallback(() => setSkullRain(true), []);
-        const triggerConfetti = useCallback(
-            () =>
-                setConfettiOrigin({
-                    x: window.innerWidth / 2,
-                    y: window.innerHeight / 3,
-                }),
-            [],
-        );
-        const triggerMenu = useCallback(() => setEasterMenuOpen(true), []);
-
-        useKonamiCode(triggerKonami);
-        useSecretWord("deadsmile", triggerSkullRain);
-        useHotkey({ key: "c", ctrl: true, shift: true }, triggerConfetti);
-        useHotkey({ key: "e", ctrl: true, shift: true }, triggerMenu);
         const online = useOnline();
 
         const t = useMemo(
@@ -5317,29 +4961,6 @@ useEffect(() => {
                 <Portal>
                     <VideoPlayer video={selectedVideo} onClose={goBack} />
                 </Portal>
-            )}
-            {confettiOrigin && (
-                <ConfettiBurst
-                    origin={confettiOrigin}
-                    onDone={() => setConfettiOrigin(null)}
-                />
-            )}
-            {skullRain && <SkullRain onDone={() => setSkullRain(false)} />}
-            {crtMode && <CrtOverlay onClose={() => setCrtMode(false)} />}
-            {easterMenuOpen && (
-                <EasterEggMenu
-                onClose={() => setEasterMenuOpen(false)}
-                    onTrigger={(id) => {
-                        if (id === "konami") setCrtMode(true);
-                        if (id === "confetti") {
-                            setConfettiOrigin({
-                                x: window.innerWidth / 2,
-                                y: window.innerHeight / 3,
-                            });
-                        }
-                        if (id === "word") setSkullRain(true);
-                    }}
-                />
             )}
                 </LanguageContext.Provider>
         </>

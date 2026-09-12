@@ -12,15 +12,15 @@ function arg(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : "";
 }
-const zip = arg("--zip");
-const target = path.resolve(arg("--target"));
-const exe = path.resolve(arg("--exe"));
+const staging = path.resolve(arg("--staging"));
+const target  = path.resolve(arg("--target"));
+const exe     = path.resolve(arg("--exe"));
 const confirmFile = path.resolve(arg("--confirm"));
 const expectedVersion = arg("--expected-version").replace(/^v/i, "");
-const tempRoot = path.dirname(zip);
+const tempRoot = path.dirname(staging);
 const oldTarget = `${target}.old`;
 
-if (!zip || !target || !exe || !confirmFile) {
+if (!staging || !target || !exe || !confirmFile) {
   log("missing updater arguments");
   process.exit(2);
 }
@@ -29,6 +29,28 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const exists = async (p) => {
   try { await fsp.access(p); return true; } catch { return false; }
 };
+let childProcess = null;
+function cleanElectronEnv() {
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  delete env.ELECTRON_NO_ATTACH_CONSOLE;
+  delete env.ELECTRON_ENABLE_LOGGING;
+  delete env.ELECTRON_ENABLE_STACK_DUMPING;
+  return env;
+}
+
+function spawnDetachedViaCmd(exe, args, cwd, env) {
+  const startArgs = ["/c", "start", "", "/D", cwd, exe, ...args];
+  const child = spawn("cmd.exe", startArgs, {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    cwd,
+    env,
+  });
+  child.unref();
+  return child;
+}
 
 async function report(status, percent, extra = {}) {
   try {
@@ -40,34 +62,46 @@ async function report(status, percent, extra = {}) {
   } catch {}
 }
 
-async function extract() {
-  const destination = path.join(tempRoot, "extracted");
-  await fsp.rm(destination, { recursive: true, force: true });
-  await fsp.mkdir(destination, { recursive: true });
-  const command = "Expand-Archive -LiteralPath $env:DS_ZIP -DestinationPath $env:DS_DEST -Force";
-  await new Promise((resolve, reject) => {
-    const child = spawn("powershell.exe", [
-      "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command
-    ], { windowsHide: true, env: { ...process.env, DS_ZIP: zip, DS_DEST: destination } });
-    let stderr = "";
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
-    child.once("error", reject);
-    child.once("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(stderr.trim() || `extract:${code}`)));
-  });
-  return destination;
+function cleanupStaleBackups() {
+  const parent = path.dirname(target);
+  const base = path.basename(target);
+  fsp.readdir(parent)
+    .then((entries) => {
+      for (const entry of entries) {
+        if (entry === base) continue;
+        if (entry === `${base}.old` || entry.startsWith(`${base}.old.stale-`)) {
+          fsp
+            .rm(path.join(parent, entry), { recursive: true, force: true })
+            .catch(() => {});
+        }
+      }
+    })
+    .catch(() => {});
 }
 
-async function waitForProcessExit() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+async function clearDestination(to) {
+  if (!(await exists(to))) return;
+
+  for (let attempt = 0; attempt < 15; attempt += 1) {
     try {
-      await fsp.rename(exe, `${exe}.update-probe`);
-      await fsp.rename(`${exe}.update-probe`, exe);
+      await fsp.rm(to, { recursive: true, force: true });
       return;
-    } catch {}
-    await sleep(250);
+    } catch (error) {
+      if (attempt === 14) {
+        log(`clearDestination: rm(${to}) failed: ${error.message}`);
+      }
+      await sleep(200);
+    }
   }
-  throw new Error("Launcher process did not release its executable in time.");
+
+  const stale = `${to}.stale-${Date.now()}-${process.pid}`;
+  try {
+    await fsp.rename(to, stale);
+    log(`clearDestination: moved locked ${to} -> ${stale}`);
+  } catch (error) {
+    log(`clearDestination: rename(${to}) also failed: ${error.message}`);
+    throw error;
+  }
 }
 
 async function moveDirectory(from, to) {
@@ -79,6 +113,11 @@ async function moveDirectory(from, to) {
       return;
     } catch (error) {
       lastError = error;
+      if (error.code === "EXDEV") {
+        await fsp.cp(from, to, { recursive: true });
+        await fsp.rm(from, { recursive: true, force: true });
+        return;
+      }
       await sleep(250);
     }
   }
@@ -97,20 +136,21 @@ async function validateInstall(directory) {
 
 async function launchAndConfirm(launcherExe) {
   await fsp.rm(confirmFile, { force: true });
-  const child = spawn(launcherExe, ["--update-confirm", confirmFile], {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-    cwd: path.dirname(launcherExe),
-  });
-  child.unref();
+  spawnDetachedViaCmd(
+    launcherExe,
+    ["--update-confirm", confirmFile],
+    path.dirname(launcherExe),
+    cleanElectronEnv(),
+  );
 
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     if (await exists(confirmFile)) {
       const raw = await fsp.readFile(confirmFile, "utf8");
-      const result = JSON.parse(raw);
+      let result = null;
+      try { result = JSON.parse(raw); } catch {}
       if (result?.version && (!expectedVersion || result.version.replace(/^v/i, "") === expectedVersion)) {
-        return { child, version: result.version };
+        await sleep(1500);
+        return { version: result.version };
       }
       if (result?.version && expectedVersion) {
         throw new Error(`Startup version mismatch: expected ${expectedVersion}, got ${result.version}.`);
@@ -119,14 +159,22 @@ async function launchAndConfirm(launcherExe) {
     await sleep(250);
   }
 
-  try { process.kill(child.pid); } catch {}
   throw new Error("Updated launcher did not confirm startup.");
 }
 
 async function rollback() {
+  if (childProcess) {
+    try { process.kill(childProcess.pid); } catch {}
+    childProcess = null;
+    await sleep(1000);
+  }
+
   try {
     await fsp.rm(target, { recursive: true, force: true });
-  } catch {}
+  } catch (error) {
+    log(`rollback rm target failed: ${error.message}`);
+  }
+
   if (await exists(oldTarget)) {
     await fsp.rename(oldTarget, target).catch((error) => {
       log(`rollback rename failed: ${error.message}`);
@@ -135,59 +183,77 @@ async function rollback() {
 }
 
 async function relaunchOriginal() {
-  const child = spawn(exe, [], {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-    cwd: path.dirname(exe),
-  });
-  child.unref();
+  spawnDetachedViaCmd(
+    exe,
+    [],
+    path.dirname(exe),
+    cleanElectronEnv(),
+  );
 }
 
 (async () => {
   let oldMoved = false;
   let newMoved = false;
   try {
-    log(`=== updater started === zip=${zip} target=${target} exe=${exe}`);
+    log(`=== updater started === staging=${staging} target=${target} exe=${exe}`);
     await report("installing", 1);
-    await waitForProcessExit();
 
-    const extracted = await extract();
+    if (!(await exists(staging))) throw new Error("Staging folder is missing.");
+    const newExe = await validateInstall(staging);
     await report("installing", 25);
 
-    // electron-builder's --dir artifact contains the launcher files at the
-    // archive root. Reject malformed archives rather than partially replacing
-    // the current installation.
-    const newExe = await validateInstall(extracted);
     await report("installing", 45);
-
-    await fsp.rm(oldTarget, { recursive: true, force: true });
-    if (await exists(target)) {
-      await moveDirectory(target, oldTarget);
-      oldMoved = true;
+    await clearDestination(oldTarget);
+    let movedTarget = false;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      try {
+        await fsp.rename(target, oldTarget);
+        movedTarget = true;
+        break;
+      } catch (error) {
+        const code = error.code;
+        if (code !== "EPERM" && code !== "EBUSY" && code !== "EACCES") {
+          throw error;
+        }
+        if (attempt === 0 || attempt % 10 === 0) {
+          log(`waiting for target release, attempt ${attempt}: ${error.message}`);
+        }
+        await sleep(500);
+      }
     }
+    if (!movedTarget) {
+      throw new Error("Launcher did not release its installation directory in time.");
+    }
+    oldMoved = true;
 
     try {
-      await moveDirectory(extracted, target);
+      await moveDirectory(staging, target);
       newMoved = true;
       await report("installing", 75);
 
       const installedExe = await validateInstall(target);
       const confirmation = await launchAndConfirm(installedExe);
       await report("complete", 100, { version: confirmation.version });
-
-      // The new process has confirmed that it booted. The .old tree is now
-      // disposable. If Windows/antivirus temporarily keeps a handle open,
-      // leaving .old behind is safe; it must never invalidate the new install.
       await fsp.rm(oldTarget, { recursive: true, force: true }).catch((cleanupError) => {
         log(`old install cleanup deferred: ${cleanupError.message}`);
       });
+      cleanupStaleBackups();
       await fsp.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
       log(`update successful: ${confirmation.version}`);
       process.exit(0);
     } catch (error) {
       log(`new install failed: ${error.stack || error.message}`);
-      if (newMoved) await fsp.rm(target, { recursive: true, force: true }).catch(() => {});
+      if (childProcess) {
+        try { process.kill(childProcess.pid); } catch {}
+        childProcess = null;
+        await sleep(1000);
+      }
+
+      if (newMoved) {
+        await fsp.rm(target, { recursive: true, force: true }).catch((rmError) => {
+          log(`rollback rm target failed: ${rmError.message}`);
+        });
+      }
       if (oldMoved && await exists(oldTarget)) {
         await fsp.rename(oldTarget, target).catch((rollbackError) => {
           log(`rollback failed: ${rollbackError.stack || rollbackError.message}`);

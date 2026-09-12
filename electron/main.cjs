@@ -428,6 +428,44 @@ async function updateLauncher(sender) {
     const actual = hash.digest("hex").toLowerCase();
     if (actual !== expected) throw new Error("Launcher update checksum verification failed.");
   }
+  const staging = path.join(tempRoot, "staging");
+  await extractZip(zipPath, staging);
+  const stagedExe = await findLauncherExe(staging, path.basename(process.execPath));
+  if (!stagedExe) throw new Error("Updated launcher executable is missing from the archive.");
+  const runnerDir = path.join(tempRoot, "runner");
+  await fsp.mkdir(runnerDir, { recursive: true });
+
+  const stagedDir = path.dirname(stagedExe);
+  const exeName = path.basename(stagedExe);
+  const runnerExe = path.join(runnerDir, exeName);
+  const electronRuntimeFiles = [
+    exeName,
+    "ffmpeg.dll",
+    "libEGL.dll",
+    "libGLESv2.dll",
+    "vk_swiftshader.dll",
+    "vk_swiftshader_icd.json",
+    "vulkan-1.dll",
+    "d3dcompiler_47.dll",
+    "icudtl.dat",
+    "resources.pak",
+    "chrome_100_percent.pak",
+    "chrome_200_percent.pak",
+    "snapshot_blob.bin",
+    "v8_context_snapshot.bin",
+  ];
+
+  for (const name of electronRuntimeFiles) {
+    const src = path.join(stagedDir, name);
+    const dst = path.join(runnerDir, name);
+    if (await pathExists(src)) {
+      await fsp.copyFile(src, dst);
+    }
+  }
+
+  if (!(await pathExists(runnerExe))) {
+    throw new Error("Failed to stage the Electron runtime for the updater.");
+  }
 
   const helperSourceCandidates = [
     path.join(process.resourcesPath, "app.asar.unpacked", "electron", "updater.cjs"),
@@ -441,19 +479,61 @@ async function updateLauncher(sender) {
 
   const appDir = path.dirname(process.execPath);
   const confirmFile = path.join(tempRoot, "update-confirmed.json");
-  const args = [helper, "--zip", zipPath, "--target", appDir, "--exe", process.execPath, "--confirm", confirmFile, "--expected-version", update.latestVersion];
+  const args = [
+    helper,
+    "--target", appDir,
+    "--exe", process.execPath,
+    "--staging", staging,
+    "--confirm", confirmFile,
+    "--expected-version", update.latestVersion,
+  ];
+  try {
+    const pendingPath = path.join(SETTINGS_DIR, "pending-update.json");
+    await fsp.writeFile(
+      pendingPath,
+      JSON.stringify(
+        {
+          version: update.latestVersion,
+          previousVersion: APP_VERSION,
+          notes: update.notes || "",
+          htmlUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${update.latestVersion}`,
+          installedAt: Date.now(),
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+  } catch (error) {
+    console.error("Failed to write pending-update.json:", error);
+  }
 
   send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
   forceQuit = true;
-
-  const child = spawn(process.execPath, args, {
-    detached: true, stdio: "ignore", windowsHide: true, cwd: tempRoot,
+  const child = spawn(runnerExe, args, {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+    cwd: tempRoot,
     env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ELECTRON_NO_ATTACH_CONSOLE: "1" },
   });
   child.unref();
-  setTimeout(() => app.quit(), 150);
+  setTimeout(() => app.quit(), 200);
   return { started: true, latestVersion: update.latestVersion };
+}
+
+async function findLauncherExe(root, preferredName) {
+  const direct = path.join(root, preferredName);
+  if (await pathExists(direct)) return direct;
+  const entries = await fsp.readdir(root, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const candidate = path.join(root, entry.name, preferredName);
+      if (await pathExists(candidate)) return candidate;
+    }
+  }
+  return firstExe(root);
 }
 
 async function checkGameUpdate(request) {
@@ -536,6 +616,22 @@ app.whenReady().then(() => {
     });
   }
   ipcMain.handle("deadsmile:api", (_event, request) => apiRequest(request));
+    ipcMain.handle("deadsmile:consume-pending-update", async () => {
+    const pendingPath = path.join(SETTINGS_DIR, "pending-update.json");
+    try {
+      const raw = await fsp.readFile(pendingPath, "utf8");
+      await fsp.rm(pendingPath, { force: true });
+      const data = JSON.parse(raw);
+      if (!data?.version) return null;
+      const installed = String(data.version).replace(/^v/i, "");
+      const current = String(APP_VERSION).replace(/^v/i, "");
+      if (installed !== current) return null;
+
+      return data;
+    } catch {
+      return null;
+    }
+  });
   ipcMain.handle("deadsmile:storage-paths", () => ({
     root: STORAGE_ROOT,
     settings: SETTINGS_DIR,

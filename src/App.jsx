@@ -300,6 +300,13 @@ const COPY = {
         checkForUpdates: "Check for updates",
         checkingUpdate: "Checking…",
         youAreUpToDate: "You're up to date.",
+        launcherUpdatedEyebrow: "Launcher updated",
+        launcherUpdatedTitle: "You're on the latest version",
+        launcherUpdatedDescription:
+            "Deadsmile Games Launcher was updated to v{version}.",
+        whatsNew: "What's new",
+        viewOnGithub: "View on GitHub",
+        dismiss: "Dismiss",
     },
     "pt-BR": {
         error: "Erro",
@@ -532,6 +539,13 @@ const COPY = {
         checkForUpdates: "Verificar atualizações",
         checkingUpdate: "Verificando…",
         youAreUpToDate: "Você está atualizado.",
+        launcherUpdatedEyebrow: "Atualização do launcher",
+        launcherUpdatedTitle: "Você está na versão mais recente",
+        launcherUpdatedDescription:
+            "O Deadsmile Games Launcher foi atualizado para a versão v{version}.",
+        whatsNew: "Novidades",
+        viewOnGithub: "Ver no GitHub",
+        dismiss: "Ignorar",
     },
     es: {
         error: "Error",
@@ -763,6 +777,13 @@ const COPY = {
         checkForUpdates: "Verificar actualizaciones",
         checkingUpdate: "Verificando…",
         youAreUpToDate: "Estás actualizado.",
+        launcherUpdatedEyebrow: "Launcher actualizado",
+        launcherUpdatedTitle: "Estás en la última versión",
+        launcherUpdatedDescription:
+            "Deadsmile Games Launcher se actualizó a la v{version}.",
+        whatsNew: "Novedades",
+        viewOnGithub: "Ver en GitHub",
+        dismiss: "Descartar",
     },
 };
 
@@ -2164,6 +2185,66 @@ function UpdateOverlay({ info, progress, onUpdate, onLater, updating }) {
                     </button>
                     <button className="primary-button" onClick={onUpdate}>
                         {t("update")} <ArrowRight size={16} />
+                    </button>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function UpdateWelcomeModal({ info, onClose }) {
+    const { t } = useT();
+    if (!info) return null;
+    return (
+        <div
+            className="overlay update-welcome-overlay"
+            onMouseDown={(e) =>
+                e.target === e.currentTarget && onClose()
+            }
+        >
+            <section className="update-welcome-card">
+                <div className="update-welcome-head">
+                    <div className="update-welcome-icon">
+                        <CheckCircle size={28} weight="fill" />
+                    </div>
+                    <div>
+                        <small>{t("launcherUpdatedEyebrow")}</small>
+                        <h2>{t("launcherUpdatedTitle")}</h2>
+                        <p>
+                            {t("launcherUpdatedDescription", {
+                                version: info.version,
+                            })}
+                        </p>
+                    </div>
+                </div>
+
+                {info.notes && (
+                    <div className="update-welcome-notes">
+                        <span>{t("whatsNew")}</span>
+                        <div className="update-welcome-notes-body">
+                            {info.notes}
+                        </div>
+                    </div>
+                )}
+
+                <div className="update-welcome-actions">
+                    <button
+                        type="button"
+                        className="soft-button"
+                        onClick={onClose}
+                    >
+                        {t("dismiss")}
+                    </button>
+                    <button
+                        type="button"
+                        className="primary-button"
+                        onClick={() => {
+                            openExternal(info.htmlUrl);
+                            onClose();
+                        }}
+                    >
+                        {t("viewOnGithub")}
+                        <ArrowUpRight size={16} />
                     </button>
                 </div>
             </section>
@@ -4272,6 +4353,7 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
 
 export default function App() {
     const [status, setStatus] = useState("booting");
+    const [pendingUpdate, setPendingUpdate] = useState(null);
     const [language, setLanguageState] = useState(() => {
         try {
             return localStorage.getItem("deadsmile.language") || "en";
@@ -4362,6 +4444,20 @@ export default function App() {
             alive = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (status !== "ready") return undefined;
+        let alive = true;
+        window.deadsmile?.consumePendingUpdate?.()
+            .then((data) => {
+                if (alive && data) setPendingUpdate(data);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, [status]);
+
     useEffect(() => {
         const open = () => setLinksOpen(true);
         window.addEventListener("deadsmile:open-links", open);
@@ -4960,6 +5056,14 @@ useEffect(() => {
             {selectedVideo && (
                 <Portal>
                     <VideoPlayer video={selectedVideo} onClose={goBack} />
+                </Portal>
+            )}
+            {pendingUpdate && (
+                <Portal>
+                    <UpdateWelcomeModal
+                        info={pendingUpdate}
+                        onClose={() => setPendingUpdate(null)}
+                    />
                 </Portal>
             )}
                 </LanguageContext.Provider>

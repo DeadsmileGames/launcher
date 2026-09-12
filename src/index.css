@@ -3047,6 +3047,104 @@ img {
     }
 }
 
+
+.update-welcome-overlay {
+    z-index: 700;
+    background: #000b;
+}
+.update-welcome-card {
+    width: min(560px, calc(100vw - 34px));
+    max-height: calc(100vh - 80px);
+    overflow: auto;
+    padding: 28px;
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: 0 35px 100px #000c;
+    animation: popIn 0.2s ease;
+}
+.update-welcome-head {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+.update-welcome-icon {
+    width: 52px;
+    height: 52px;
+    flex: none;
+    border-radius: 16px;
+    background: #1d3024;
+    color: var(--success);
+    display: grid;
+    place-items: center;
+}
+.update-welcome-head small {
+    display: block;
+    color: #7c808a;
+    text-transform: uppercase;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+.update-welcome-head h2 {
+    font: 700 24px Space Grotesk, sans-serif;
+    margin: 4px 0 6px;
+}
+.update-welcome-head p {
+    margin: 0;
+    color: #9497a1;
+    font-size: 12px;
+    line-height: 1.55;
+}
+.update-welcome-notes {
+    margin-top: 8px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #11131a;
+    border: 1px solid #ffffff08;
+}
+.update-welcome-notes > span {
+    display: block;
+    color: #7c808a;
+    text-transform: uppercase;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+.update-welcome-notes-body {
+    color: #bfc1c8;
+    font-size: 11.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #343741 transparent;
+}
+.update-welcome-notes-body::-webkit-scrollbar {
+    width: 6px;
+}
+.update-welcome-notes-body::-webkit-scrollbar-thumb {
+    background: #30333d;
+    border-radius: 99px;
+}
+.update-welcome-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 22px;
+}
+@media (max-width: 560px) {
+    .update-welcome-actions {
+        flex-direction: column-reverse;
+    }
+    .update-welcome-actions .primary-button,
+    .update-welcome-actions .soft-button {
+        width: 100%;
+    }
+}
+
 @keyframes socialEnter {
     from {
         opacity: 0;

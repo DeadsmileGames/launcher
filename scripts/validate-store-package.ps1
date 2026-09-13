@@ -69,7 +69,7 @@ try {
     "Square44x44Logo.png",
     "Wide310x150Logo.png"
   ) | ForEach-Object {
-    if (-not (Test-Path (Join-Path $inspectionPath "assets\$_") -PathType Leaf) {
+    if (-not (Test-Path (Join-Path $inspectionPath "assets\$_") -PathType Leaf)) {
       throw "A required Microsoft Store asset is missing."
     }
   }

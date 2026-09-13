@@ -94,7 +94,51 @@ if (
 }
 app.setPath("userData", SETTINGS_DIR);
 
-const API_URL = "https://testeapideadsmilenova.vercel.app/api";
+// ── Protocolo customizado deadsmile:// ──────────────────────────────────────
+app.setAsDefaultProtocolClient("deadsmile");
+
+// Garante uma única instância do launcher.
+// Se já estiver aberto e o usuário clicar em deadsmile://, o segundo processo
+// passa a URL para o primeiro e fecha.
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  // Windows: a URL chega nos argv do segundo processo
+  app.on("second-instance", (_event, argv) => {
+    const url = argv.find((arg) => arg.startsWith("deadsmile://"));
+    if (url) handleDeepLink(url);
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+
+  // macOS: usa o evento open-url
+  app.on("open-url", (_event, url) => {
+    _event.preventDefault();
+    handleDeepLink(url);
+  });
+}
+
+/**
+ * Processa URLs do tipo:
+ *   deadsmile://launch?gameId=abc-123
+ */
+function handleDeepLink(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "launch") {
+      const gameId = parsed.searchParams.get("gameId");
+      if (!gameId) return;
+      broadcast("deadsmile:launch-game", gameId);
+    }
+  } catch {}
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+const API_URL = "https://apideadsmile.vercel.app/api";
 const GITHUB_REPO = "deadsmilegames/launcher";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const APP_VERSION = app.getVersion();
@@ -450,9 +494,6 @@ async function updateLauncher(sender) {
   });
   if (!response.ok || !response.body) throw new Error(`Unable to download launcher update (${response.status}).`);
 
-
-
-  
   const total = Number(response.headers.get("content-length")) || update.size || 0;
   let received = 0;
   const hash = crypto.createHash("sha256");

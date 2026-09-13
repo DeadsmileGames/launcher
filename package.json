@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
-    "@rollup/rollup-win32-x64-msvc": "^4.63.2",
     "itchio-downloader": "^1.2.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
@@ -45,7 +44,15 @@
     "win": {
       "target": "nsis",
       "icon": "public/favicon.ico",
-      "artifactName": "Deadsmile-Games-Launcher-Setup-${version}.${ext}"
+      "artifactName": "Deadsmile-Games-Launcher-Setup-${version}.${ext}",
+      "protocols": [
+        {
+          "name": "Deadsmile Games Launcher",
+          "schemes": [
+            "deadsmile"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

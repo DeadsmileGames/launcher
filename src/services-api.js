@@ -1,4 +1,4 @@
-const API_FALLBACK = 'https://testeapideadsmilenova.vercel.app/api';
+const API_FALLBACK = 'https://deadsmile.vercel.app/api';
 let csrfToken = null;
 
 class ApiError extends Error {

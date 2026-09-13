@@ -138,7 +138,7 @@ function handleDeepLink(url) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-const API_URL = "https://apideadsmile.vercel.app/api";
+const API_URL = "https://deadsmile.vercel.app/api";
 const GITHUB_REPO = "deadsmilegames/launcher";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const APP_VERSION = app.getVersion();

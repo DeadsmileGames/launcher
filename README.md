@@ -27,11 +27,11 @@
 </p>
 
 <p align="center">
-  <a href="https://deadsmile.vercel.app">
+  <a href="https://deadsmilegames.vercel.app">
     Website
   </a>
   •
-  <a href="https://deadsmile.vercel.app/games">
+  <a href="https://deadsmilegames.vercel.app">
     Games
   </a>
   •

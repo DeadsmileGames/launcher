@@ -56,7 +56,7 @@ import {
 } from "@phosphor-icons/react";
 import { api } from "./services-api";
 
-const SITE_URL = "https://deadsmile.vercel.app";
+const SITE_URL = "https://deadsmilegames.vercel.app";
 const API_ASSET_ROOT = SITE_URL;
 const TABS = [
     { id: "explore", label: "Explore", icon: Compass },
@@ -1189,7 +1189,7 @@ function SmartImage({ src, fallback, alt = "", className = "", ...props }) {
                         return (
                             u.origin === API_ASSET_ROOT ||
                             u.origin === SITE_URL ||
-                            u.hostname === "apideadsmile.vercel.app" ||
+                            u.hostname === "deadsmile.vercel.app" ||
                             u.hostname.endsWith(".deadsmile.vercel.app")
                         );
                     } catch {

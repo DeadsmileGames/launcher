@@ -6,7 +6,8 @@ const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { Readable } = require("node:stream");
 const crypto = require("node:crypto");
-const { downloadGame: downloadItchGame } = require("itchio-downloader");
+const { Client, Instance } = require("@itchio/butlerd");
+const butlerMessages = require("./butlerd-messages.cjs");
 const { DownloadQueue } = require("./download-queue.cjs");
 const STORAGE_ROOT = path.join(
   app.getPath("documents"),
@@ -15,7 +16,16 @@ const STORAGE_ROOT = path.join(
 const SETTINGS_DIR = path.join(STORAGE_ROOT, "settings");
 const GAMES_DIR = path.join(STORAGE_ROOT, "Games");
 const PLAYTIME_FILE = path.join(SETTINGS_DIR, "playtime.json");
+const BUTLER_ROOT = path.join(SETTINGS_DIR, "butler");
+const BUTLER_EXE = path.join(BUTLER_ROOT, "butler.exe");
+const BUTLER_VERSION_FILE = path.join(BUTLER_ROOT, "version.txt");
+const BUTLER_PATH_FILE = path.join(BUTLER_ROOT, "executable.txt");
+const BUTLER_DB = path.join(SETTINGS_DIR, "butler.db");
+const BUTLER_BROTH = "https://broth.itch.zone/butler/windows-amd64";
+const IS_MICROSOFT_STORE = Boolean(process.windowsStore);
 const playSessions = new Map();
+let butlerInstance = null;
+let butlerClient = null;
 const API_ALLOWED_PATHS = [
   /^\/csrf$/,
   /^\/auth\/me$/,
@@ -32,6 +42,8 @@ const API_ALLOWED_PATHS = [
   /^\/library(?:\?|$)/,
   /^\/library\/sync$/,
   /^\/library\/[0-9a-f-]{36}\/verify$/i,
+  /^\/platform\/(?:sessions|saves|achievements|telemetry|events|live-ticket)(?:\?|\/|$)/,
+  /^\/platform\/telemetry-consent$/,
   /^\/admin\/(game|newsletter|video)(\/|$)/,
 ];
 
@@ -93,18 +105,11 @@ if (
   } catch {}
 }
 app.setPath("userData", SETTINGS_DIR);
-
-// ── Protocolo customizado deadsmile:// ──────────────────────────────────────
-app.setAsDefaultProtocolClient("deadsmile");
-
-// Garante uma única instância do launcher.
-// Se já estiver aberto e o usuário clicar em deadsmile://, o segundo processo
-// passa a URL para o primeiro e fecha.
+if (!IS_MICROSOFT_STORE) app.setAsDefaultProtocolClient("deadsmile");
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  // Windows: a URL chega nos argv do segundo processo
   app.on("second-instance", (_event, argv) => {
     const url = argv.find((arg) => arg.startsWith("deadsmile://"));
     if (url) handleDeepLink(url);
@@ -114,18 +119,11 @@ if (!gotTheLock) {
       win.focus();
     }
   });
-
-  // macOS: usa o evento open-url
   app.on("open-url", (_event, url) => {
     _event.preventDefault();
     handleDeepLink(url);
   });
 }
-
-/**
- * Processa URLs do tipo:
- *   deadsmile://launch?gameId=abc-123
- */
 function handleDeepLink(url) {
   try {
     const parsed = new URL(url);
@@ -136,7 +134,6 @@ function handleDeepLink(url) {
     }
   } catch {}
 }
-// ────────────────────────────────────────────────────────────────────────────
 
 const API_URL = "https://deadsmile.vercel.app/api";
 const GITHUB_REPO = "deadsmilegames/launcher";
@@ -234,6 +231,65 @@ async function csrfForMain() {
   return token;
 }
 
+async function protectedApi(endpoint, method, body) {
+  const token = await csrfForMain();
+  return apiRequest({
+    path: endpoint,
+    method,
+    body,
+    headers: { "X-CSRF-Token": token },
+  });
+}
+
+function resolveSavePath(template) {
+  if (!template || typeof template !== "string") return null;
+  const expanded = template.replace("{appdata}", app.getPath("appData"));
+  const resolved = path.resolve(expanded);
+  const allowed = path.resolve(path.join(app.getPath("appData"), "pico-8", "cdata"));
+  if (!resolved.startsWith(`${allowed}${path.sep}`) || !resolved.endsWith(".p8d.txt")) return null;
+  return resolved;
+}
+
+async function restoreCloudSave(gameId, template) {
+  const target = resolveSavePath(template);
+  if (!target) return null;
+  const result = await apiRequest({ path: `/platform/saves/${gameId}/default` });
+  if (!result.ok || !result.data?.data?.payload) return { target, revision: null };
+  const remote = result.data.data;
+  const remoteTime = Date.parse(remote.updated_at || remote.updatedAt || 0) || 0;
+  let localTime = 0;
+  try { localTime = (await fsp.stat(target)).mtimeMs; } catch {}
+  if (!localTime || remoteTime > localTime) {
+    const bytes = Buffer.from(remote.payload, "base64");
+    if (bytes.length <= 256 * 1024) {
+      await fsp.mkdir(path.dirname(target), { recursive: true });
+      await fsp.writeFile(target, bytes, { mode: 0o600 });
+    }
+  }
+  return { target, revision: remote.revision || null };
+}
+
+async function uploadCloudSave(gameId, state) {
+  if (!state?.target || !(await pathExists(state.target))) return;
+  const bytes = await fsp.readFile(state.target);
+  if (!bytes.length || bytes.length > 256 * 1024) return;
+  await protectedApi(`/platform/saves/${gameId}/default`, "PUT", {
+    payload: bytes.toString("base64"),
+    revision: state.revision,
+  });
+}
+
+async function readPicoNumber(target, index) {
+  try {
+    const source = (await fsp.readFile(target, "utf8")).replace(/\s+/g, "");
+    if (!/^[a-f0-9]{512}$/i.test(source)) return null;
+    const bytes = Buffer.from(source, "hex");
+    return bytes.readInt32LE(index * 4) / 65536;
+  } catch {
+    return null;
+  }
+}
+
 async function downloadAuthorization(gameId) {
   if (!/^[0-9a-f-]{36}$/i.test(String(gameId || ""))) throw new Error("GAME_INVALID");
   const csrf = await csrfForMain();
@@ -242,10 +298,127 @@ async function downloadAuthorization(gameId) {
     method: "POST",
     headers: { "X-CSRF-Token": csrf },
   });
-  if (!result.ok || !result.data?.data?.accessToken || !isItch(result.data.data.itchGameUrl)) {
+  if (!result.ok || !result.data?.data?.accessToken || !Number.isSafeInteger(Number(result.data.data.itchGameId)) || !isItch(result.data.data.itchGameUrl)) {
     throw new Error(result.data?.error?.code || "DOWNLOAD_NOT_AUTHORIZED");
   }
   return result.data.data;
+}
+
+async function downloadFile(url, destination) {
+  const response = await session.defaultSession.fetch(url, {
+    headers: { Accept: "application/octet-stream", "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}` },
+  });
+  if (!response.ok || !response.body) throw new Error("BUTLER_DOWNLOAD_FAILED");
+  await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(destination, { mode: 0o600 }));
+}
+
+async function ensureButler() {
+  if (process.platform !== "win32") throw new Error("BUTLER_PLATFORM_UNSUPPORTED");
+  let remoteVersion = "";
+  try {
+    const response = await session.defaultSession.fetch(`${BUTLER_BROTH}/LATEST`, {
+      headers: { Accept: "text/plain", "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}` },
+    });
+    if (response.ok) remoteVersion = (await response.text()).trim();
+  } catch {}
+  let localVersion = "";
+  try { localVersion = (await fsp.readFile(BUTLER_VERSION_FILE, "utf8")).trim(); } catch {}
+  let localExecutable = BUTLER_EXE;
+  try {
+    const relative = (await fsp.readFile(BUTLER_PATH_FILE, "utf8")).trim();
+    const resolved = path.resolve(BUTLER_ROOT, relative);
+    if (resolved.startsWith(`${path.resolve(BUTLER_ROOT)}${path.sep}`)) localExecutable = resolved;
+  } catch {}
+  if (await pathExists(localExecutable) && (!remoteVersion || remoteVersion === localVersion)) return localExecutable;
+  if (!remoteVersion && !(await pathExists(localExecutable))) throw new Error("BUTLER_UNAVAILABLE");
+  const staging = `${BUTLER_ROOT}.staging-${process.pid}`;
+  const archive = path.join(app.getPath("temp"), `deadsmile-butler-${process.pid}.zip`);
+  await fsp.rm(staging, { recursive: true, force: true });
+  await fsp.mkdir(staging, { recursive: true });
+  try {
+    await downloadFile(`${BUTLER_BROTH}/${encodeURIComponent(remoteVersion)}/archive/default`, archive);
+    await extractZip(archive, staging);
+    const executable = await findNamedFile(staging, "butler.exe");
+    if (!executable) throw new Error("BUTLER_INVALID_ARCHIVE");
+    const relativeExecutable = path.relative(staging, executable);
+    if (!relativeExecutable || relativeExecutable.startsWith("..") || path.isAbsolute(relativeExecutable)) throw new Error("BUTLER_INVALID_ARCHIVE");
+    await fsp.writeFile(path.join(staging, "version.txt"), remoteVersion, { mode: 0o600 });
+    await fsp.writeFile(path.join(staging, "executable.txt"), relativeExecutable, { mode: 0o600 });
+    const previous = `${BUTLER_ROOT}.previous-${process.pid}`;
+    await fsp.rm(previous, { recursive: true, force: true });
+    if (await pathExists(BUTLER_ROOT)) await fsp.rename(BUTLER_ROOT, previous);
+    try {
+      await fsp.rename(staging, BUTLER_ROOT);
+      await fsp.rm(previous, { recursive: true, force: true });
+    } catch (error) {
+      if (!(await pathExists(BUTLER_ROOT)) && await pathExists(previous)) await fsp.rename(previous, BUTLER_ROOT);
+      throw error;
+    }
+  } finally {
+    await fsp.rm(archive, { force: true }).catch(() => {});
+    await fsp.rm(staging, { recursive: true, force: true }).catch(() => {});
+  }
+  const relativeExecutable = (await fsp.readFile(BUTLER_PATH_FILE, "utf8")).trim();
+  const installedExecutable = path.resolve(BUTLER_ROOT, relativeExecutable);
+  if (!installedExecutable.startsWith(`${path.resolve(BUTLER_ROOT)}${path.sep}`) || !(await pathExists(installedExecutable))) throw new Error("BUTLER_INVALID_INSTALL");
+  return installedExecutable;
+}
+
+async function findNamedFile(directory, filename) {
+  const queue = [directory];
+  while (queue.length) {
+    const current = queue.shift();
+    for (const entry of await fsp.readdir(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) queue.push(full);
+      else if (entry.isFile() && entry.name.toLowerCase() === filename.toLowerCase()) return full;
+    }
+  }
+  return null;
+}
+
+async function getButlerClient() {
+  if (butlerClient) return butlerClient;
+  const executable = await ensureButler();
+  butlerInstance = new Instance({
+    butlerExecutable: executable,
+    args: [
+      "--dbpath", BUTLER_DB,
+      "--address", "https://itch.io",
+      "--user-agent", `Deadsmile-Games-Launcher/${APP_VERSION}`,
+      "--destiny-pid", String(process.pid),
+    ],
+  });
+  butlerClient = new Client(await butlerInstance.getEndpoint());
+  butlerClient.onError(() => {});
+  butlerClient.onWarning(() => {});
+  butlerInstance.promise().catch(() => {}).finally(() => {
+    butlerInstance = null;
+    butlerClient = null;
+  });
+  return butlerClient;
+}
+
+async function resolveButlerGame({ accessToken, itchGameId, preferredItchChannel = null }) {
+  const client = await getButlerClient();
+  let profileId = 0;
+  if (accessToken) {
+    const profileResult = await client.call(butlerMessages.ProfileLoginWithAPIKey, { apiKey: accessToken });
+    profileId = Number(profileResult?.profile?.id) || 0;
+  }
+  const [gameResult, uploadResult] = await Promise.all([
+    client.call(butlerMessages.FetchGame, { gameId: Number(itchGameId), fresh: true }),
+    client.call(butlerMessages.FetchGameUploads, { gameId: Number(itchGameId), compatible: true, fresh: true }),
+  ]);
+  const uploads = Array.isArray(uploadResult?.uploads) ? uploadResult.uploads : [];
+  const channelUploads = preferredItchChannel
+    ? uploads.filter((item) => String(item?.channelName || "").toLowerCase() === String(preferredItchChannel).toLowerCase())
+    : uploads;
+  const upload = channelUploads
+    .filter((item) => item && item.id)
+    .sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0))[0];
+  if (!gameResult?.game || !upload) throw new Error("WINDOWS_BUILD_UNAVAILABLE");
+  return { client, profileId, game: gameResult.game, upload };
 }
 
 function send(sender, channel, payload) {
@@ -301,50 +474,6 @@ function versionFromFilename(filename) {
   return String(Number.parseInt(version, 10));
 }
 
-function isWindowsArtifactName(filename) {
-  const name = path.basename(String(filename || "")).trim();
-  return /\.zip$/i.test(name);
-}
-function parseItchPublicWindowsFiles(html) {
-  const decoded = String(html || "")
-    .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">");
-  const names = new Set();
-  const patterns = [
-    /(?:^|["' >])([^"'<>]{1,220}\.(?:zip|7z|rar|exe))(?=["'<\s]|$)/gi,
-    /(?:filename|name)\s*[:=]\s*["']([^"']+\.(?:zip|7z|rar|exe))["']/gi,
-  ];
-  for (const pattern of patterns) {
-    for (const match of decoded.matchAll(pattern)) {
-      const name = path.basename(String(match[1]).trim());
-      if (name && !/[\\/:*?"<>|]/.test(name)) names.add(name);
-    }
-  }
-  const allFiles = [...names];
-  const windowsFiles = allFiles.filter(isWindowsArtifactName);
-  return { allFiles, windowsFiles };
-}
-
-async function getItchWindowsUpdate(url, localVersion) {
-  if (!isItch(url)) throw new Error("This game is not available on itch.io.");
-  const response = await session.defaultSession.fetch(url, {
-    headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "Deadsmile-Games-Launcher" },
-  });
-  if (!response.ok) throw new Error(`itch.io returned ${response.status}.`);
-  const parsed = parseItchPublicWindowsFiles(await response.text());
-  const candidates = parsed.windowsFiles
-    .map((name) => ({ name, version: versionFromFilename(name) }))
-    .filter((item) => item.version)
-    .sort((a, b) => compareVersions(a.version, b.version));
-  const currentVersion = normalizeVersion(localVersion) || null;
-  const latest = candidates[candidates.length - 1] || null;
-  return {
-    available: Boolean(latest && currentVersion && compareVersions(latest.version, currentVersion) > 0),
-    currentVersion, latestVersion: latest?.version || null, fileName: latest?.name || null,
-    files: parsed.allFiles, windowsFiles: parsed.windowsFiles,
-  };
-}
-
 async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
   const oldFolder = `${gameFolder}.old`;
   await fsp.rm(oldFolder, { recursive: true, force: true });
@@ -369,76 +498,89 @@ async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
 }
 
 async function runDownloadWorker(job, ctx) {
-  const { id, slug, url, apiKey, mode = "download", currentVersion = null } = job;
-  if (!isItch(url)) throw new Error("This game is not available on itch.io.");
+  const { id, slug, commerceEnabled, mode = "download", currentVersion = null } = job;
+  let accessToken = job.apiKey || "";
+  let itchGameId = job.itchGameId;
+  let preferredItchChannel = job.preferredItchChannel || null;
+  if (commerceEnabled) {
+    const authorization = await downloadAuthorization(id);
+    accessToken = authorization.accessToken;
+    itchGameId = authorization.itchGameId;
+    preferredItchChannel = authorization.preferredItchChannel || null;
+  }
+  if (!Number.isSafeInteger(Number(itchGameId))) throw new Error("DOWNLOAD_NOT_AUTHORIZED");
   const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
   await fsp.mkdir(GAMES_DIR, { recursive: true });
 
-  let remoteUpdate = null;
-  if (mode === "update") {
-    remoteUpdate = await getItchWindowsUpdate(url, currentVersion);
-    if (!remoteUpdate.available) throw new Error("No game update is available.");
-    if (playSessions.has(id)) throw new Error("Close the game before updating it.");
-  }
+  if (mode === "update" && playSessions.has(id)) throw new Error("GAME_RUNNING");
 
-  const jobRoot = path.join(app.getPath("temp"), "deadsmile-game-downloads",
-    `${sanitizeName(slug || id)}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  const downloadRoot = path.join(jobRoot, "download");
-  const stagingFolder = path.join(jobRoot, "staging");
-  await fsp.mkdir(downloadRoot, { recursive: true });
+  const jobRoot = path.join(app.getPath("temp"), "deadsmile-game-downloads", sanitizeName(slug || id));
+  const stagingFolder = path.join(jobRoot, "install");
+  await fsp.rm(jobRoot, { recursive: true, force: true });
+  await fsp.mkdir(jobRoot, { recursive: true });
 
   try {
-    const result = await downloadItchGame({
-      itchGameUrl: url, downloadDirectory: downloadRoot, platform: "windows",
-      apiKey,
-      resume: true, retries: 2, retryDelayMs: 750, writeMetaData: false,
-      onProgress: ({ bytesReceived, totalBytes, fileName }) => {
-        if (ctx.isAborted()) throw new Error("Cancelled");
-        if (ctx.isPaused()) throw new Error("Paused");
-        const total = Number(totalBytes) || 0, received = Number(bytesReceived) || 0;
-        ctx.onProgress({
-          status: "downloading", received, total,
-          percent: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
-          fileName: fileName || "",
+    const { client, profileId, game, upload } = await resolveButlerGame({ accessToken, itchGameId, preferredItchChannel });
+    const remoteVersion = versionFromFilename(upload.filename || "");
+    if (mode === "update" && remoteVersion && currentVersion && compareVersions(remoteVersion, currentVersion) <= 0) {
+      throw new Error("NO_UPDATE_AVAILABLE");
+    }
+    const queued = await client.call(butlerMessages.InstallQueue, {
+      reason: mode === "update" ? "update" : "install",
+      noCave: true,
+      installFolder: stagingFolder,
+      game,
+      upload,
+      ignoreInstallers: true,
+      stagingFolder: path.join(jobRoot, "staging"),
+      profileId,
+    });
+    let conversation = null;
+    await client.call(
+      butlerMessages.InstallPerform,
+      { id: queued.id, stagingFolder: queued.stagingFolder },
+      (active) => {
+        conversation = active;
+        active.onNotification(butlerMessages.Progress, (progress) => {
+          if (ctx.isAborted() || ctx.isPaused()) {
+            active.cancel();
+            return;
+          }
+          const percent = Math.max(0, Math.min(100, Math.round(Number(progress.progress || 0) * 100)));
+          const total = Number(upload.size) || 0;
+          ctx.onProgress({
+            status: mode === "update" ? "updating" : "downloading",
+            percent,
+            received: total ? Math.round(total * percent / 100) : 0,
+            total,
+            fileName: upload.filename || "",
+          });
         });
       },
+    ).catch((error) => {
+      if (ctx.isAborted()) throw new Error("Cancelled");
+      if (ctx.isPaused()) throw new Error("Paused");
+      throw error;
     });
-    if (ctx.isAborted()) throw new Error("Cancelled");
-    if (ctx.isPaused()) throw new Error("Paused");
-    if (!result?.filePath) throw new Error("itch.io download failed.");
-    const fileName = path.basename(result.filePath);
-    if (!/\.zip$/i.test(fileName)) throw new Error("This game is not available on itch.io for Windows yet.");
-    if (mode === "update" && remoteUpdate?.latestVersion) {
-      const downloadedVersion = remoteUpdate.latestVersion;
-      if (!downloadedVersion) {
-        throw new Error("Could not determine the itch.io game version.");
-      }
-    }
-
-    ctx.onProgress({ status: mode === "update" ? "updating" : "installing",
-      received: result.bytesDownloaded || 0, total: result.bytesDownloaded || 0,
-      percent: mode === "update" ? 20 : 100, fileName });
-
-    await extractZip(result.filePath, stagingFolder);
+    if (conversation && (ctx.isAborted() || ctx.isPaused())) conversation.cancel();
     if (ctx.isAborted()) throw new Error("Cancelled");
     if (ctx.isPaused()) throw new Error("Paused");
 
     const exePath = await firstExe(stagingFolder);
-    if (!exePath) throw new Error("The Windows download does not contain a game executable.");
+    if (!exePath) throw new Error("WINDOWS_EXECUTABLE_MISSING");
 
     if (mode === "update") {
       const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
-      return { ...swapped, slug, version: versionFromFilename(path.basename(swapped.path)) || currentVersion };
+      return { ...swapped, slug, version: remoteVersion || currentVersion };
     }
 
     await fsp.rm(gameFolder, { recursive: true, force: true });
     await fsp.rename(stagingFolder, gameFolder);
     const installedExe = await firstExe(gameFolder);
-    if (!installedExe) throw new Error("The Windows download does not contain a game executable.");
-    ctx.onProgress({ status: "complete", received: result.bytesDownloaded || 0,
-      total: result.bytesDownloaded || 0, percent: 100, fileName: path.basename(installedExe) });
+    if (!installedExe) throw new Error("WINDOWS_EXECUTABLE_MISSING");
+    ctx.onProgress({ status: "complete", percent: 100, fileName: path.basename(installedExe) });
     return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe),
-      version: versionFromFilename(path.basename(installedExe)), slug };
+      version: remoteVersion || versionFromFilename(path.basename(installedExe)), slug };
   } finally {
     await fsp.rm(jobRoot, { recursive: true, force: true }).catch(() => {});
   }
@@ -461,6 +603,13 @@ const downloadQueue = new DownloadQueue({
 
 async function checkForUpdate() {
   if (!app.isPackaged) return { available: false, currentVersion: APP_VERSION, reason: "development" };
+  if (IS_MICROSOFT_STORE)
+    return {
+      available: false,
+      currentVersion: APP_VERSION,
+      reason: "microsoft-store",
+      managedBy: "microsoft-store",
+    };
   try {
     const response = await session.defaultSession.fetch(GITHUB_RELEASES_URL, {
       headers: { Accept: "application/vnd.github+json", "User-Agent": "Deadsmile-Games-Launcher" },
@@ -481,6 +630,7 @@ async function checkForUpdate() {
 }
 
 async function updateLauncher(sender) {
+  if (IS_MICROSOFT_STORE) throw new Error("UPDATE_MANAGED_BY_MICROSOFT_STORE");
   if (updateInProgress) throw new Error("Launcher update already in progress.");
   const update = await checkForUpdate();
   if (!update.available) throw new Error(update.reason || "No update is available.");
@@ -619,15 +769,31 @@ async function findLauncherExe(root, preferredName) {
 }
 
 async function checkGameUpdate(request) {
-  const { id, slug, url, currentVersion, filename, path: installedPath } = request || {};
-  if (!id || !isItch(url)) return { available: false, reason: "Invalid itch.io game." };
+  const { id, slug, currentVersion, filename, path: installedPath, commerceEnabled, itchGameId } = request || {};
+  if (!id) return { available: false, reason: "GAME_INVALID" };
   const localVersion = normalizeVersion(currentVersion) || versionFromFilename(filename) || versionFromFilename(installedPath);
   try {
-    const result = await getItchWindowsUpdate(url, localVersion);
-    return { ...result, id, slug, localVersion: localVersion || null };
-  } catch (error) {
+    const authorization = commerceEnabled
+      ? await downloadAuthorization(id)
+      : { accessToken: "", itchGameId: Number(itchGameId) };
+    if (!Number.isSafeInteger(Number(authorization.itchGameId))) throw new Error("ITCH_GAME_NOT_CONFIGURED");
+    const { upload } = await resolveButlerGame({
+      accessToken: authorization.accessToken,
+      itchGameId: authorization.itchGameId,
+      preferredItchChannel: authorization.preferredItchChannel,
+    });
+    const latestVersion = versionFromFilename(upload.filename || "");
+    return {
+      available: Boolean(latestVersion && localVersion && compareVersions(latestVersion, localVersion) > 0),
+      id,
+      slug,
+      localVersion: localVersion || null,
+      latestVersion: latestVersion || null,
+      fileName: upload.filename || null,
+    };
+  } catch {
     return { available: false, id, slug, localVersion: localVersion || null,
-      reason: error?.message || "Game update check failed." };
+      reason: "UPDATE_CHECK_UNAVAILABLE" };
   }
 }
 
@@ -736,17 +902,6 @@ app.whenReady().then(() => {
     games: GAMES_DIR,
   }));
 
-  ipcMain.handle("check-game-update", async (_event, game) => {
-  if (!game?.downloadUrl) {
-    throw new Error("Game does not have an itch.io URL.");
-  }
-
-  return await getItchWindowsUpdate(
-    game.downloadUrl,
-    game.currentVersion
-  );
-});
-  
   ipcMain.handle("deadsmile:normalize-library", (_event, library) => {
     if (!library || typeof library !== "object") return {};
     const legacyRoot = path.resolve(LEGACY_GAMES_DIR);
@@ -798,14 +953,10 @@ app.whenReady().then(() => {
     return shell.openPath(targetPath);
   });
   ipcMain.handle("deadsmile:download-game", async (_event, request) => {
-      const authorization = request?.commerceEnabled
-        ? await downloadAuthorization(request?.id)
-        : { itchGameUrl: request?.url, accessToken: "" };
-      if (!isItch(authorization.itchGameUrl)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
+      if (!request?.id || !isItch(request?.url)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
       return downloadQueue.enqueue({
         ...request,
-        url: authorization.itchGameUrl,
-        apiKey: authorization.accessToken,
+        itchGameId: Number(request.itchGameId),
       });
   });
   ipcMain.handle("deadsmile:download-pause", (_event, id) =>
@@ -836,7 +987,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
       "deadsmile:play-game",
-      async (_event, { id, exePath, args = [] }) => {
+      async (_event, { id, exePath, args = [], gameVersion = null, engine = "native", savePathTemplate = null, cloudSavesEnabled = false }) => {
           if (!id || !exePath) return { error: "Invalid game." };
           const gamesRoot = path.resolve(GAMES_DIR);
           const resolvedExe = path.resolve(exePath);
@@ -846,6 +997,19 @@ app.whenReady().then(() => {
           }
           if (!(await pathExists(resolvedExe))) return { error: "Game executable not found." };
           if (playSessions.has(id)) return { error: "Already running." };
+
+          let platformSession = null;
+          let cloudSave = null;
+          try {
+            if (cloudSavesEnabled && engine === "pico8") cloudSave = await restoreCloudSave(id, savePathTemplate);
+            const created = await protectedApi("/platform/sessions", "POST", {
+              gameId: id,
+              launcherVersion: APP_VERSION,
+              gameVersion,
+              platform: process.platform === "darwin" ? "macos" : process.platform === "linux" ? "linux" : "windows",
+            });
+            platformSession = created?.data?.data || null;
+          } catch {}
 
           const child = spawn(resolvedExe, Array.isArray(args) ? args : [], {
               detached: true,
@@ -858,7 +1022,10 @@ app.whenReady().then(() => {
           const startedAt = Date.now();
           playSessions.set(id, { startedAt, child });
 
-          const finish = () => {
+          let finished = false;
+          const finish = async () => {
+              if (finished) return;
+              finished = true;
               const session = playSessions.get(id);
               if (!session) return;
               playSessions.delete(id);
@@ -873,6 +1040,18 @@ app.whenReady().then(() => {
               };
               writePlaytime(data);
 
+              try {
+                if (platformSession?.id) {
+                  await protectedApi(`/platform/sessions/${platformSession.id}/end`, "POST", { durationMs });
+                }
+                if (cloudSavesEnabled && engine === "pico8") {
+                  await uploadCloudSave(id, cloudSave);
+                  if (cloudSave?.target && (await readPicoNumber(cloudSave.target, 1)) >= 1) {
+                    await protectedApi(`/platform/achievements/${id}/finish_story/unlock`, "POST", {});
+                  }
+                }
+              } catch {}
+
               for (const win of BrowserWindow.getAllWindows()) {
                   if (!win.isDestroyed()) {
                       try {
@@ -885,8 +1064,8 @@ app.whenReady().then(() => {
               }
           };
 
-          child.on("exit", finish);
-          child.on("error", finish);
+          child.once("exit", finish);
+          child.once("error", finish);
 
           return { pid: child.pid, startedAt };
       },
@@ -913,4 +1092,7 @@ app.whenReady().then(() => {
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+app.on("before-quit", () => {
+  butlerInstance?.cancel().catch(() => {});
 });

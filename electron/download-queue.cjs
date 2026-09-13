@@ -14,7 +14,7 @@ class DownloadQueue {
         this._emit();
     }
 
-    enqueue({ id, slug, title, url, apiKey = "", mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
+    enqueue({ id, slug, title, url, apiKey = "", itchGameId = null, preferredItchChannel = null, commerceEnabled = false, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
         if (this.jobs.has(id)) return this.jobs.get(id).promise;
 
         let resolve, reject;
@@ -29,6 +29,9 @@ class DownloadQueue {
             title,
             url,
             apiKey,
+            itchGameId,
+            commerceEnabled,
+            preferredItchChannel,
             mode,
             currentVersion,
             filename,

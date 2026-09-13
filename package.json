@@ -1,7 +1,10 @@
 {
   "name": "deadsmile-games-launcher",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Deadsmile Games Launcher",
+  "author": "Deadsmile Games",
+  "license": "MIT",
+  "homepage": "https://deadsmilegames.vercel.app",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
@@ -9,11 +12,12 @@
     "web": "vite",
     "build": "vite build",
     "build:windows": "npm run build && electron-builder --win --publish never",
+    "build:store": "npm run build && electron-builder --config electron-builder.store.cjs --win appx --x64 --publish never",
     "package:update": "npm run build && electron-builder --win --dir"
   },
   "dependencies": {
+    "@itchio/butlerd": "^15.0.0",
     "@phosphor-icons/react": "^2.1.7",
-    "itchio-downloader": "^1.2.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
@@ -35,11 +39,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "public/**/*",
-      "!node_modules/puppeteer{,/**/*}",
-      "!node_modules/puppeteer-core{,/**/*}",
-      "!node_modules/@puppeteer{,/**/*}",
-      "!node_modules/extract-zip{,/**/*}"
+      "public/**/*"
     ],
     "win": {
       "target": "nsis",

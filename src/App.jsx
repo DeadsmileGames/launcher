@@ -56,7 +56,7 @@ import {
 } from "@phosphor-icons/react";
 import { api } from "./services-api";
 
-const SITE_URL = "https://deadsmilegames.vercel.app";
+const SITE_URL = "https://deadsmile.vercel.app";
 const API_ASSET_ROOT = SITE_URL;
 const TABS = [
     { id: "explore", label: "Explore", icon: Compass },
@@ -89,6 +89,10 @@ const COPY = {
         languageDescription:
             "Choose the language used by the launcher interface.",
         englishDefault: "English is the default language.",
+        telemetry: "Optional diagnostics",
+        telemetryDescription: "Share anonymous crash and install failure reports. No gameplay or personal files are collected.",
+        telemetryEnabled: "Diagnostics enabled",
+        telemetryDisabled: "Diagnostics disabled",
         save: "Save settings",
         profile: "Profile",
         security: "Security",
@@ -150,6 +154,7 @@ const COPY = {
         exploreGames: "Explore games",
         localGame: "Local game",
         notifications: "Notifications",
+        newContentAvailable: "New content is available.",
         noNotifications: "No recent notifications.",
         markRead: "Mark all read",
         updateAvailable: "Update available",
@@ -318,7 +323,7 @@ const COPY = {
         owned: "Owned",
         purchaseTitle: "Get this game",
         connectItchTitle: "Connect itch.io",
-        connectItchText: "Connect your itch.io account so Deadsmile can verify games you purchased or claimed.",
+        connectItchText: "Connect your itch.io account so Deadsmile Games can verify games you purchased or claimed.",
         connectItchAction: "Connect account",
         connectingItch: "Waiting for itch.io",
         connectingItchText: "Finish connecting in your browser. This launcher will update automatically.",
@@ -327,7 +332,7 @@ const COPY = {
         openCheckout: "Open checkout",
         verifyPurchase: "I completed the purchase",
         purchaseVerified: "Purchase verified",
-        purchaseVerifiedText: "The game is now in your Deadsmile library.",
+        purchaseVerifiedText: "The game is now in your Deadsmile Games library.",
         itchConnectionFailed: "We could not connect to itch.io right now.",
         itchVerificationFailed: "We could not verify this purchase right now.",
         itchAccount: "itch.io account",
@@ -359,6 +364,10 @@ const COPY = {
         languageDescription:
             "Escolha o idioma usado pela interface do launcher.",
         englishDefault: "Inglês é o idioma padrão.",
+        telemetry: "Diagnóstico opcional",
+        telemetryDescription: "Compartilhe falhas anônimas do launcher e de instalação. Jogabilidade e arquivos pessoais não são coletados.",
+        telemetryEnabled: "Diagnóstico ativado",
+        telemetryDisabled: "Diagnóstico desativado",
         save: "Salvar configurações",
         profile: "Perfil",
         security: "Segurança",
@@ -423,6 +432,7 @@ const COPY = {
         exploreGames: "Explorar jogos",
         localGame: "Jogo local",
         notifications: "Notificações",
+        newContentAvailable: "Há um novo conteúdo disponível.",
         noNotifications: "Nenhuma notificação recente.",
         markRead: "Marcar todas como lidas",
         updateAvailable: "Atualização disponível",
@@ -589,7 +599,7 @@ const COPY = {
         owned: "Na biblioteca",
         purchaseTitle: "Obter este jogo",
         connectItchTitle: "Vincular itch.io",
-        connectItchText: "Vincule sua conta itch.io para a Deadsmile verificar jogos comprados ou resgatados.",
+        connectItchText: "Vincule sua conta itch.io para a Deadsmile Games verificar jogos comprados ou resgatados.",
         connectItchAction: "Vincular conta",
         connectingItch: "Aguardando o itch.io",
         connectingItchText: "Conclua a vinculação no navegador. O launcher será atualizado automaticamente.",
@@ -598,7 +608,7 @@ const COPY = {
         openCheckout: "Abrir compra",
         verifyPurchase: "Concluí a compra",
         purchaseVerified: "Compra verificada",
-        purchaseVerifiedText: "O jogo agora está na sua biblioteca Deadsmile.",
+        purchaseVerifiedText: "O jogo agora está na sua biblioteca Deadsmile Games.",
         itchConnectionFailed: "Não foi possível conectar ao itch.io agora.",
         itchVerificationFailed: "Não foi possível verificar esta compra agora.",
         itchAccount: "Conta itch.io",
@@ -629,6 +639,10 @@ const COPY = {
         language: "Idioma",
         languageDescription: "Elige el idioma de la interfaz del launcher.",
         englishDefault: "El inglés es el idioma predeterminado.",
+        telemetry: "Diagnóstico opcional",
+        telemetryDescription: "Comparte fallos anónimos del launcher y de instalación. No se recopilan partidas ni archivos personales.",
+        telemetryEnabled: "Diagnóstico activado",
+        telemetryDisabled: "Diagnóstico desactivado",
         save: "Guardar configuración",
         profile: "Perfil",
         security: "Seguridad",
@@ -692,6 +706,7 @@ const COPY = {
         exploreGames: "Explorar juegos",
         localGame: "Juego local",
         notifications: "Notificaciones",
+        newContentAvailable: "Hay nuevo contenido disponible.",
         noNotifications: "No hay notificaciones recientes.",
         markRead: "Marcar todas como leídas",
         updateAvailable: "Actualización disponible",
@@ -859,7 +874,7 @@ const COPY = {
         owned: "En la biblioteca",
         purchaseTitle: "Obtener este juego",
         connectItchTitle: "Conectar itch.io",
-        connectItchText: "Conecta tu cuenta de itch.io para que Deadsmile verifique juegos comprados o reclamados.",
+        connectItchText: "Conecta tu cuenta de itch.io para que Deadsmile Games verifique juegos comprados o reclamados.",
         connectItchAction: "Conectar cuenta",
         connectingItch: "Esperando a itch.io",
         connectingItchText: "Termina la conexión en el navegador. El launcher se actualizará automáticamente.",
@@ -868,7 +883,7 @@ const COPY = {
         openCheckout: "Abrir compra",
         verifyPurchase: "Completé la compra",
         purchaseVerified: "Compra verificada",
-        purchaseVerifiedText: "El juego ya está en tu biblioteca de Deadsmile.",
+        purchaseVerifiedText: "El juego ya está en tu biblioteca de Deadsmile Games.",
         itchConnectionFailed: "No se pudo conectar con itch.io ahora.",
         itchVerificationFailed: "No se pudo verificar esta compra ahora.",
         itchAccount: "Cuenta de itch.io",
@@ -2056,6 +2071,8 @@ function useGameUpdateStatus(game, installedEntry) {
 
             filename: installedEntry.filename,
             path: installedEntry.path,
+            commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
         }).then((result) => {
             if (!alive) return;
             const next = {
@@ -2884,6 +2901,8 @@ function GameDetails({
                 versionFromLocalFilename(installedEntry?.filename),
             filename: installedEntry?.filename,
             path: installedEntry?.path,
+            commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
             });
 
             setManualUpdateCheck(result);
@@ -3477,6 +3496,9 @@ function Account({
     const [totp, setTotp] = useState({ enabled: false });
     const [totpLoading, setTotpLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [telemetryEnabled, setTelemetryEnabled] = useState(() => {
+        try { return localStorage.getItem("deadsmile.telemetry") === "true"; } catch { return false; }
+    });
     const [avatarDraft, setAvatarDraft] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [zoom, setZoom] = useState(1);
@@ -3675,6 +3697,17 @@ function Account({
             openExternal(`${SITE_URL}/account#security`);
         } finally {
             setTotpLoading(false);
+        }
+    }
+    async function updateTelemetry(enabled) {
+        try {
+            await api.patch("/platform/telemetry-consent", { enabled });
+            setTelemetryEnabled(enabled);
+            localStorage.setItem("deadsmile.telemetry", String(enabled));
+            setMessage(t(enabled ? "telemetryEnabled" : "telemetryDisabled"));
+            setTimeout(() => setMessage(""), 1800);
+        } catch {
+            setMessage(t("unableToSaveChanges"));
         }
     }
     const tabs = [
@@ -3974,6 +4007,22 @@ function Account({
                                     ))}
                                 </select>
                             </div>
+                            <div className="launcher-settings">
+                                <div className="launcher-setting-copy">
+                                    <strong>{t("telemetry")}</strong>
+                                    <span>{t("telemetryDescription")}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={`status-pill${telemetryEnabled ? " on" : ""}`}
+                                    role="switch"
+                                    aria-checked={telemetryEnabled}
+                                    onClick={() => updateTelemetry(!telemetryEnabled)}
+                                >
+                                    {t(telemetryEnabled ? "telemetryEnabled" : "telemetryDisabled")}
+                                </button>
+                            </div>
+                            {message && <span className="success-text">{message}</span>}
                         </section>
                     )}
                     {tab === "connections" && (
@@ -4811,6 +4860,107 @@ useEffect(() => {
     };
 }, [status]);
     useEffect(() => {
+        if (status !== "ready") return undefined;
+        let active = true;
+        let socket = null;
+        let reconnectTimer = null;
+        let pollTimer = null;
+        let after = Number(localStorage.getItem("deadsmile.live.after") || 0);
+        let initialized = after > 0;
+
+        const remember = (event) => {
+            const id = Number(event?.id || 0);
+            if (id > after) {
+                after = id;
+                try { localStorage.setItem("deadsmile.live.after", String(after)); } catch {}
+            }
+        };
+
+        const refreshType = async (event) => {
+            const type = event?.event_type;
+            if (type === "wishlist.updated") {
+                const gameId = event.payload?.gameId;
+                if (!gameId) return;
+                setWishlist((current) => {
+                    const next = new Set(current);
+                    if (event.payload?.inWishlist) next.add(gameId);
+                    else next.delete(gameId);
+                    return next;
+                });
+                return;
+            }
+            if (type === "game.published") {
+                const data = await api.get("/games?page=1&limit=48");
+                if (active) setGames(listFrom(data, "games"));
+            } else if (type === "news.published") {
+                const data = await api.get("/news?limit=48");
+                if (active) setNews(listFrom(data, "news"));
+            } else if (type === "video.published") {
+                const data = await api.get("/videos?limit=48");
+                if (active) setVideos(listFrom(data, "videos"));
+            } else return;
+            if (!active) return;
+            setNotifications((current) => {
+                const notification = {
+                    id: `content-${event.id}`,
+                    title: event.payload?.title || "Deadsmile Games",
+                    message: event.payload?.preview || t("newContentAvailable"),
+                    time: Date.parse(event.created_at || 0) || Date.now(),
+                    unread: true,
+                };
+                return current.some((item) => item.id === notification.id) ? current : [notification, ...current];
+            });
+        };
+
+        const consume = (event) => {
+            remember(event);
+            refreshType(event).catch(() => {});
+        };
+
+        const poll = async () => {
+            try {
+                const events = await api.get(`/platform/events?after=${after}&limit=100`);
+                if (!active || !Array.isArray(events)) return;
+                if (!initialized) {
+                    events.forEach(remember);
+                    initialized = true;
+                    return;
+                }
+                events.forEach(consume);
+            } catch {}
+        };
+
+        const connect = async () => {
+            let ticket = "";
+            try {
+                const result = await api.get("/platform/live-ticket");
+                ticket = result?.ticket || "";
+            } catch {}
+            if (!active) return;
+            socket = new WebSocket(`wss://deadsmile.vercel.app/api/live${ticket ? `?ticket=${encodeURIComponent(ticket)}` : ""}`);
+            socket.onmessage = (message) => {
+                try {
+                    const event = JSON.parse(message.data);
+                    if (event.type !== "connected") consume(event);
+                } catch {}
+            };
+            socket.onclose = () => {
+                if (active) reconnectTimer = setTimeout(connect, 4000);
+            };
+            socket.onerror = () => socket?.close();
+        };
+
+        poll();
+        connect();
+        pollTimer = setInterval(poll, 15000);
+        return () => {
+            active = false;
+            socket?.close();
+            clearTimeout(reconnectTimer);
+            clearInterval(pollTimer);
+        };
+    }, [status, t]);
+    useEffect(() => {
         if (status !== "ready" || !window.deadsmile?.checkForUpdate) return;
         let alive = true;
         window.deadsmile
@@ -5002,6 +5152,10 @@ useEffect(() => {
                 const result = await window.deadsmile.playGame({
                     id: game.id,
                     exePath: installed[game.id].path,
+                    gameVersion: installed[game.id].version || null,
+                    engine: game.engine || "native",
+                    savePathTemplate: game.savePathTemplate || null,
+                    cloudSavesEnabled: Boolean(game.cloudSavesEnabled),
                 });
                 if (result?.error) setNotice(t("unableToPlayGame"));
             } else {
@@ -5042,6 +5196,7 @@ useEffect(() => {
             filename: currentEntry?.filename,
             path: currentEntry?.path,
             commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
         });
 
         setInstalled((x) => {
@@ -5076,6 +5231,16 @@ useEffect(() => {
             setNotice(`${game.title}: ${t("downloadCancelled")}`);
             return;
         }
+        try {
+            if (localStorage.getItem("deadsmile.telemetry") === "true") {
+                await api.post("/platform/telemetry", {
+                    gameId: game.id,
+                    eventType: forceUpdate ? "update_failed" : "install_failed",
+                    appVersion: null,
+                    payload: { stage: forceUpdate ? "update" : "install" },
+                });
+            }
+        } catch {}
         setNotifications((n) => [
             {
                 id: `error-${Date.now()}`,

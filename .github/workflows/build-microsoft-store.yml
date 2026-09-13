@@ -1,0 +1,68 @@
+name: Build Microsoft Store MSIX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: microsoft-store-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      MICROSOFT_STORE_IDENTITY_NAME: ${{ vars.MICROSOFT_STORE_IDENTITY_NAME }}
+      MICROSOFT_STORE_PUBLISHER: ${{ vars.MICROSOFT_STORE_PUBLISHER }}
+      MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Partner Center identity
+        shell: pwsh
+        run: |
+          $required = @(
+            "MICROSOFT_STORE_IDENTITY_NAME",
+            "MICROSOFT_STORE_PUBLISHER",
+            "MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME"
+          )
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "$name is not configured as a GitHub repository variable."
+            }
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Build MSIX
+        run: npm run build:store
+
+      - name: Validate MSIX
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem "release-store/*.msix" | Select-Object -First 1
+          if (-not $package) {
+            throw "The MSIX artifact was not created."
+          }
+          ./scripts/validate-store-package.ps1 -PackagePath $package.FullName
+
+      - name: Upload Microsoft Store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: deadsmile-games-launcher-microsoft-store
+          path: release-store/*.msix
+          if-no-files-found: error
+          retention-days: 30

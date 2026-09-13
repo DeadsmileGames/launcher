@@ -15,7 +15,6 @@ contextBridge.exposeInMainWorld('deadsmile', {
     return () => ipcRenderer.removeListener('deadsmile:app-focus', listener);
   },
   openPath: (target) => ipcRenderer.invoke('deadsmile:open-path', target),
-  checkGameUpdate: (game) => ipcRenderer.invoke("check-game-update", game),
   deleteGame: (target) => ipcRenderer.invoke('deadsmile:delete-game', target),
   consumePendingUpdate: () => ipcRenderer.invoke('deadsmile:consume-pending-update'),
   version: () => ipcRenderer.invoke('deadsmile:app-version'),
@@ -60,7 +59,6 @@ contextBridge.exposeInMainWorld('deadsmile', {
     toggleMaximize: () =>
       ipcRenderer.invoke('deadsmile:window', 'toggleMaximize'),
   },
-  // ── Deep-link: escuta o main mandar "abrir jogo X via deadsmile://" ──
   onLaunchGame: (callback) => {
     const listener = (_event, gameId) => callback(gameId);
     ipcRenderer.on('deadsmile:launch-game', listener);

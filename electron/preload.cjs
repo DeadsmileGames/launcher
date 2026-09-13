@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('deadsmile', {
       ipcRenderer.invoke('deadsmile:normalize-library', library),
   },
   openExternal: (url) => ipcRenderer.invoke('deadsmile:open-external', url),
+  onAppFocus: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('deadsmile:app-focus', listener);
+    return () => ipcRenderer.removeListener('deadsmile:app-focus', listener);
+  },
   openPath: (target) => ipcRenderer.invoke('deadsmile:open-path', target),
   checkGameUpdate: (game) => ipcRenderer.invoke("check-game-update", game),
   deleteGame: (target) => ipcRenderer.invoke('deadsmile:delete-game', target),

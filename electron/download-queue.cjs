@@ -14,7 +14,7 @@ class DownloadQueue {
         this._emit();
     }
 
-    enqueue({ id, slug, title, url, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
+    enqueue({ id, slug, title, url, apiKey = "", mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
         if (this.jobs.has(id)) return this.jobs.get(id).promise;
 
         let resolve, reject;
@@ -28,6 +28,7 @@ class DownloadQueue {
             slug,
             title,
             url,
+            apiKey,
             mode,
             currentVersion,
             filename,
@@ -176,6 +177,8 @@ class DownloadQueue {
             });
         } catch (e) {
             err = e;
+        } finally {
+            job.apiKey = "";
         }
 
         this.active = Math.max(0, this.active - 1);

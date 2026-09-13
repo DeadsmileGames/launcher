@@ -1331,6 +1331,80 @@ img {
   background: #1d3024;
   color: var(--success);
 }
+.itch-account-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px;
+}
+.itch-account-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: #f0652f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.itch-account-copy h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.itch-account-copy p {
+  margin: 0;
+  color: #858892;
+  font-size: 11px;
+}
+.itch-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.commerce-modal {
+  width: min(460px, 92vw);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #2d3038;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: 0 30px 90px #000b;
+}
+.commerce-modal > img {
+  width: 100%;
+  height: 154px;
+  object-fit: cover;
+  opacity: 0.72;
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+}
+.commerce-modal__copy {
+  padding: 0 28px 18px;
+  position: relative;
+}
+.commerce-modal__copy span {
+  color: #a7aab2;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.commerce-modal__copy h2 {
+  margin: 7px 0 8px;
+  font: 700 24px Space Grotesk, sans-serif;
+}
+.commerce-modal__copy p {
+  margin: 0;
+  color: #9699a3;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.commerce-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 18px 28px 24px;
+  border-top: 1px solid #292c34;
+}
 .modal-overlay {
   background: #000b;
 }
@@ -1808,6 +1882,12 @@ img {
   .security-row .soft-button {
     grid-column: 2/-1;
     justify-self: start;
+  }
+  .itch-account-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .itch-account-actions {
+    grid-column: 2/-1;
   }
 }
 @media (max-width: 800px) {

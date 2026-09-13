@@ -17,6 +17,7 @@ import {
     Bell,
     CaretRight,
     CheckCircle,
+    CurrencyDollarIcon,
     Compass,
     DownloadSimple,
     FilmStrip,
@@ -171,6 +172,7 @@ const COPY = {
         contentLibrary: "Content library",
         everything: "Everything you publish",
         refresh: "Refresh",
+        retry: "Try again",
         nothingPublished: "Nothing published yet.",
         publish: "Publish",
         newGame: "New game",
@@ -278,6 +280,8 @@ const COPY = {
         coverImageURL: "Cover image URL",
         trailerURL: "Trailer URL",
         downloadURLItch: "Download URL (itch.io)",
+        purchaseURLItch: "Purchase URL (itch.io)",
+        itchGameId: "itch.io game ID",
         actionAdventure: "Action, Adventure",
         excerpt: "Excerpt",
         body: "Body",
@@ -293,11 +297,13 @@ const COPY = {
         featuredGame: "Featured game",
         windowsWeb: "Windows, Web",
         unableToLoadContent: "Unable to load content.",
+        unableToPlayGame: "We could not start this game right now.",
         unableToSignIn: "Unable to sign in.",
         yourPassword: "Your password",
         cityCountry: "City, Country",
         windows: "Windows",
         checkForUpdates: "Check for updates",
+        updateCheckFailed: "We could not check for updates right now.",
         checkingUpdate: "Checking…",
         youAreUpToDate: "You're up to date.",
         launcherUpdatedEyebrow: "Launcher updated",
@@ -307,6 +313,33 @@ const COPY = {
         whatsNew: "What's new",
         viewOnGithub: "View on GitHub",
         dismiss: "Dismiss",
+        purchase: "Purchase",
+        buy: "Buy",
+        owned: "Owned",
+        purchaseTitle: "Get this game",
+        connectItchTitle: "Connect itch.io",
+        connectItchText: "Connect your itch.io account so Deadsmile can verify games you purchased or claimed.",
+        connectItchAction: "Connect account",
+        connectingItch: "Waiting for itch.io",
+        connectingItchText: "Finish connecting in your browser. This launcher will update automatically.",
+        checkoutTitle: "Secure checkout",
+        checkoutText: "Complete the purchase on itch.io, then return here. Your library will update automatically.",
+        openCheckout: "Open checkout",
+        verifyPurchase: "I completed the purchase",
+        purchaseVerified: "Purchase verified",
+        purchaseVerifiedText: "The game is now in your Deadsmile library.",
+        itchConnectionFailed: "We could not connect to itch.io right now.",
+        itchVerificationFailed: "We could not verify this purchase right now.",
+        itchAccount: "itch.io account",
+        itchAccountDescription: "Verify purchases and keep your library synchronized.",
+        connectedAs: "Connected account",
+        connected: "Connected",
+        notConnected: "Not connected",
+        refreshLibrary: "Refresh library",
+        disconnect: "Disconnect",
+        libraryUpdated: "Your itch.io library is up to date.",
+        accountDisconnected: "Your itch.io account was disconnected.",
+        purchased: "Purchased",
     },
     "pt-BR": {
         error: "Erro",
@@ -412,6 +445,7 @@ const COPY = {
         contentLibrary: "Biblioteca de conteúdo",
         everything: "Tudo que você publica",
         refresh: "Atualizar",
+        retry: "Tentar novamente",
         nothingPublished: "Nada publicado ainda.",
         publish: "Publicar",
         newGame: "Novo jogo",
@@ -517,6 +551,8 @@ const COPY = {
         coverImageURL: "URL da capa",
         trailerURL: "URL do trailer",
         downloadURLItch: "URL de download (itch.io)",
+        purchaseURLItch: "URL de compra (itch.io)",
+        itchGameId: "ID do jogo no itch.io",
         actionAdventure: "Ação, Aventura",
         excerpt: "Resumo",
         body: "Corpo",
@@ -532,11 +568,13 @@ const COPY = {
         featuredGame: "Jogo em destaque",
         windowsWeb: "Windows, Web",
         unableToLoadContent: "Não foi possível carregar o conteúdo.",
+        unableToPlayGame: "Não foi possível iniciar este jogo agora.",
         unableToSignIn: "Não foi possível entrar.",
         yourPassword: "Sua senha",
         cityCountry: "Cidade, País",
         windows: "Windows",
         checkForUpdates: "Verificar atualizações",
+        updateCheckFailed: "Não foi possível verificar atualizações agora.",
         checkingUpdate: "Verificando…",
         youAreUpToDate: "Você está atualizado.",
         launcherUpdatedEyebrow: "Atualização do launcher",
@@ -546,6 +584,33 @@ const COPY = {
         whatsNew: "Novidades",
         viewOnGithub: "Ver no GitHub",
         dismiss: "Ignorar",
+        purchase: "Comprar",
+        buy: "Comprar",
+        owned: "Na biblioteca",
+        purchaseTitle: "Obter este jogo",
+        connectItchTitle: "Vincular itch.io",
+        connectItchText: "Vincule sua conta itch.io para a Deadsmile verificar jogos comprados ou resgatados.",
+        connectItchAction: "Vincular conta",
+        connectingItch: "Aguardando o itch.io",
+        connectingItchText: "Conclua a vinculação no navegador. O launcher será atualizado automaticamente.",
+        checkoutTitle: "Compra segura",
+        checkoutText: "Conclua a compra no itch.io e volte para cá. Sua biblioteca será atualizada automaticamente.",
+        openCheckout: "Abrir compra",
+        verifyPurchase: "Concluí a compra",
+        purchaseVerified: "Compra verificada",
+        purchaseVerifiedText: "O jogo agora está na sua biblioteca Deadsmile.",
+        itchConnectionFailed: "Não foi possível conectar ao itch.io agora.",
+        itchVerificationFailed: "Não foi possível verificar esta compra agora.",
+        itchAccount: "Conta itch.io",
+        itchAccountDescription: "Verifique compras e mantenha sua biblioteca sincronizada.",
+        connectedAs: "Conta vinculada",
+        connected: "Vinculada",
+        notConnected: "Não vinculada",
+        refreshLibrary: "Atualizar biblioteca",
+        disconnect: "Desvincular",
+        libraryUpdated: "Sua biblioteca do itch.io está atualizada.",
+        accountDisconnected: "Sua conta itch.io foi desvinculada.",
+        purchased: "Comprado",
     },
     es: {
         error: "Error",
@@ -649,6 +714,7 @@ const COPY = {
         contentLibrary: "Biblioteca de contenido",
         everything: "Todo lo que publicas",
         refresh: "Actualizar",
+        retry: "Intentar de nuevo",
         nothingPublished: "No hay publicaciones todavía.",
         publish: "Publicar",
         newGame: "Nuevo juego",
@@ -755,6 +821,8 @@ const COPY = {
         coverImageURL: "URL de la portada",
         trailerURL: "URL del tráiler",
         downloadURLItch: "URL de descarga (itch.io)",
+        purchaseURLItch: "URL de compra (itch.io)",
+        itchGameId: "ID del juego en itch.io",
         actionAdventure: "Acción, Aventura",
         excerpt: "Extracto",
         body: "Cuerpo",
@@ -770,11 +838,13 @@ const COPY = {
         featuredGame: "Juego destacado",
         windowsWeb: "Windows, Web",
         unableToLoadContent: "No se pudo cargar el contenido.",
+        unableToPlayGame: "No se pudo iniciar este juego ahora.",
         unableToSignIn: "No se pudo iniciar sesión.",
         yourPassword: "Tu contraseña",
         cityCountry: "Ciudad, País",
         windows: "Windows",
         checkForUpdates: "Verificar actualizaciones",
+        updateCheckFailed: "No se pudieron verificar actualizaciones ahora.",
         checkingUpdate: "Verificando…",
         youAreUpToDate: "Estás actualizado.",
         launcherUpdatedEyebrow: "Launcher actualizado",
@@ -784,6 +854,33 @@ const COPY = {
         whatsNew: "Novedades",
         viewOnGithub: "Ver en GitHub",
         dismiss: "Descartar",
+        purchase: "Comprar",
+        buy: "Comprar",
+        owned: "En la biblioteca",
+        purchaseTitle: "Obtener este juego",
+        connectItchTitle: "Conectar itch.io",
+        connectItchText: "Conecta tu cuenta de itch.io para que Deadsmile verifique juegos comprados o reclamados.",
+        connectItchAction: "Conectar cuenta",
+        connectingItch: "Esperando a itch.io",
+        connectingItchText: "Termina la conexión en el navegador. El launcher se actualizará automáticamente.",
+        checkoutTitle: "Compra segura",
+        checkoutText: "Completa la compra en itch.io y vuelve aquí. Tu biblioteca se actualizará automáticamente.",
+        openCheckout: "Abrir compra",
+        verifyPurchase: "Completé la compra",
+        purchaseVerified: "Compra verificada",
+        purchaseVerifiedText: "El juego ya está en tu biblioteca de Deadsmile.",
+        itchConnectionFailed: "No se pudo conectar con itch.io ahora.",
+        itchVerificationFailed: "No se pudo verificar esta compra ahora.",
+        itchAccount: "Cuenta de itch.io",
+        itchAccountDescription: "Verifica compras y mantén tu biblioteca sincronizada.",
+        connectedAs: "Cuenta conectada",
+        connected: "Conectada",
+        notConnected: "No conectada",
+        refreshLibrary: "Actualizar biblioteca",
+        disconnect: "Desconectar",
+        libraryUpdated: "Tu biblioteca de itch.io está actualizada.",
+        accountDisconnected: "Tu cuenta de itch.io fue desconectada.",
+        purchased: "Comprado",
     },
 };
 
@@ -1714,7 +1811,7 @@ function SocialLinks({ onClose, language }) {
     const links = [
         {
             label: "Instagram",
-            url: "https://instagram.com/teamdeadsmile",
+            url: "https://instagram.com/deadsmilegames",
             icon: InstagramLogo,
         },
         {
@@ -1724,12 +1821,12 @@ function SocialLinks({ onClose, language }) {
         },
         {
             label: "GitHub",
-            url: "https://github.com/teamdeadsmile",
+            url: "https://github.com/deadsmilegames",
             icon: GithubLogo,
         },
         {
             label: "More",
-            url: "https://linktr.ee/teamdeadsmile",
+            url: "https://linktr.ee/deadsmilegames",
             icon: LinkSimple,
         },
     ];
@@ -1773,6 +1870,40 @@ function SocialLinks({ onClose, language }) {
                 </div>
             </section>
         </div>
+    );
+}
+
+function CommerceModal({ state, onClose, onConnect, onCheckout, onVerify, onDownload }) {
+    const { t } = useT();
+    if (!state?.game) return null;
+    const content = {
+        connect: [t("connectItchTitle"), t("connectItchText")],
+        connecting: [t("connectingItch"), t("connectingItchText")],
+        checkout: [t("checkoutTitle"), t("checkoutText")],
+        owned: [t("purchaseVerified"), t("purchaseVerifiedText")],
+        error: [t("error"), state.message || t("itchVerificationFailed")],
+    }[state.status] || [t("purchaseTitle"), t("itchVerificationFailed")];
+    return (
+        <Portal>
+            <div className="overlay commerce-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+                <section className="commerce-modal">
+                    <button className="modal-close" onClick={onClose} aria-label={t("close")}><X size={18} /></button>
+                    <SmartImage src={imageOf(state.game)} fallback={FALLBACK_COVER} alt="" />
+                    <div className="commerce-modal__copy">
+                        <span>{state.game.title}</span>
+                        <h2>{content[0]}</h2>
+                        <p>{content[1]}</p>
+                    </div>
+                    <div className="commerce-modal__actions">
+                        {state.status === "connect" && <button className="primary-button" onClick={onConnect}>{t("connectItchAction")}</button>}
+                        {state.status === "checkout" && <button className="primary-button" onClick={onVerify}>{t("verifyPurchase")}</button>}
+                        {state.status === "checkout" && <button className="soft-button" onClick={onCheckout}>{t("openCheckout")}</button>}
+                        {state.status === "owned" && <button className="primary-button" onClick={onDownload}><DownloadSimple size={16} /> {t("download")}</button>}
+                        {state.status === "error" && <button className="soft-button" onClick={onVerify}>{t("retry")}</button>}
+                    </div>
+                </section>
+            </div>
+        </Portal>
     );
 }
 
@@ -1965,11 +2096,13 @@ function GameCard({
     installed,
     installedEntry,
     downloading,
+    entitled,
 }) {
     const { t } = useT();
     const progress = downloading?.percent;
     const gameUpdate = useGameUpdateStatus(game, installedEntry);
     const isUpdating = downloading?.mode === "update" || downloading?.status === "updating";
+    const owned = entitled || installed;
     return (
         <article className="game-card">
             <button className="game-card-image" onClick={() => onOpen(game)}>
@@ -2015,7 +2148,7 @@ function GameCard({
                             weight={wishlisted ? "fill" : "regular"}
                         />
                     </button>
-                    {game.downloadUrl && (
+                    {(game.downloadUrl || game.commerceEnabled) && (
                         <button
                             className="install-button"
                             onClick={() => onInstall(game, installed, gameUpdate.available)}
@@ -2034,6 +2167,16 @@ function GameCard({
                                 <>
                                     <Play size={14} weight="fill" />{" "}
                                     {t("play")}
+                                </>
+                            ) : owned ? (
+                                <>
+                                    <DownloadSimple size={14} />{" "}
+                                    {t("download")}
+                                </>
+                            ) : game.commerceEnabled ? (
+                                <>
+                                    <CurrencyDollarIcon size={14} />{" "}
+                                    {t("buy")}
                                 </>
                             ) : (
                                 <>
@@ -2257,6 +2400,7 @@ function Explore({
     onInstall,
     downloading,
     installed,
+    entitlements,
     playtime,
     openGame,
     openVideo,
@@ -2265,6 +2409,7 @@ function Explore({
     const { t } = useT();
     const hero = games.find((g) => g.featured) || games[0];
     const heroUpdate = useGameUpdateStatus(hero, hero ? installed?.[hero.id] : null);
+    const heroOwned = hero && (entitlements?.has(hero.id) || Boolean(installed?.[hero.id]));
     const continuePlaying = useMemo(() => {
         if (!playtime || !installed) return [];
         return Object.entries(playtime)
@@ -2302,7 +2447,7 @@ function Explore({
                             >
                                 {t("viewGame")} <CaretRight size={17} />
                             </button>
-                            {hero.downloadUrl && (
+                            {(hero.downloadUrl || hero.commerceEnabled) && (
                                 <button
                                     className="soft-button"
                                     onClick={() =>
@@ -2330,6 +2475,16 @@ function Explore({
                                         <>
                                             <Play size={17} weight="fill" />{" "}
                                             {t("play")}
+                                        </>
+                                    ) : heroOwned ? (
+                                        <>
+                                            <DownloadSimple size={17} />{" "}
+                                            {t("download")}
+                                        </>
+                                    ) : hero.commerceEnabled ? (
+                                        <>
+                                            <CurrencyDollarIcon size={17} />{" "}
+                                            {t("buy")}
                                         </>
                                     ) : (
                                         <>
@@ -2392,8 +2547,9 @@ function Explore({
                                 onOpen={openGame}
                                 onInstall={onInstall}
                                 installed={Boolean(installed?.[g.id])}
-                        installedEntry={installed?.[g.id]}
+                                installedEntry={installed?.[g.id]}
                                 downloading={downloading[g.id]}
+                                entitled={entitlements?.has(g.id)}
                             />
                         ))}
                     </div>
@@ -2474,6 +2630,7 @@ function Catalog({
     onInstall,
     downloading,
     installed,
+    entitlements,
     openGame,
     setView,
     goBack,
@@ -2497,6 +2654,7 @@ function Catalog({
                         installed={Boolean(installed?.[g.id])}
                         installedEntry={installed?.[g.id]}
                         downloading={downloading[g.id]}
+                        entitled={entitlements?.has(g.id)}
                     />
                 ))}
             </div>
@@ -2512,7 +2670,7 @@ function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloadi
             <SmartImage src={imageOf(g)} fallback={FALLBACK_COVER} alt="" />
             <div>
                 <h3>{g.title}</h3>
-                <span><CheckCircle size={15} /> {t("installed")}</span>
+                <span><CheckCircle size={15} /> {installedEntry ? t("installed") : t("purchased")}</span>
                 {(played > 0 || lastPlayed > 0) && (
                     <div className="library-playtime">
                         {played > 0 && <span>{formatPlaytime(played)} {t("played")}</span>}
@@ -2521,21 +2679,19 @@ function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloadi
                 )}
             </div>
             <div className="library-meta">
-                <small>{installedEntry?.filename || t("localGame")}</small>
+                <small>{installedEntry?.filename || t("owned")}</small>
                 <button
                     className="soft-button"
-                    onClick={() => onInstall(g, !gameUpdate.available, gameUpdate.available)}
+                    onClick={() => onInstall(g, Boolean(installedEntry) && !gameUpdate.available, gameUpdate.available)}
                     disabled={Boolean(downloading)}
                 >
-                    {isUpdating ? t("updating") : gameUpdate.available ? <DownloadSimple size={16} /> : <Play size={16} weight="fill" />}{" "}
-                    {isUpdating ? t("updating") : gameUpdate.available ? t("update") : t("play")}
+                    {isUpdating ? t("updating") : gameUpdate.available || !installedEntry ? <DownloadSimple size={16} /> : <Play size={16} weight="fill" />}{" "}
+                    {isUpdating ? t("updating") : gameUpdate.available ? t("update") : installedEntry ? t("play") : t("download")}
                 </button>
                 <button className="round-action" onClick={() => openGame(g)}>
                     <ArrowUpRight size={17} />
                 </button>
-                <button className="round-action delete-local" onClick={() => onDelete(g)} aria-label={`${t("delete")} ${g.title}`}>
-                    <Trash size={17} />
-                </button>
+                {installedEntry && <button className="round-action delete-local" onClick={() => onDelete(g)} aria-label={`${t("delete")} ${g.title}`}><Trash size={17} /></button>}
             </div>
         </article>
     );
@@ -2543,6 +2699,7 @@ function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloadi
 
 function Library({
     games,
+    entitlements,
     installed,
     onInstall,
     onDelete,
@@ -2555,7 +2712,7 @@ function Library({
     const [sort, setSort] = useState("recent");
     const { t } = useT();
     const items = useMemo(() => {
-        const list = games.filter((g) => installed[g.id]);
+        const list = games.filter((g) => installed[g.id] || entitlements.has(g.id));
         const withPlay = list.map((g) => ({
             game: g,
             played: playtime?.[g.id]?.totalMs || 0,
@@ -2575,7 +2732,7 @@ function Library({
             default:
                 return withPlay.sort((a, b) => b.addedAt - a.addedAt);
         }
-    }, [games, installed, playtime, sort]);
+    }, [games, installed, entitlements, playtime, sort]);
 
     return (
         <div className="page">
@@ -2637,6 +2794,7 @@ function Wishlist({
     onWishlist,
     onInstall,
     installed,
+    entitlements,
     downloading,
     openGame,
     setView,
@@ -2661,8 +2819,9 @@ function Wishlist({
                             onOpen={openGame}
                             onInstall={onInstall}
                             installed={Boolean(installed?.[g.id])}
-                        installedEntry={installed?.[g.id]}
+                            installedEntry={installed?.[g.id]}
                             downloading={downloading[g.id]}
+                            entitled={entitlements?.has(g.id)}
                         />
                     ))}
                 </div>
@@ -2690,11 +2849,13 @@ function GameDetails({
     installed,
     installedEntry,
     downloading,
+    entitled,
 }) {
     const { t } = useT();
     const [detail, setDetail] = useState(game);
     const [selected, setSelected] = useState(null);
     const gameUpdate = useGameUpdateStatus(detail, installedEntry);
+    const owned = entitled || installed;
     const [checkingUpdate, setCheckingUpdate] = useState(false);
     const [manualUpdateCheck, setManualUpdateCheck] = useState(null);
     useEffect(() => {
@@ -2726,11 +2887,9 @@ function GameDetails({
             });
 
             setManualUpdateCheck(result);
-        } catch (error) {
-            console.error("Failed to check game update:", error);
-
+        } catch {
             setManualUpdateCheck({
-            error: error?.message || "Failed to check for updates.",
+            error: t("updateCheckFailed"),
             });
         } finally {
             setCheckingUpdate(false);
@@ -2758,7 +2917,7 @@ function GameDetails({
                     <h1>{detail?.title}</h1>
                     <p>{detail?.shortDescription}</p>
                     <div className="detail-actions">
-                        {detail?.downloadUrl && (
+                        {(detail?.downloadUrl || detail?.commerceEnabled) && (
                             <button
                                 className="primary-button"
                                 onClick={() => onInstall(detail, installed, gameUpdate.available)}
@@ -2779,6 +2938,16 @@ function GameDetails({
                                         <Play size={17} weight="fill" />{" "}
                                         {t("play")}
                                     </>
+                                ) : owned ? (
+                                    <>
+                                        <DownloadSimple size={17} />{" "}
+                                        {t("download")}
+                                    </>
+                                ) : detail?.commerceEnabled ? (
+                                    <>
+                                        <CurrencyDollarIcon size={17} />{" "}
+                                        {t("buy")}
+                                    </>
                                 ) : (
                                     <>
                                         <DownloadSimple size={17} />{" "}
@@ -2788,16 +2957,18 @@ function GameDetails({
                             </button>
                             
                         )}
-                        <button
-                            className="soft-button"
-                            onClick={() => onWishlist(detail)}
-                        >
-                            <HeartStraight
-                                size={17}
-                                weight={wishlisted ? "fill" : "regular"}
-                            />{" "}
-                            {wishlisted ? t("wishlisted") : t("wishlist")}
-                        </button>
+                        {!installed && (
+                            <button
+                                className="soft-button"
+                                onClick={() => onWishlist(detail)}
+                            >
+                                <HeartStraight
+                                    size={17}
+                                    weight={wishlisted ? "fill" : "regular"}
+                                />{" "}
+                                {wishlisted ? t("wishlisted") : t("wishlist")}
+                            </button>
+                        )}
                         {detail?.trailerUrl && (
                             <button
                                 className="soft-button"
@@ -2808,7 +2979,7 @@ function GameDetails({
                                 <Play size={16} /> {t("trailer")}
                             </button>
                         )}
-                        {(detail?.downloadUrl) && (
+                        {(detail?.downloadUrl && installed) && (
                         <button
                             type="button"
                             onClick={checkForGameUpdates}
@@ -2889,7 +3060,7 @@ function GameDetails({
                     {detail?.releaseDate && (
                         <div>
                             <small>{t("release")}</small>
-                            <strong>{detail.releaseDate}</strong>
+                            <strong>{new Date(detail.releaseDate).toLocaleDateString()}</strong>
                         </div>
                     )}
                 </aside>
@@ -3129,6 +3300,7 @@ const initialAdmin = {
     genres: "",
     platforms: "",
     purchaseUrl: "",
+    itchGameId: "",
     downloadUrl: "",
     excerpt: "",
     body: "",
@@ -3285,6 +3457,10 @@ function Account({
     installed,
     downloading,
     openGame,
+    itchAccount,
+    onConnectItch,
+    onSyncItch,
+    onDisconnectItch,
 }) {
     const { t } = useT();
     const launcherVersion = useLauncherVersion();
@@ -3369,9 +3545,7 @@ function Account({
             });
 
             setMessage("");
-        } catch (error) {
-            console.error(error);
-
+        } catch {
             setMessage(t("failedToProcessImage"));
         }
     }
@@ -3486,8 +3660,8 @@ function Account({
             setMessage(t("changesSaved"));
 
             setTimeout(() => setMessage(""), 1800);
-        } catch (e) {
-            setMessage(e?.message || t("unableToSaveChanges"));
+        } catch {
+            setMessage(t("unableToSaveChanges"));
         } finally {
             setSaving(false);
         }
@@ -3510,6 +3684,11 @@ function Account({
             id: "security",
             label: text(language, "security"),
             icon: ShieldCheck,
+        },
+        {
+            id: "connections",
+            label: text(language, "itchAccount"),
+            icon: GameController,
         },
         { id: "launcher", label: text(language, "launcher"), icon: GearSix },
     ];
@@ -3797,6 +3976,38 @@ function Account({
                             </div>
                         </section>
                     )}
+                    {tab === "connections" && (
+                        <section className="account-block">
+                            <div className="account-block-head">
+                                <h2>{t("itchAccount")}</h2>
+                                <p>{t("itchAccountDescription")}</p>
+                            </div>
+                            <div className="itch-account-row">
+                                <div className="itch-account-mark">
+                                    <GameController size={24} weight="fill" />
+                                </div>
+                                <div className="itch-account-copy">
+                                    <h3>{itchAccount?.connected ? t("connectedAs") : t("notConnected")}</h3>
+                                    <p>{itchAccount?.connected ? itchAccount.username : t("connectItchText")}</p>
+                                </div>
+                                <span className={itchAccount?.connected ? "status-pill on" : "status-pill"}>
+                                    {itchAccount?.connected ? t("connected") : t("notConnected")}
+                                </span>
+                                <div className="itch-account-actions">
+                                    {itchAccount?.connected ? (
+                                        <>
+                                            <button className="soft-button" onClick={onSyncItch}>{t("refreshLibrary")}</button>
+                                            <button className="soft-button danger-button" onClick={onDisconnectItch}>{t("disconnect")}</button>
+                                        </>
+                                    ) : (
+                                        <button className="primary-button" onClick={onConnectItch} disabled={itchAccount?.connecting}>
+                                            {itchAccount?.connecting ? t("connectingItch") : t("connectItchAction")}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+                    )}
                     {tab === "wishlist" && (
                         <section className="account-block account-wishlist">
                             <div className="account-block-head">
@@ -3892,8 +4103,8 @@ function Admin({ onPublished, setView }) {
                 news: listFrom(n, "news"),
                 videos: listFrom(v, "videos"),
             });
-        } catch (e) {
-            setMessage(e?.message || t("unableToLoadContent"));
+        } catch {
+            setMessage(t("unableToLoadContent"));
         } finally {
             setLoading(false);
         }
@@ -3922,6 +4133,7 @@ function Admin({ onPublished, setView }) {
                     trailerUrl: form.trailerUrl || null,
                     featured: form.featured,
                     purchaseUrl: form.purchaseUrl || null,
+                    itchGameId: form.itchGameId ? Number(form.itchGameId) : null,
                     downloadUrl: form.downloadUrl || null,
                     genres: form.genres
                         .split(",")
@@ -3957,8 +4169,8 @@ function Admin({ onPublished, setView }) {
             setForm(initialAdmin);
             await loadContent();
             onPublished?.();
-        } catch (e) {
-            setMessage(e?.message || t("unableToPublish"));
+        } catch {
+            setMessage(t("unableToPublish"));
         } finally {
             setSaving(false);
         }
@@ -3978,8 +4190,8 @@ function Admin({ onPublished, setView }) {
                 [kind]: x[kind].filter((i) => i.id !== id),
             }));
             setSelected(null);
-        } catch (e) {
-            setMessage(e?.message || t("unableToDelete"));
+        } catch {
+            setMessage(t("unableToDelete"));
         }
     }
     const selectedKind = selected?.kind;
@@ -4237,6 +4449,21 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                             </div>
                             <div className="field-row">
                                 <Field
+                                    label={t("purchaseURLItch")}
+                                    value={form.purchaseUrl}
+                                    onChange={set("purchaseUrl")}
+                                    placeholder="https://deadsml.itch.io/game/purchase"
+                                />
+                                <Field
+                                    label={t("itchGameId")}
+                                    type="number"
+                                    min="1"
+                                    value={form.itchGameId}
+                                    onChange={set("itchGameId")}
+                                />
+                            </div>
+                            <div className="field-row">
+                                <Field
                                     label={t("genres")}
                                     value={form.genres}
                                     onChange={set("genres")}
@@ -4363,6 +4590,9 @@ export default function App() {
     const [news, setNews] = useState([]);
     const [videos, setVideos] = useState([]);
     const [wishlist, setWishlist] = useState(new Set());
+    const [entitlements, setEntitlements] = useState(new Set());
+    const [itchAccount, setItchAccount] = useState({ connected: false, loading: true });
+    const [commerceModal, setCommerceModal] = useState(null);
     const [installed, setInstalled] = useState(() => {
         try {
             return JSON.parse(
@@ -4539,8 +4769,10 @@ useEffect(() => {
         api.get("/news?limit=48"),
         api.get("/videos?limit=48"),
         api.get("/wishlist"),
+        api.get("/library"),
+        api.get("/integrations/itch"),
     ])
-        .then(([g, n, v, w]) => {
+        .then(([g, n, v, w, libraryData, itchData]) => {
             if (!alive) return;
             const gs = listFrom(g, "games");
             const ns = listFrom(n, "news");
@@ -4551,6 +4783,8 @@ useEffect(() => {
             setNews(ns);
             setVideos(vs);
             setWishlist(new Set(ids));
+            setEntitlements(new Set(listFrom(libraryData, "items").map((item) => item.id)));
+            setItchAccount({ ...itchData, loading: false });
 
             writeContentCache({
                 games: gs,
@@ -4559,7 +4793,7 @@ useEffect(() => {
                 wishlistIds: ids,
             });
         })
-        .catch((e) => {
+        .catch(() => {
             if (!alive) return;
             if (cached) {
                 setNotice(
@@ -4567,7 +4801,7 @@ useEffect(() => {
                         "Sem conexão — mostrando conteúdo em cache.",
                 );
             } else {
-                setNotice(e?.message || "Unable to load launcher content.");
+                setNotice(t("unableToLoadContent"));
             }
         })
         .finally(() => alive && setLoading(false));
@@ -4656,10 +4890,112 @@ useEffect(() => {
                 await api.post("/wishlist", { gameId: game.id });
                 setWishlist((s) => new Set(s).add(game.id));
             }
-        } catch (e) {
-            setNotice(e?.message || t("unableToUpdateWishlist"));
+        } catch {
+            setNotice(t("unableToUpdateWishlist"));
         }
     }
+    async function verifyCommerce(game, openCheckout = true) {
+        try {
+            const result = await api.post(`/library/${game.id}/verify`);
+            if (result?.owned) {
+                setEntitlements((current) => new Set(current).add(game.id));
+                setCommerceModal({ game, status: "owned", message: "" });
+                return true;
+            }
+            setCommerceModal({ game, status: "checkout", message: "" });
+            if (openCheckout && result?.purchaseUrl) openExternal(result.purchaseUrl);
+            return false;
+        } catch (error) {
+            if (error?.code === "ITCH_NOT_CONNECTED") {
+                setCommerceModal({ game, status: "connect", message: "" });
+            } else {
+                setCommerceModal({ game, status: "error", message: t("itchVerificationFailed") });
+            }
+            return false;
+        }
+    }
+    async function connectItchFromLauncher() {
+        if (!commerceModal?.game) return;
+        try {
+            const result = await api.post("/integrations/itch/connect", {
+                client: "launcher",
+                locale: language,
+                returnPath: null,
+            });
+            setCommerceModal((current) => ({ ...current, status: "connecting", message: "" }));
+            openExternal(result.authorizeUrl);
+        } catch {
+            setCommerceModal((current) => ({ ...current, status: "error", message: t("itchConnectionFailed") }));
+        }
+    }
+    async function connectItchAccount() {
+        try {
+            const result = await api.post("/integrations/itch/connect", {
+                client: "launcher",
+                locale: language,
+                returnPath: null,
+            });
+            setItchAccount((current) => ({ ...current, connecting: true, loading: false }));
+            openExternal(result.authorizeUrl);
+        } catch {
+            setNotice(t("itchConnectionFailed"));
+        }
+    }
+    async function refreshItchLibrary(showMessage = false) {
+        try {
+            await api.post("/library/sync");
+            const [libraryData, statusData] = await Promise.all([
+                api.get("/library"),
+                api.get("/integrations/itch"),
+            ]);
+            setEntitlements(new Set(listFrom(libraryData, "items").map((item) => item.id)));
+            setItchAccount({ ...statusData, loading: false });
+            if (showMessage) setNotice(t("libraryUpdated"));
+            return true;
+        } catch {
+            if (showMessage) setNotice(t("itchVerificationFailed"));
+            return false;
+        }
+    }
+    async function disconnectItchFromLauncher() {
+        try {
+            await api.delete("/integrations/itch");
+            setItchAccount({ connected: false, loading: false, configured: true });
+            setEntitlements(new Set());
+            setNotice(t("accountDisconnected"));
+        } catch {
+            setNotice(t("itchConnectionFailed"));
+        }
+    }
+    useEffect(() => {
+        if (!window.deadsmile?.onAppFocus) return undefined;
+        return window.deadsmile.onAppFocus(async () => {
+            if (!commerceModal?.game) return;
+            if (commerceModal.status === "connecting") {
+                try {
+                    const statusData = await api.get("/integrations/itch");
+                    setItchAccount({ ...statusData, loading: false });
+                    if (statusData.connected) await verifyCommerce(commerceModal.game, false);
+                } catch {
+                    setCommerceModal((current) => ({ ...current, status: "error", message: t("itchConnectionFailed") }));
+                }
+            } else if (commerceModal.status === "checkout") {
+                await verifyCommerce(commerceModal.game, false);
+            }
+        });
+    }, [commerceModal, language]);
+    useEffect(() => {
+        if (!itchAccount.connecting || !window.deadsmile?.onAppFocus) return undefined;
+        return window.deadsmile.onAppFocus(async () => {
+            try {
+                const statusData = await api.get("/integrations/itch");
+                setItchAccount({ ...statusData, loading: false, connecting: !statusData.connected });
+                if (statusData.connected) await refreshItchLibrary(true);
+            } catch {
+                setNotice(t("itchConnectionFailed"));
+            }
+        });
+    }, [itchAccount.connecting, language]);
     async function installGame(game, play = false, forceUpdate = false) {
         if (play && !forceUpdate && installed[game.id]?.path) {
             if (window.deadsmile?.playGame) {
@@ -4667,12 +5003,12 @@ useEffect(() => {
                     id: game.id,
                     exePath: installed[game.id].path,
                 });
-                if (result?.error) setNotice(result.error);
+                if (result?.error) setNotice(t("unableToPlayGame"));
             } else {
                 const error = await window.deadsmile?.openPath(
                     installed[game.id].path,
                 );
-                if (error) setNotice(error);
+                if (error) setNotice(t("unableToPlayGame"));
             }
             return;
         }
@@ -4682,7 +5018,13 @@ useEffect(() => {
             return;
         }
 
-    if (!game.downloadUrl) {
+        if (game.commerceEnabled && !entitlements.has(game.id)) {
+            const owned = await verifyCommerce(game, true);
+            if (!owned) return;
+            setCommerceModal(null);
+        }
+
+    if (!game.downloadUrl && !game.commerceEnabled) {
         setNotice(t("downloadUnavailable"));
         return;
     }
@@ -4699,6 +5041,7 @@ useEffect(() => {
             currentVersion: currentEntry?.version,
             filename: currentEntry?.filename,
             path: currentEntry?.path,
+            commerceEnabled: Boolean(game.commerceEnabled),
         });
 
         setInstalled((x) => {
@@ -4737,13 +5080,13 @@ useEffect(() => {
             {
                 id: `error-${Date.now()}`,
                 title: t("downloadFailed"),
-                message: msg || t("downloadFailed"),
+                message: t("downloadFailed"),
                 time: Date.now(),
                 unread: true,
             },
             ...n,
         ]);
-        setNotice(msg || t("downloadFailed"));
+        setNotice(t("downloadFailed"));
     }
 }
     async function deleteInstalledGame(game) {
@@ -4765,8 +5108,8 @@ useEffect(() => {
                 return next;
             });
             setNotice(`${game.title} ${t("wasRemovedFromYourLibrary")}`);
-        } catch (e) {
-            setNotice(e?.message || t("unableToDeleteLocalGame"));
+        } catch {
+            setNotice(t("unableToDeleteLocalGame"));
         }
     }
     async function startUpdate() {
@@ -4774,9 +5117,9 @@ useEffect(() => {
         setUpdating(true);
         try {
             await window.deadsmile.updateLauncher();
-        } catch (e) {
+        } catch {
             setUpdating(false);
-            setNotice(e?.message || t("downloadFailed"));
+            setNotice(t("downloadFailed"));
         }
     }
     function clearNotifications() {
@@ -4854,6 +5197,7 @@ useEffect(() => {
                 installed={Boolean(installed[selectedGame.id])}
                 installedEntry={installed[selectedGame.id]}
                 downloading={downloadsById[selectedGame.id]}
+                entitled={entitlements.has(selectedGame.id)}
             />
         );
     else if (view?.type === "catalog")
@@ -4865,6 +5209,7 @@ useEffect(() => {
                 onInstall={installGame}
                 downloading={downloadsById}
                 installed={installed}
+                entitlements={entitlements}
                 openGame={openGame}
                 setView={setView}
                 goBack={goBack}
@@ -4900,6 +5245,7 @@ useEffect(() => {
                 installed={Boolean(installed[view.item.id])}
                 installedEntry={installed[view.item.id]}
                 downloading={downloadsById[view.item.id]}
+                entitled={entitlements.has(view.item.id)}
             />
         );
     else if (active === "explore")
@@ -4915,6 +5261,7 @@ useEffect(() => {
                 onInstall={installGame}
                 downloading={downloadsById}
                 installed={installed}
+                entitlements={entitlements}
                 openGame={openGame}
                 openVideo={openVideo}
                 setView={setView}
@@ -4924,6 +5271,7 @@ useEffect(() => {
         current = (
             <Library
                 games={games}
+                entitlements={entitlements}
                 playtime={playtime}
                 installed={installed}
                 onInstall={installGame}
@@ -4942,6 +5290,7 @@ useEffect(() => {
                 onWishlist={toggleWishlist}
                 onInstall={installGame}
                 installed={installed}
+                entitlements={entitlements}
                 downloading={downloadsById}
                 openGame={openGame}
                 setView={setView}
@@ -4962,6 +5311,10 @@ useEffect(() => {
                 installed={installed}
                 downloading={downloadsById}
                 openGame={openGame}
+                itchAccount={itchAccount}
+                onConnectItch={connectItchAccount}
+                onSyncItch={() => refreshItchLibrary(true)}
+                onDisconnectItch={disconnectItchFromLauncher}
             />
         );
     else if (active === "admin" && isAdmin(user))
@@ -5048,6 +5401,20 @@ useEffect(() => {
                     language={language}
                 />
             )}{" "}
+            {commerceModal && (
+                <CommerceModal
+                    state={commerceModal}
+                    onClose={() => setCommerceModal(null)}
+                    onConnect={connectItchFromLauncher}
+                    onCheckout={() => commerceModal.game.purchaseUrl && openExternal(commerceModal.game.purchaseUrl)}
+                    onVerify={() => verifyCommerce(commerceModal.game, false)}
+                    onDownload={() => {
+                        const game = commerceModal.game;
+                        setCommerceModal(null);
+                        installGame(game);
+                    }}
+                />
+            )}
             {selectedVideo && (
                 <Portal>
                     <VideoPlayer video={selectedVideo} onClose={goBack} />

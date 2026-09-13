@@ -4,12 +4,12 @@
 -->
 
 <p align="center">
-  <img src="https://github.com/teamdeadsmile/launcher/blob/main/public/readme.png?raw=true" width="120px" alt="Deadsmile Games">
+  <img src="https://github.com/deadsmilegames/launcher/blob/main/public/readme.png?raw=true" width="120px" alt="Deadsmile Games">
 </p>
 
 <h3 align="center">
 
-`DEADSMILE GAMES LAUNCHER`
+`Deadsmile Games Launcher`
 
 </h3>
 
@@ -35,11 +35,11 @@
     Games
   </a>
   •
-  <a href="https://github.com/teamdeadsmile/launcher/releases/latest">
+  <a href="https://github.com/deadsmilegames/launcher/releases/latest">
     Releases
   </a>
   •
-  <a href="https://github.com/teamdeadsmile/launcher/issues">
+  <a href="https://github.com/deadsmilegames/launcher/issues">
     Issues
   </a>
 </p>

@@ -28,6 +28,10 @@ const API_ALLOWED_PATHS = [
   /^\/search(\?|$)/,
   /^\/wishlist(\?|\/|$)/,
   /^\/account(\?|\/|$)/,
+  /^\/integrations\/itch(?:\?|\/connect$|$)/,
+  /^\/library(?:\?|$)/,
+  /^\/library\/sync$/,
+  /^\/library\/[0-9a-f-]{36}\/verify$/i,
   /^\/admin\/(game|newsletter|video)(\/|$)/,
 ];
 
@@ -90,8 +94,8 @@ if (
 }
 app.setPath("userData", SETTINGS_DIR);
 
-const API_URL = "https://apideadsmile.vercel.app/api";
-const GITHUB_REPO = "teamdeadsmile/launcher";
+const API_URL = "https://testeapideadsmilenova.vercel.app/api";
+const GITHUB_REPO = "deadsmilegames/launcher";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const APP_VERSION = app.getVersion();
 const UPDATE_CONFIRM_ARG = "--update-confirm";
@@ -177,6 +181,27 @@ async function apiRequest({
     data = null;
   }
   return { ok: response.ok, status: response.status, data };
+}
+
+async function csrfForMain() {
+  const result = await apiRequest({ path: "/csrf" });
+  const token = result?.data?.data?.token;
+  if (!result.ok || !token) throw new Error("REQUEST_SECURITY_UNAVAILABLE");
+  return token;
+}
+
+async function downloadAuthorization(gameId) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(gameId || ""))) throw new Error("GAME_INVALID");
+  const csrf = await csrfForMain();
+  const result = await apiRequest({
+    path: `/library/${gameId}/download-authorization`,
+    method: "POST",
+    headers: { "X-CSRF-Token": csrf },
+  });
+  if (!result.ok || !result.data?.data?.accessToken || !isItch(result.data.data.itchGameUrl)) {
+    throw new Error(result.data?.error?.code || "DOWNLOAD_NOT_AUTHORIZED");
+  }
+  return result.data.data;
 }
 
 function send(sender, channel, payload) {
@@ -300,7 +325,7 @@ async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
 }
 
 async function runDownloadWorker(job, ctx) {
-  const { id, slug, url, mode = "download", currentVersion = null } = job;
+  const { id, slug, url, apiKey, mode = "download", currentVersion = null } = job;
   if (!isItch(url)) throw new Error("This game is not available on itch.io.");
   const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
   await fsp.mkdir(GAMES_DIR, { recursive: true });
@@ -321,6 +346,7 @@ async function runDownloadWorker(job, ctx) {
   try {
     const result = await downloadItchGame({
       itchGameUrl: url, downloadDirectory: downloadRoot, platform: "windows",
+      apiKey,
       resume: true, retries: 2, retryDelayMs: 750, writeMetaData: false,
       onProgress: ({ bytesReceived, totalBytes, fileName }) => {
         if (ctx.isAborted()) throw new Error("Cancelled");
@@ -521,9 +547,7 @@ async function updateLauncher(sender) {
       ),
       "utf8",
     );
-  } catch (error) {
-    console.error("Failed to write pending-update.json:", error);
-  }
+  } catch {}
 
   send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
@@ -590,7 +614,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      devTools: false,
+      devTools: true,
     },
   });
   win.on("close", (event) => {
@@ -600,6 +624,7 @@ function createWindow() {
     win.show();
     confirmUpdatedStartup();
   });
+  win.on("focus", () => send(win.webContents, "deadsmile:app-focus", true));
   if (!app.isPackaged) win.loadURL("http://127.0.0.1:5173");
   else win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   return win;
@@ -641,7 +666,7 @@ app.whenReady().then(() => {
       data: {
         error: {
           code: "BLOCKED_PATH",
-          message: `API path is not allowed: ${reqPath}`,
+          message: "This request is not available in the launcher.",
         },
       },
     };
@@ -731,9 +756,17 @@ app.whenReady().then(() => {
       return "Invalid file path.";
     return shell.openPath(targetPath);
   });
-  ipcMain.handle("deadsmile:download-game", (_event, request) =>
-      downloadQueue.enqueue(request),
-  );
+  ipcMain.handle("deadsmile:download-game", async (_event, request) => {
+      const authorization = request?.commerceEnabled
+        ? await downloadAuthorization(request?.id)
+        : { itchGameUrl: request?.url, accessToken: "" };
+      if (!isItch(authorization.itchGameUrl)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
+      return downloadQueue.enqueue({
+        ...request,
+        url: authorization.itchGameUrl,
+        apiKey: authorization.accessToken,
+      });
+  });
   ipcMain.handle("deadsmile:download-pause", (_event, id) =>
       downloadQueue.pause(id),
   );

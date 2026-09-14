@@ -18,7 +18,7 @@ const exe     = path.resolve(arg("--exe"));
 const confirmFile = path.resolve(arg("--confirm"));
 const expectedVersion = arg("--expected-version").replace(/^v/i, "");
 const tempRoot = path.dirname(staging);
-const oldTarget = `${target}.old`;
+const oldTarget = `${target}.old-${Date.now()}-${process.pid}`;
 
 if (!staging || !target || !exe || !confirmFile) {
   log("missing updater arguments");
@@ -203,7 +203,6 @@ async function relaunchOriginal() {
     await report("installing", 25);
 
     await report("installing", 45);
-    await clearDestination(oldTarget);
     let movedTarget = false;
     for (let attempt = 0; attempt < 120; attempt += 1) {
       try {

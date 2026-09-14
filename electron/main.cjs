@@ -399,26 +399,102 @@ async function getButlerClient() {
   return butlerClient;
 }
 
-async function resolveButlerGame({ accessToken, itchGameId, preferredItchChannel = null }) {
-  const client = await getButlerClient();
-  let profileId = 0;
-  if (accessToken) {
-    const profileResult = await client.call(butlerMessages.ProfileLoginWithAPIKey, { apiKey: accessToken });
-    profileId = Number(profileResult?.profile?.id) || 0;
+async function resolveButlerGame({
+  accessToken,
+  itchGameId,
+  preferredItchChannel = null,
+}) {
+  if (!accessToken) {
+    throw new Error("ITCH_RECONNECT_REQUIRED");
   }
-  const [gameResult, uploadResult] = await Promise.all([
-    client.call(butlerMessages.FetchGame, { gameId: Number(itchGameId), fresh: true }),
-    client.call(butlerMessages.FetchGameUploads, { gameId: Number(itchGameId), compatible: true, fresh: true }),
-  ]);
-  const uploads = Array.isArray(uploadResult?.uploads) ? uploadResult.uploads : [];
-  const channelUploads = preferredItchChannel
-    ? uploads.filter((item) => String(item?.channelName || "").toLowerCase() === String(preferredItchChannel).toLowerCase())
+
+  const numericGameId = Number(itchGameId);
+
+  if (!Number.isSafeInteger(numericGameId) || numericGameId <= 0) {
+    throw new Error("ITCH_GAME_NOT_CONFIGURED");
+  }
+
+  const client = await getButlerClient();
+
+  const profileResult = await client.call(
+    butlerMessages.ProfileLoginWithAPIKey,
+    { apiKey: accessToken },
+  );
+
+  const profileId = Number(profileResult?.profile?.id);
+
+  if (!Number.isSafeInteger(profileId) || profileId <= 0) {
+    throw new Error("ITCH_RECONNECT_REQUIRED");
+  }
+
+  const ownedResult = await client.call(
+    butlerMessages.FetchProfileOwnedKeys,
+    {
+      profileId,
+      limit: 5000,
+      fresh: true,
+    },
+  );
+
+  const ownedKeys = Array.isArray(ownedResult?.items)
+    ? ownedResult.items
+    : [];
+
+  const ownedKey = ownedKeys.find(
+    (item) => Number(item?.game?.id) === numericGameId,
+  );
+
+  if (!ownedKey?.game) {
+    throw new Error("GAME_NOT_OWNED");
+  }
+
+  const uploadResult = await client.call(
+    butlerMessages.FetchGameUploads,
+    {
+      gameId: numericGameId,
+      compatible: true,
+      fresh: true,
+    },
+  );
+
+  const uploads = Array.isArray(uploadResult?.uploads)
+    ? uploadResult.uploads
+    : [];
+
+  const normalizedPreferredChannel = String(
+    preferredItchChannel || "",
+  ).trim().toLowerCase();
+
+  const channelUploads = normalizedPreferredChannel
+    ? uploads.filter(
+        (item) =>
+          String(item?.channelName || "").trim().toLowerCase() ===
+          normalizedPreferredChannel,
+      )
     : uploads;
+
   const upload = channelUploads
-    .filter((item) => item && item.id)
-    .sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0))[0];
-  if (!gameResult?.game || !upload) throw new Error("WINDOWS_BUILD_UNAVAILABLE");
-  return { client, profileId, game: gameResult.game, upload };
+    .filter((item) => item?.id)
+    .sort(
+      (a, b) =>
+        Date.parse(b.updatedAt || b.createdAt || 0) -
+        Date.parse(a.updatedAt || a.createdAt || 0),
+    )[0];
+
+  if (!upload) {
+    throw new Error(
+      normalizedPreferredChannel
+        ? "ITCH_CHANNEL_UNAVAILABLE"
+        : "WINDOWS_BUILD_UNAVAILABLE",
+    );
+  }
+
+  return {
+    client,
+    profileId,
+    game: ownedKey.game,
+    upload,
+  };
 }
 
 function send(sender, channel, payload) {

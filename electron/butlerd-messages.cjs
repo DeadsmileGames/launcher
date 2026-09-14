@@ -1,7 +1,7 @@
 const { createNotification, createRequest } = require("@itchio/butlerd");
 
 const ProfileLoginWithAPIKey = createRequest("Profile.LoginWithAPIKey");
-const FetchGame = createRequest("Fetch.Game");
+const FetchProfileOwnedKeys = createRequest("Fetch.ProfileOwnedKeys");
 const FetchGameUploads = createRequest("Fetch.GameUploads");
 const InstallQueue = createRequest("Install.Queue");
 const InstallPerform = createRequest("Install.Perform");
@@ -10,7 +10,7 @@ const Progress = createNotification("Progress");
 
 module.exports = {
   ProfileLoginWithAPIKey,
-  FetchGame,
+  FetchProfileOwnedKeys,
   FetchGameUploads,
   InstallQueue,
   InstallPerform,

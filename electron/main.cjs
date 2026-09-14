@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
-const { Readable } = require("node:stream");
+const { Readable, Transform } = require("node:stream");
 const crypto = require("node:crypto");
 const { Client, Instance } = require("@itchio/butlerd");
 const butlerMessages = require("./butlerd-messages.cjs");
@@ -298,10 +298,58 @@ async function downloadAuthorization(gameId) {
     method: "POST",
     headers: { "X-CSRF-Token": csrf },
   });
-  if (!result.ok || !result.data?.data?.accessToken || !Number.isSafeInteger(Number(result.data.data.itchGameId)) || !isItch(result.data.data.itchGameUrl)) {
+  const authorization = result.data?.data;
+  if (!result.ok || !authorization || !isHttps(authorization.downloadUrl) || !Number.isSafeInteger(Number(authorization.itchGameId))) {
     throw new Error(result.data?.error?.code || "DOWNLOAD_NOT_AUTHORIZED");
   }
-  return result.data.data;
+  return authorization;
+}
+
+async function downloadGameArchive({ url, destination, expectedSize, filename, mode, ctx }) {
+  if (!isHttps(url)) throw new Error("DOWNLOAD_NOT_AUTHORIZED");
+  const controller = new AbortController();
+  const watcher = setInterval(() => {
+    if (ctx.isAborted() || ctx.isPaused()) controller.abort();
+  }, 200);
+  try {
+    const response = await session.defaultSession.fetch(url, {
+      headers: {
+        Accept: "application/octet-stream",
+        "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}`,
+      },
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) throw new Error("GAME_DOWNLOAD_FAILED");
+    const total = Number(response.headers.get("content-length")) || Number(expectedSize) || 0;
+    let received = 0;
+    const meter = new Transform({
+      transform(chunk, _encoding, callback) {
+        if (ctx.isAborted()) return callback(new Error("Cancelled"));
+        if (ctx.isPaused()) return callback(new Error("Paused"));
+        received += chunk.length;
+        ctx.onProgress({
+          status: mode === "update" ? "updating" : "downloading",
+          percent: total ? Math.min(95, Math.round((received / total) * 95)) : 0,
+          received,
+          total,
+          fileName: filename,
+        });
+        callback(null, chunk);
+      },
+    });
+    await pipeline(
+      Readable.fromWeb(response.body),
+      meter,
+      fs.createWriteStream(destination, { mode: 0o600 }),
+    );
+  } catch (error) {
+    if (ctx.isAborted()) throw new Error("Cancelled");
+    if (ctx.isPaused()) throw new Error("Paused");
+    if (error?.name === "AbortError") throw new Error("GAME_DOWNLOAD_FAILED");
+    throw error;
+  } finally {
+    clearInterval(watcher);
+  }
 }
 
 async function downloadFile(url, destination) {
@@ -399,102 +447,26 @@ async function getButlerClient() {
   return butlerClient;
 }
 
-async function resolveButlerGame({
-  accessToken,
-  itchGameId,
-  preferredItchChannel = null,
-}) {
-  if (!accessToken) {
-    throw new Error("ITCH_RECONNECT_REQUIRED");
-  }
-
-  const numericGameId = Number(itchGameId);
-
-  if (!Number.isSafeInteger(numericGameId) || numericGameId <= 0) {
-    throw new Error("ITCH_GAME_NOT_CONFIGURED");
-  }
-
+async function resolveButlerGame({ accessToken, itchGameId, preferredItchChannel = null }) {
   const client = await getButlerClient();
-
-  const profileResult = await client.call(
-    butlerMessages.ProfileLoginWithAPIKey,
-    { apiKey: accessToken },
-  );
-
-  const profileId = Number(profileResult?.profile?.id);
-
-  if (!Number.isSafeInteger(profileId) || profileId <= 0) {
-    throw new Error("ITCH_RECONNECT_REQUIRED");
+  let profileId = 0;
+  if (accessToken) {
+    const profileResult = await client.call(butlerMessages.ProfileLoginWithAPIKey, { apiKey: accessToken });
+    profileId = Number(profileResult?.profile?.id) || 0;
   }
-
-  const ownedResult = await client.call(
-    butlerMessages.FetchProfileOwnedKeys,
-    {
-      profileId,
-      limit: 5000,
-      fresh: true,
-    },
-  );
-
-  const ownedKeys = Array.isArray(ownedResult?.items)
-    ? ownedResult.items
-    : [];
-
-  const ownedKey = ownedKeys.find(
-    (item) => Number(item?.game?.id) === numericGameId,
-  );
-
-  if (!ownedKey?.game) {
-    throw new Error("GAME_NOT_OWNED");
-  }
-
-  const uploadResult = await client.call(
-    butlerMessages.FetchGameUploads,
-    {
-      gameId: numericGameId,
-      compatible: true,
-      fresh: true,
-    },
-  );
-
-  const uploads = Array.isArray(uploadResult?.uploads)
-    ? uploadResult.uploads
-    : [];
-
-  const normalizedPreferredChannel = String(
-    preferredItchChannel || "",
-  ).trim().toLowerCase();
-
-  const channelUploads = normalizedPreferredChannel
-    ? uploads.filter(
-        (item) =>
-          String(item?.channelName || "").trim().toLowerCase() ===
-          normalizedPreferredChannel,
-      )
+  const [gameResult, uploadResult] = await Promise.all([
+    client.call(butlerMessages.FetchGame, { gameId: Number(itchGameId), fresh: true }),
+    client.call(butlerMessages.FetchGameUploads, { gameId: Number(itchGameId), compatible: true, fresh: true }),
+  ]);
+  const uploads = Array.isArray(uploadResult?.uploads) ? uploadResult.uploads : [];
+  const channelUploads = preferredItchChannel
+    ? uploads.filter((item) => String(item?.channelName || "").toLowerCase() === String(preferredItchChannel).toLowerCase())
     : uploads;
-
   const upload = channelUploads
-    .filter((item) => item?.id)
-    .sort(
-      (a, b) =>
-        Date.parse(b.updatedAt || b.createdAt || 0) -
-        Date.parse(a.updatedAt || a.createdAt || 0),
-    )[0];
-
-  if (!upload) {
-    throw new Error(
-      normalizedPreferredChannel
-        ? "ITCH_CHANNEL_UNAVAILABLE"
-        : "WINDOWS_BUILD_UNAVAILABLE",
-    );
-  }
-
-  return {
-    client,
-    profileId,
-    game: ownedKey.game,
-    upload,
-  };
+    .filter((item) => item && item.id)
+    .sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0))[0];
+  if (!gameResult?.game || !upload) throw new Error("WINDOWS_BUILD_UNAVAILABLE");
+  return { client, profileId, game: gameResult.game, upload };
 }
 
 function send(sender, channel, payload) {
@@ -536,8 +508,8 @@ async function pathExists(target) {
 }
 
 function normalizeVersion(value) {
-  const match = String(value || "").trim().match(/^v?(\d+)$/i);
-  return match ? String(Number.parseInt(match[1], 10)) : null;
+  const match = String(value || "").trim().match(/^v?(\d+(?:\.\d+){0,3})$/i);
+  return match ? match[1].split(".").map((part) => String(Number.parseInt(part, 10))).join(".") : null;
 }
 
 function versionFromFilename(filename) {
@@ -575,16 +547,20 @@ async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
 
 async function runDownloadWorker(job, ctx) {
   const { id, slug, commerceEnabled, mode = "download", currentVersion = null } = job;
-  let accessToken = job.apiKey || "";
-  let itchGameId = job.itchGameId;
-  let preferredItchChannel = job.preferredItchChannel || null;
-  if (commerceEnabled) {
-    const authorization = await downloadAuthorization(id);
-    accessToken = authorization.accessToken;
-    itchGameId = authorization.itchGameId;
-    preferredItchChannel = authorization.preferredItchChannel || null;
+  const authorization = commerceEnabled
+    ? await downloadAuthorization(id)
+    : {
+        downloadUrl: job.url,
+        filename: job.filename,
+        sizeBytes: 0,
+        version: versionFromFilename(job.filename || job.url),
+      };
+  if (!isHttps(authorization.downloadUrl)) throw new Error("DOWNLOAD_NOT_AUTHORIZED");
+  const archiveName = sanitizeName(authorization.filename || `${slug || id}.zip`);
+  const remoteVersion = String(authorization.version || versionFromFilename(archiveName) || "").trim() || null;
+  if (mode === "update" && remoteVersion && currentVersion && compareVersions(remoteVersion, currentVersion) <= 0) {
+    throw new Error("NO_UPDATE_AVAILABLE");
   }
-  if (!Number.isSafeInteger(Number(itchGameId))) throw new Error("DOWNLOAD_NOT_AUTHORIZED");
   const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
   await fsp.mkdir(GAMES_DIR, { recursive: true });
 
@@ -592,56 +568,29 @@ async function runDownloadWorker(job, ctx) {
 
   const jobRoot = path.join(app.getPath("temp"), "deadsmile-game-downloads", sanitizeName(slug || id));
   const stagingFolder = path.join(jobRoot, "install");
+  const archivePath = path.join(jobRoot, "game.zip");
   await fsp.rm(jobRoot, { recursive: true, force: true });
   await fsp.mkdir(jobRoot, { recursive: true });
 
   try {
-    const { client, profileId, game, upload } = await resolveButlerGame({ accessToken, itchGameId, preferredItchChannel });
-    const remoteVersion = versionFromFilename(upload.filename || "");
-    if (mode === "update" && remoteVersion && currentVersion && compareVersions(remoteVersion, currentVersion) <= 0) {
-      throw new Error("NO_UPDATE_AVAILABLE");
-    }
-    const queued = await client.call(butlerMessages.InstallQueue, {
-      reason: mode === "update" ? "update" : "install",
-      noCave: true,
-      installFolder: stagingFolder,
-      game,
-      upload,
-      ignoreInstallers: true,
-      stagingFolder: path.join(jobRoot, "staging"),
-      profileId,
+    await downloadGameArchive({
+      url: authorization.downloadUrl,
+      destination: archivePath,
+      expectedSize: authorization.sizeBytes,
+      filename: archiveName,
+      mode,
+      ctx,
     });
-    let conversation = null;
-    await client.call(
-      butlerMessages.InstallPerform,
-      { id: queued.id, stagingFolder: queued.stagingFolder },
-      (active) => {
-        conversation = active;
-        active.onNotification(butlerMessages.Progress, (progress) => {
-          if (ctx.isAborted() || ctx.isPaused()) {
-            active.cancel();
-            return;
-          }
-          const percent = Math.max(0, Math.min(100, Math.round(Number(progress.progress || 0) * 100)));
-          const total = Number(upload.size) || 0;
-          ctx.onProgress({
-            status: mode === "update" ? "updating" : "downloading",
-            percent,
-            received: total ? Math.round(total * percent / 100) : 0,
-            total,
-            fileName: upload.filename || "",
-          });
-        });
-      },
-    ).catch((error) => {
-      if (ctx.isAborted()) throw new Error("Cancelled");
-      if (ctx.isPaused()) throw new Error("Paused");
-      throw error;
-    });
-    if (conversation && (ctx.isAborted() || ctx.isPaused())) conversation.cancel();
     if (ctx.isAborted()) throw new Error("Cancelled");
     if (ctx.isPaused()) throw new Error("Paused");
-
+    ctx.onProgress({
+      status: mode === "update" ? "updating" : "downloading",
+      percent: 96,
+      received: Number(authorization.sizeBytes) || 0,
+      total: Number(authorization.sizeBytes) || 0,
+      fileName: archiveName,
+    });
+    await extractZip(archivePath, stagingFolder);
     const exePath = await firstExe(stagingFolder);
     if (!exePath) throw new Error("WINDOWS_EXECUTABLE_MISSING");
 
@@ -851,21 +800,15 @@ async function checkGameUpdate(request) {
   try {
     const authorization = commerceEnabled
       ? await downloadAuthorization(id)
-      : { accessToken: "", itchGameId: Number(itchGameId) };
-    if (!Number.isSafeInteger(Number(authorization.itchGameId))) throw new Error("ITCH_GAME_NOT_CONFIGURED");
-    const { upload } = await resolveButlerGame({
-      accessToken: authorization.accessToken,
-      itchGameId: authorization.itchGameId,
-      preferredItchChannel: authorization.preferredItchChannel,
-    });
-    const latestVersion = versionFromFilename(upload.filename || "");
+      : { version: null, filename };
+    const latestVersion = String(authorization.version || versionFromFilename(authorization.filename || "") || "").trim() || null;
     return {
       available: Boolean(latestVersion && localVersion && compareVersions(latestVersion, localVersion) > 0),
       id,
       slug,
       localVersion: localVersion || null,
       latestVersion: latestVersion || null,
-      fileName: upload.filename || null,
+      fileName: authorization.filename || null,
     };
   } catch {
     return { available: false, id, slug, localVersion: localVersion || null,

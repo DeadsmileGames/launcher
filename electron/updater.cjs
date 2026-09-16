@@ -10,18 +10,40 @@ function log(message) {
 }
 function arg(name) {
   const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : "";
+  if (index < 0) return "";
+  const value = process.argv[index + 1];
+  return typeof value === "string" && !value.startsWith("--") ? value : "";
 }
-const staging = path.resolve(arg("--staging"));
-const target  = path.resolve(arg("--target"));
-const exe     = path.resolve(arg("--exe"));
-const confirmFile = path.resolve(arg("--confirm"));
+const stagingArg = arg("--staging");
+const targetArg = arg("--target");
+const exeArg = arg("--exe");
+const confirmArg = arg("--confirm");
 const expectedVersion = arg("--expected-version").replace(/^v/i, "");
-const tempRoot = path.dirname(staging);
-const oldTarget = `${target}.old`;
 
-if (!staging || !target || !exe || !confirmFile) {
-  log("missing updater arguments");
+if (!stagingArg || !targetArg || !exeArg || !confirmArg || !/^\d+(?:\.\d+){0,3}$/.test(expectedVersion)) {
+  log("missing or invalid updater arguments");
+  process.exit(2);
+}
+
+const staging = path.resolve(stagingArg);
+const target = path.resolve(targetArg);
+const exe = path.resolve(exeArg);
+const confirmFile = path.resolve(confirmArg);
+const tempRoot = path.dirname(staging);
+const systemTemp = path.resolve(os.tmpdir());
+const oldTarget = `${target}.old-${Date.now()}-${process.pid}`;
+
+const validLayout =
+  path.dirname(exe) === target &&
+  staging === path.join(tempRoot, "staging") &&
+  confirmFile === path.join(tempRoot, "update-confirmed.json") &&
+  tempRoot.startsWith(`${systemTemp}${path.sep}`) &&
+  path.basename(tempRoot).startsWith("deadsmile-launcher-update-") &&
+  target !== path.parse(target).root &&
+  target !== systemTemp;
+
+if (!validLayout) {
+  log("unsafe updater path layout rejected");
   process.exit(2);
 }
 
@@ -39,9 +61,8 @@ function cleanElectronEnv() {
   return env;
 }
 
-function spawnDetachedViaCmd(exe, args, cwd, env) {
-  const startArgs = ["/c", "start", "", "/D", cwd, exe, ...args];
-  const child = spawn("cmd.exe", startArgs, {
+function spawnDetached(executable, args, cwd, env) {
+  const child = spawn(executable, args, {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
@@ -69,7 +90,11 @@ function cleanupStaleBackups() {
     .then((entries) => {
       for (const entry of entries) {
         if (entry === base) continue;
-        if (entry === `${base}.old` || entry.startsWith(`${base}.old.stale-`)) {
+        if (
+          entry === `${base}.old` ||
+          entry.startsWith(`${base}.old-`) ||
+          entry.startsWith(`${base}.old.stale-`)
+        ) {
           fsp
             .rm(path.join(parent, entry), { recursive: true, force: true })
             .catch(() => {});
@@ -136,7 +161,7 @@ async function validateInstall(directory) {
 
 async function launchAndConfirm(launcherExe) {
   await fsp.rm(confirmFile, { force: true });
-  spawnDetachedViaCmd(
+  childProcess = spawnDetached(
     launcherExe,
     ["--update-confirm", confirmFile],
     path.dirname(launcherExe),
@@ -183,7 +208,7 @@ async function rollback() {
 }
 
 async function relaunchOriginal() {
-  spawnDetachedViaCmd(
+  spawnDetached(
     exe,
     [],
     path.dirname(exe),
@@ -203,7 +228,6 @@ async function relaunchOriginal() {
     await report("installing", 25);
 
     await report("installing", 45);
-    await clearDestination(oldTarget);
     let movedTarget = false;
     for (let attempt = 0; attempt < 120; attempt += 1) {
       try {

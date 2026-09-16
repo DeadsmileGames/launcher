@@ -14,11 +14,10 @@ contextBridge.exposeInMainWorld('deadsmile', {
     ipcRenderer.on('deadsmile:app-focus', listener);
     return () => ipcRenderer.removeListener('deadsmile:app-focus', listener);
   },
-  openPath: (target) => ipcRenderer.invoke('deadsmile:open-path', target),
-  checkGameUpdate: (game) => ipcRenderer.invoke("check-game-update", game),
   deleteGame: (target) => ipcRenderer.invoke('deadsmile:delete-game', target),
   consumePendingUpdate: () => ipcRenderer.invoke('deadsmile:consume-pending-update'),
   version: () => ipcRenderer.invoke('deadsmile:app-version'),
+  clearAuthSession: () => ipcRenderer.invoke('deadsmile:clear-auth-session'),
   checkForUpdate: () => ipcRenderer.invoke('deadsmile:update-check'),
   checkGameUpdate: (payload) => ipcRenderer.invoke('deadsmile:game-update-check', payload),
   updateLauncher: () => ipcRenderer.invoke('deadsmile:update-start'),
@@ -49,6 +48,53 @@ contextBridge.exposeInMainWorld('deadsmile', {
     clear: () => ipcRenderer.invoke('deadsmile:playtime-clear'),
   },
   playGame: (payload) => ipcRenderer.invoke('deadsmile:play-game', payload),
+  getRunningGames: () => ipcRenderer.invoke('deadsmile:running-games'),
+  getGameViewSettings: () => ipcRenderer.invoke('deadsmile:gameview-settings-get'),
+  setGameViewSettings: (patch) => ipcRenderer.invoke('deadsmile:gameview-settings-set', patch),
+  beginGameViewShortcutCapture: () =>
+    ipcRenderer.invoke('deadsmile:gameview-shortcut-capture-start'),
+  cancelGameViewShortcutCapture: () =>
+    ipcRenderer.invoke('deadsmile:gameview-shortcut-capture-cancel'),
+  onGameViewSettingsChanged: (callback) => {
+    const listener = (_event, settings) => callback(settings);
+    ipcRenderer.on('deadsmile:gameview-settings-changed', listener);
+    return () =>
+      ipcRenderer.removeListener('deadsmile:gameview-settings-changed', listener);
+  },
+  onGameState: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('deadsmile:game-state', listener);
+    return () => ipcRenderer.removeListener('deadsmile:game-state', listener);
+  },
+  onAchievementUnlocked: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('deadsmile:achievement-unlocked', listener);
+    return () => ipcRenderer.removeListener('deadsmile:achievement-unlocked', listener);
+  },
+  onCloudSaveConflict: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('deadsmile:cloud-save-conflict', listener);
+    return () => ipcRenderer.removeListener('deadsmile:cloud-save-conflict', listener);
+  },
+  syncGameViewLanguage: (payload) =>
+    ipcRenderer.invoke('deadsmile:gameview-language-set', payload),
+  syncGameViewLibrary: (ids) =>
+    ipcRenderer.invoke('deadsmile:gameview-library-set', ids),
+
+  onGameViewLanguageChanged: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+
+    ipcRenderer.on(
+      'deadsmile:gameview-language-changed',
+      listener
+    );
+
+    return () =>
+      ipcRenderer.removeListener(
+        'deadsmile:gameview-language-changed',
+        listener
+      );
+  },
   onPlaytimeUpdate: (callback) => {
     const listener = (_event, data) => callback(data);
     ipcRenderer.on('deadsmile:playtime-update', listener);
@@ -60,7 +106,6 @@ contextBridge.exposeInMainWorld('deadsmile', {
     toggleMaximize: () =>
       ipcRenderer.invoke('deadsmile:window', 'toggleMaximize'),
   },
-  // ── Deep-link: escuta o main mandar "abrir jogo X via deadsmile://" ──
   onLaunchGame: (callback) => {
     const listener = (_event, gameId) => callback(gameId);
     ipcRenderer.on('deadsmile:launch-game', listener);

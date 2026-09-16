@@ -14,7 +14,7 @@ class DownloadQueue {
         this._emit();
     }
 
-    enqueue({ id, slug, title, url, apiKey = "", mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
+    enqueue({ id, slug, title, url, apiKey = "", itchGameId = null, preferredItchChannel = null, commerceEnabled = false, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
         if (this.jobs.has(id)) return this.jobs.get(id).promise;
 
         let resolve, reject;
@@ -29,6 +29,9 @@ class DownloadQueue {
             title,
             url,
             apiKey,
+            itchGameId,
+            commerceEnabled,
+            preferredItchChannel,
             mode,
             currentVersion,
             filename,
@@ -41,6 +44,7 @@ class DownloadQueue {
             error: null,
             paused: false,
             aborted: false,
+            _workerActive: false,
             promise,
             _resolve: resolve,
             _reject: reject,
@@ -68,6 +72,16 @@ class DownloadQueue {
     resume(id) {
         const job = this.jobs.get(id);
         if (!job || !job.paused) return false;
+
+
+
+
+        if (job.status !== "paused") {
+            job.paused = false;
+            this._emit();
+            return true;
+        }
+
         job.paused = false;
         job.status = "queued";
         this.order = [id, ...this.order.filter((x) => x !== id)];
@@ -81,9 +95,13 @@ class DownloadQueue {
         if (!job) return false;
         job.aborted = true;
         job.paused = false;
-        this.jobs.delete(id);
-        this.order = this.order.filter((x) => x !== id);
-        job._reject?.(new Error("Cancelled"));
+        if (job._workerActive) {
+            job.status = "cancelling";
+        } else {
+            if (this.jobs.get(id) === job) this.jobs.delete(id);
+            this.order = this.order.filter((x) => x !== id);
+            job._reject?.(new Error("Cancelled"));
+        }
         this._emit();
         this._pump();
         return true;
@@ -91,7 +109,7 @@ class DownloadQueue {
 
     reorder(ids) {
         if (!Array.isArray(ids)) return false;
-        const valid = ids.filter((id) => this.jobs.has(id));
+        const valid = [...new Set(ids.filter((id) => this.jobs.has(id)))];
         const rest = this.order.filter((id) => !valid.includes(id));
         this.order = [...valid, ...rest];
         this._emit();
@@ -137,12 +155,13 @@ class DownloadQueue {
 
         job.status = "downloading";
         job.error = null;
+        job._workerActive = true;
         this.active += 1;
         this._emit();
 
         let result = null;
         let err = null;
-                let lastTick = Date.now();
+        let lastTick = Date.now();
         let lastBytes = 0;
         job.speed = 0;
         job.eta = null;
@@ -181,12 +200,13 @@ class DownloadQueue {
             job.apiKey = "";
         }
 
+        job._workerActive = false;
         this.active = Math.max(0, this.active - 1);
         if (err) {
             const msg = err?.message || String(err);
 
             if (job.aborted || msg === "Cancelled") {
-                if (this.jobs.has(id)) {
+                if (this.jobs.get(id) === job) {
                     this.jobs.delete(id);
                     this.order = this.order.filter((x) => x !== id);
                     job._reject?.(new Error("Cancelled"));
@@ -196,8 +216,18 @@ class DownloadQueue {
                 return;
             }
 
-            if (job.paused || msg === "Paused") {
+            if (job.paused) {
                 job.status = "paused";
+                this._emit();
+                this._pump();
+                return;
+            }
+
+
+
+
+            if (msg === "Paused") {
+                job.status = "queued";
                 this._emit();
                 this._pump();
                 return;
@@ -217,7 +247,7 @@ class DownloadQueue {
             return;
         }
         if (job.aborted) {
-            this.jobs.delete(id);
+            if (this.jobs.get(id) === job) this.jobs.delete(id);
             this.order = this.order.filter((x) => x !== id);
             job._reject?.(new Error("Cancelled"));
             this._emit();
@@ -239,6 +269,7 @@ class DownloadQueue {
         job._resolve(result);
 
         setTimeout(() => {
+            if (this.jobs.get(id) !== job) return;
             this.jobs.delete(id);
             this.order = this.order.filter((x) => x !== id);
             this._emit();

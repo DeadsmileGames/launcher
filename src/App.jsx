@@ -89,6 +89,10 @@ const COPY = {
         languageDescription:
             "Choose the language used by the launcher interface.",
         englishDefault: "English is the default language.",
+        telemetry: "Optional diagnostics",
+        telemetryDescription: "Share anonymous crash and install failure reports. No gameplay or personal files are collected.",
+        telemetryEnabled: "Diagnostics enabled",
+        telemetryDisabled: "Diagnostics disabled",
         save: "Save settings",
         profile: "Profile",
         security: "Security",
@@ -98,6 +102,8 @@ const COPY = {
         websiteOnlyDescription:
             "Open your account on the website to upload or change your profile picture.",
         openWebsite: "Open website",
+        companyLinks: "Deadsmile Games links",
+        wishlistAccount: "Your saved games",
         close: "Close",
         games: "Games",
         videos: "Videos",
@@ -105,6 +111,48 @@ const COPY = {
         viewAll: "View all",
         installed: "Installed",
         play: "Play",
+        playing: "Playing",
+        cloudSaves: "Cloud saves",
+        noCloudSaves: "No cloud saves found.",
+        deleteCloudSave: "Delete cloud save",
+        deleteCloudSaveConfirm: "Click delete again to confirm.",
+        cloudSaveDeleted: "Cloud save deleted.",
+        cloudSaveConflict: "Cloud save conflict detected. Your local and remote copies were preserved for recovery.",
+        loading: "Loading…",
+        achievementUnlocked: "Achievement unlocked",
+        achievements: "Achievements",
+        gameView: "Game View",
+        gameViewSubtitle: "Your game tools without leaving the action.",
+        gameViewSetting: "Game View",
+        gameViewSettingDescription: "Show the Game View overlay while a game is running.",
+        gameViewEnabled: "Enabled",
+        gameViewDisabled: "Disabled",
+        gameViewShortcut: "Game View shortcut",
+        gameViewShortcutDescription: "Choose the keyboard shortcut used while playing.",
+        changeGameViewShortcut: "Change shortcut",
+        pressGameViewShortcut: "Press a new shortcut…",
+        gameViewShortcutUpdated: "Game View shortcut updated.",
+        gameViewShortcutUnavailable: "That shortcut is already being used.",
+        gameViewShortcutInvalid: "Use a shortcut such as Ctrl + G.",
+        gameViewTutorialTitle: "Meet Game View",
+        gameViewTutorialDescription: "Press {shortcut} to open or close Game View while playing.",
+        gameViewTutorialProfile: "See your profile and the game currently running.",
+        gameViewTutorialLibrary: "Browse the games in your library.",
+        gameViewTutorialCloud: "Check and delete cloud saves for supported games.",
+        gameViewTutorialScreenshot: "Take a clean screenshot of the game without the overlay.",
+        gotIt: "Got it",
+        takeScreenshot: "Take screenshot",
+        screenshotSaved: "Screenshot saved",
+        screenshotFailed: "Could not take screenshot",
+        openScreenshotFolder: "Open screenshot folder",
+        shareOnX: "Share on X",
+        sharePreparing: "Preparing screenshot…",
+        shareFailed: "Could not share on X.",
+        sharePlayingX: "Look what I'm playing on the @DeadsmileGames Launcher: {game}",
+        sharePasteScreenshot: "Screenshot copied. Paste it into X with Ctrl + V.",
+        noAchievements: "No achievements yet.",
+        cloudSavesUnavailable: "Cloud saves are not enabled for this game.",
+        selectGame: "Select a game",
         download: "Download",
         search: "Search games and add-ons",
         noResults: "No results found.",
@@ -136,6 +184,8 @@ const COPY = {
         latest: "The latest from Deadsmile Games.",
         about: "About",
         screenshots: "Screenshots",
+        relatedVideos: "Related videos",
+        relatedGames: "Related games",
         status: "Status",
         genres: "Genres",
         platforms: "Platforms",
@@ -150,6 +200,7 @@ const COPY = {
         exploreGames: "Explore games",
         localGame: "Local game",
         notifications: "Notifications",
+        newContentAvailable: "New content is available.",
         noNotifications: "No recent notifications.",
         markRead: "Mark all read",
         updateAvailable: "Update available",
@@ -238,7 +289,7 @@ const COPY = {
             "No connection to download. Try again when you're online.",
         offlineCacheNotice: "No connection — showing cached content.",
         downloadCancelled: "download cancelled.",
-                noVideoSourceAvailable: "No video source available.",
+        noVideoSourceAvailable: "No video source available.",
         adjustPhoto: "Adjust photo",
         rotateLeft: "Rotate left",
         rotateRight: "Rotate right",
@@ -318,7 +369,7 @@ const COPY = {
         owned: "Owned",
         purchaseTitle: "Get this game",
         connectItchTitle: "Connect itch.io",
-        connectItchText: "Connect your itch.io account so Deadsmile can verify games you purchased or claimed.",
+        connectItchText: "Connect your itch.io account so Deadsmile Games can verify games you purchased or claimed.",
         connectItchAction: "Connect account",
         connectingItch: "Waiting for itch.io",
         connectingItchText: "Finish connecting in your browser. This launcher will update automatically.",
@@ -327,7 +378,7 @@ const COPY = {
         openCheckout: "Open checkout",
         verifyPurchase: "I completed the purchase",
         purchaseVerified: "Purchase verified",
-        purchaseVerifiedText: "The game is now in your Deadsmile library.",
+        purchaseVerifiedText: "The game is now in your Deadsmile Games library.",
         itchConnectionFailed: "We could not connect to itch.io right now.",
         itchVerificationFailed: "We could not verify this purchase right now.",
         itchAccount: "itch.io account",
@@ -359,6 +410,10 @@ const COPY = {
         languageDescription:
             "Escolha o idioma usado pela interface do launcher.",
         englishDefault: "Inglês é o idioma padrão.",
+        telemetry: "Diagnóstico opcional",
+        telemetryDescription: "Compartilhe falhas anônimas do launcher e de instalação. Jogabilidade e arquivos pessoais não são coletados.",
+        telemetryEnabled: "Diagnóstico ativado",
+        telemetryDisabled: "Diagnóstico desativado",
         save: "Salvar configurações",
         profile: "Perfil",
         security: "Segurança",
@@ -378,6 +433,48 @@ const COPY = {
         viewAll: "Ver tudo",
         installed: "Instalado",
         play: "Jogar",
+        playing: "Jogando",
+        cloudSaves: "Saves na nuvem",
+        noCloudSaves: "Nenhum save na nuvem encontrado.",
+        deleteCloudSave: "Apagar save da nuvem",
+        deleteCloudSaveConfirm: "Clique em apagar novamente para confirmar.",
+        cloudSaveDeleted: "Save da nuvem apagado.",
+        cloudSaveConflict: "Conflito de save na nuvem detectado. As cópias local e remota foram preservadas para recuperação.",
+        loading: "Carregando…",
+        achievementUnlocked: "Conquista desbloqueada",
+        achievements: "Conquistas",
+        gameView: "Game View",
+        gameViewSubtitle: "Suas ferramentas de jogo sem sair da partida.",
+        gameViewSetting: "Game View",
+        gameViewSettingDescription: "Exibe a Game View enquanto um jogo estiver aberto.",
+        gameViewEnabled: "Ativada",
+        gameViewDisabled: "Desativada",
+        gameViewShortcut: "Atalho da Game View",
+        gameViewShortcutDescription: "Escolha o atalho usado para abrir a Game View durante o jogo.",
+        changeGameViewShortcut: "Mudar atalho",
+        pressGameViewShortcut: "Pressione o novo atalho…",
+        gameViewShortcutUpdated: "Atalho da Game View atualizado.",
+        gameViewShortcutUnavailable: "Esse atalho já está sendo usado.",
+        gameViewShortcutInvalid: "Use um atalho como Ctrl + G.",
+        gameViewTutorialTitle: "Conheça a Game View",
+        gameViewTutorialDescription: "Pressione {shortcut} para abrir ou fechar a Game View enquanto joga.",
+        gameViewTutorialProfile: "Veja seu perfil e o jogo que está rodando.",
+        gameViewTutorialLibrary: "Navegue pelos jogos da sua biblioteca.",
+        gameViewTutorialCloud: "Veja e apague saves na nuvem dos jogos compatíveis.",
+        gameViewTutorialScreenshot: "Tire uma captura limpa do jogo sem o overlay aparecer.",
+        gotIt: "Entendi",
+        takeScreenshot: "Tirar screenshot",
+        screenshotSaved: "Screenshot salvo",
+        screenshotFailed: "Não foi possível tirar o screenshot",
+        openScreenshotFolder: "Abrir pasta de screenshots",
+        shareOnX: "Compartilhar no X",
+        sharePreparing: "Preparando screenshot…",
+        shareFailed: "Não foi possível compartilhar no X.",
+        sharePlayingX: "Olha o que eu estou jogando no @DeadsmileGames Launcher: {game}",
+        sharePasteScreenshot: "Screenshot copiada. Cole no X com Ctrl + V.",
+        noAchievements: "Nenhuma conquista ainda.",
+        cloudSavesUnavailable: "Os saves na nuvem não estão ativados para este jogo.",
+        selectGame: "Selecione um jogo",
         download: "Baixar",
         search: "Pesquisar jogos e extras",
         noResults: "Nenhum resultado encontrado.",
@@ -409,6 +506,8 @@ const COPY = {
         latest: "As novidades da Deadsmile Games.",
         about: "Sobre",
         screenshots: "Capturas de tela",
+        relatedVideos: "Vídeos relacionados",
+        relatedGames: "Jogos relacionados",
         status: "Status",
         genres: "Gêneros",
         platforms: "Plataformas",
@@ -423,6 +522,7 @@ const COPY = {
         exploreGames: "Explorar jogos",
         localGame: "Jogo local",
         notifications: "Notificações",
+        newContentAvailable: "Há um novo conteúdo disponível.",
         noNotifications: "Nenhuma notificação recente.",
         markRead: "Marcar todas como lidas",
         updateAvailable: "Atualização disponível",
@@ -509,7 +609,7 @@ const COPY = {
             "Sem conexão para baixar. Tente novamente quando estiver online.",
         offlineCacheNotice: "Sem conexão — mostrando conteúdo em cache.",
         downloadCancelled: "download cancelado.",
-                noVideoSourceAvailable: "Nenhuma fonte de vídeo disponível.",
+        noVideoSourceAvailable: "Nenhuma fonte de vídeo disponível.",
         adjustPhoto: "Ajustar foto",
         rotateLeft: "Girar à esquerda",
         rotateRight: "Girar à direita",
@@ -538,7 +638,7 @@ const COPY = {
         publishNews: "Publicar notícia",
         publishVideo: "Publicar vídeo",
         publishing: "Publicando…",
-                back: "Voltar",
+        back: "Voltar",
         forward: "Avançar",
         unableToSaveChanges: "Não foi possível salvar as alterações.",
         writeSomethingAboutYourself: "Escreva algo sobre você.",
@@ -589,7 +689,7 @@ const COPY = {
         owned: "Na biblioteca",
         purchaseTitle: "Obter este jogo",
         connectItchTitle: "Vincular itch.io",
-        connectItchText: "Vincule sua conta itch.io para a Deadsmile verificar jogos comprados ou resgatados.",
+        connectItchText: "Vincule sua conta itch.io para a Deadsmile Games verificar jogos comprados ou resgatados.",
         connectItchAction: "Vincular conta",
         connectingItch: "Aguardando o itch.io",
         connectingItchText: "Conclua a vinculação no navegador. O launcher será atualizado automaticamente.",
@@ -598,7 +698,7 @@ const COPY = {
         openCheckout: "Abrir compra",
         verifyPurchase: "Concluí a compra",
         purchaseVerified: "Compra verificada",
-        purchaseVerifiedText: "O jogo agora está na sua biblioteca Deadsmile.",
+        purchaseVerifiedText: "O jogo agora está na sua biblioteca Deadsmile Games.",
         itchConnectionFailed: "Não foi possível conectar ao itch.io agora.",
         itchVerificationFailed: "Não foi possível verificar esta compra agora.",
         itchAccount: "Conta itch.io",
@@ -629,6 +729,10 @@ const COPY = {
         language: "Idioma",
         languageDescription: "Elige el idioma de la interfaz del launcher.",
         englishDefault: "El inglés es el idioma predeterminado.",
+        telemetry: "Diagnóstico opcional",
+        telemetryDescription: "Comparte fallos anónimos del launcher y de instalación. No se recopilan partidas ni archivos personales.",
+        telemetryEnabled: "Diagnóstico activado",
+        telemetryDisabled: "Diagnóstico desactivado",
         save: "Guardar configuración",
         profile: "Perfil",
         security: "Seguridad",
@@ -648,6 +752,48 @@ const COPY = {
         viewAll: "Ver todo",
         installed: "Instalado",
         play: "Jugar",
+        playing: "Jugando",
+        cloudSaves: "Guardados en la nube",
+        noCloudSaves: "No hay guardados en la nube.",
+        deleteCloudSave: "Borrar guardado de la nube",
+        deleteCloudSaveConfirm: "Pulsa borrar de nuevo para confirmar.",
+        cloudSaveDeleted: "Guardado de la nube eliminado.",
+        cloudSaveConflict: "Se detectó un conflicto de guardado en la nube. Las copias local y remota se conservaron para recuperación.",
+        loading: "Cargando…",
+        achievementUnlocked: "Logro desbloqueado",
+        achievements: "Logros",
+        gameView: "Game View",
+        gameViewSubtitle: "Tus herramientas de juego sin salir de la partida.",
+        gameViewSetting: "Game View",
+        gameViewSettingDescription: "Muestra Game View mientras un juego está abierto.",
+        gameViewEnabled: "Activada",
+        gameViewDisabled: "Desactivada",
+        gameViewShortcut: "Atajo de Game View",
+        gameViewShortcutDescription: "Elige el atajo para abrir Game View durante el juego.",
+        changeGameViewShortcut: "Cambiar atajo",
+        pressGameViewShortcut: "Pulsa el nuevo atajo…",
+        gameViewShortcutUpdated: "Atajo de Game View actualizado.",
+        gameViewShortcutUnavailable: "Ese atajo ya está en uso.",
+        gameViewShortcutInvalid: "Usa un atajo como Ctrl + G.",
+        gameViewTutorialTitle: "Conoce Game View",
+        gameViewTutorialDescription: "Pulsa {shortcut} para abrir o cerrar Game View mientras juegas.",
+        gameViewTutorialProfile: "Mira tu perfil y el juego que está en ejecución.",
+        gameViewTutorialLibrary: "Explora los juegos de tu biblioteca.",
+        gameViewTutorialCloud: "Consulta y elimina guardados en la nube de juegos compatibles.",
+        gameViewTutorialScreenshot: "Haz una captura limpia del juego sin mostrar el overlay.",
+        gotIt: "Entendido",
+        takeScreenshot: "Tomar captura",
+        screenshotSaved: "Captura guardada",
+        screenshotFailed: "No se pudo tomar la captura",
+        openScreenshotFolder: "Abrir carpeta de capturas",
+        shareOnX: "Compartir en X",
+        sharePreparing: "Preparando captura…",
+        shareFailed: "No se pudo compartir en X.",
+        sharePlayingX: "Mira lo que estoy jugando en el @DeadsmileGames Launcher: {game}",
+        sharePasteScreenshot: "Captura copiada. Pégala en X con Ctrl + V.",
+        noAchievements: "Todavía no hay logros.",
+        cloudSavesUnavailable: "Los guardados en la nube no están activados para este juego.",
+        selectGame: "Selecciona un juego",
         download: "Descargar",
         search: "Buscar juegos y extras",
         noResults: "No se encontraron resultados.",
@@ -678,6 +824,8 @@ const COPY = {
         latest: "Las novedades de Deadsmile Games.",
         about: "Acerca de",
         screenshots: "Capturas",
+        relatedVideos: "Vídeos relacionados",
+        relatedGames: "Juegos relacionados",
         status: "Estado",
         genres: "Géneros",
         platforms: "Plataformas",
@@ -692,6 +840,7 @@ const COPY = {
         exploreGames: "Explorar juegos",
         localGame: "Juego local",
         notifications: "Notificaciones",
+        newContentAvailable: "Hay nuevo contenido disponible.",
         noNotifications: "No hay notificaciones recientes.",
         markRead: "Marcar todas como leídas",
         updateAvailable: "Actualización disponible",
@@ -779,7 +928,7 @@ const COPY = {
             "Sin conexión para descargar. Inténtalo cuando estés online.",
         offlineCacheNotice: "Sin conexión — mostrando contenido en caché.",
         downloadCancelled: "descarga cancelada.",
-                noVideoSourceAvailable: "No hay fuente de vídeo disponible.",
+        noVideoSourceAvailable: "No hay fuente de vídeo disponible.",
         adjustPhoto: "Ajustar foto",
         rotateLeft: "Girar a la izquierda",
         rotateRight: "Girar a la derecha",
@@ -808,7 +957,7 @@ const COPY = {
         publishNews: "Publicar noticia",
         publishVideo: "Publicar vídeo",
         publishing: "Publicando…",
-                back: "Atrás",
+        back: "Atrás",
         forward: "Adelante",
         unableToSaveChanges: "No se pudieron guardar los cambios.",
         writeSomethingAboutYourself: "Escribe algo sobre ti.",
@@ -859,7 +1008,7 @@ const COPY = {
         owned: "En la biblioteca",
         purchaseTitle: "Obtener este juego",
         connectItchTitle: "Conectar itch.io",
-        connectItchText: "Conecta tu cuenta de itch.io para que Deadsmile verifique juegos comprados o reclamados.",
+        connectItchText: "Conecta tu cuenta de itch.io para que Deadsmile Games verifique juegos comprados o reclamados.",
         connectItchAction: "Conectar cuenta",
         connectingItch: "Esperando a itch.io",
         connectingItchText: "Termina la conexión en el navegador. El launcher se actualizará automáticamente.",
@@ -868,7 +1017,7 @@ const COPY = {
         openCheckout: "Abrir compra",
         verifyPurchase: "Completé la compra",
         purchaseVerified: "Compra verificada",
-        purchaseVerifiedText: "El juego ya está en tu biblioteca de Deadsmile.",
+        purchaseVerifiedText: "El juego ya está en tu biblioteca de Deadsmile Games.",
         itchConnectionFailed: "No se pudo conectar con itch.io ahora.",
         itchVerificationFailed: "No se pudo verificar esta compra ahora.",
         itchAccount: "Cuenta de itch.io",
@@ -895,29 +1044,78 @@ function interpolate(str, params) {
     );
 }
 
-const CONTENT_CACHE_KEY = "deadsmile.cache.content.v1";
+const PUBLIC_CONTENT_CACHE_KEY = "deadsmile.cache.content.v2";
+const LEGACY_CONTENT_CACHE_KEY = "deadsmile.cache.content.v1";
+const USER_CACHE_PREFIX = "deadsmile.cache.user.v1:";
 
-function readContentCache() {
+function validUserId(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
+function readPublicContentCache() {
     try {
-        return JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) || "null");
+        const current = JSON.parse(localStorage.getItem(PUBLIC_CONTENT_CACHE_KEY) || "null");
+        if (current) return current;
+        const legacy = JSON.parse(localStorage.getItem(LEGACY_CONTENT_CACHE_KEY) || "null");
+        if (!legacy) return null;
+        return {
+            ts: legacy.ts || 0,
+            games: legacy.games || [],
+            news: legacy.news || [],
+            videos: legacy.videos || [],
+        };
     } catch {
         return null;
     }
 }
 
-function writeContentCache({ games, news, videos, wishlistIds }) {
+function writePublicContentCache({ games, news, videos }) {
     try {
         localStorage.setItem(
-            CONTENT_CACHE_KEY,
+            PUBLIC_CONTENT_CACHE_KEY,
             JSON.stringify({
                 ts: Date.now(),
                 games: games || [],
                 news: news || [],
                 videos: videos || [],
-                wishlistIds: wishlistIds || [],
+            }),
+        );
+        localStorage.removeItem(LEGACY_CONTENT_CACHE_KEY);
+    } catch {}
+}
+
+function userCacheKey(userId) {
+    return validUserId(userId) ? `${USER_CACHE_PREFIX}${userId}` : null;
+}
+
+function readUserContentCache(userId) {
+    const key = userCacheKey(userId);
+    if (!key) return null;
+    try {
+        return JSON.parse(localStorage.getItem(key) || "null");
+    } catch {
+        return null;
+    }
+}
+
+function writeUserContentCache(userId, { wishlistIds }) {
+    const key = userCacheKey(userId);
+    if (!key) return;
+    try {
+        localStorage.setItem(
+            key,
+            JSON.stringify({
+                ts: Date.now(),
+                wishlistIds: Array.isArray(wishlistIds) ? wishlistIds : [],
             }),
         );
     } catch {}
+}
+
+function clearUserContentCache(userId) {
+    const key = userCacheKey(userId);
+    if (!key) return;
+    try { localStorage.removeItem(key); } catch {}
 }
 
 function useOnline() {
@@ -938,6 +1136,9 @@ function useOnline() {
 }
 
 
+const RunningGamesContext = createContext(new Set());
+function useRunningGames() { return useContext(RunningGamesContext); }
+
 const LanguageContext = createContext({
     language: "en",
     t: (key, params, fallback) => fallback || key,
@@ -949,11 +1150,23 @@ function useT() {
 const FALLBACK_COVER = `${SITE_URL}/assets/placeholders/game-cover.svg`;
 const FALLBACK_HERO = `${SITE_URL}/assets/placeholders/game-hero.svg`;
 
+function safeExternalUrl(value) {
+    if (typeof value !== "string" || value.length > 4096) return "";
+    try {
+        const url = new URL(value);
+        if (url.username || url.password) return "";
+        return ["https:", "mailto:"].includes(url.protocol) ? url.toString() : "";
+    } catch {
+        return "";
+    }
+}
+
 function openExternal(url) {
-    if (!url) return;
-    if (window.deadsmile?.openExternal)
-        return window.deadsmile.openExternal(url);
-    window.open(url, "_blank", "noopener,noreferrer");
+    const safe = safeExternalUrl(url);
+    if (!safe) return false;
+    if (window.deadsmile?.openExternal) return window.deadsmile.openExternal(safe);
+    window.open(safe, "_blank", "noopener,noreferrer");
+    return true;
 }
 
 function listFrom(data, key) {
@@ -967,8 +1180,12 @@ function listFrom(data, key) {
 
 function assetUrl(value, fallback) {
     if (!value) return fallback;
+    const raw = String(value);
+    if (raw.length > 2_000_000) return fallback;
+    if (/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i.test(raw)) return raw;
     try {
-        const url = new URL(value, API_ASSET_ROOT);
+        const url = new URL(raw, API_ASSET_ROOT);
+        if (url.protocol !== "https:" || url.username || url.password) return fallback;
         return url.toString();
     } catch {
         return fallback;
@@ -1056,6 +1273,39 @@ function formatRelative(ts, t) {
     const d = Math.floor(h / 24);
     if (d < 30) return tr("daysAgo", { n: d }, `há ${d}d`);
     return new Date(ts).toLocaleDateString();
+}
+
+function formatCalendarDate(value, locale) {
+    if (!value) return "";
+
+    const text = String(value).trim();
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+
+    if (match) {
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+
+        const date = new Date(Date.UTC(year, month - 1, day));
+
+        if (
+            date.getUTCFullYear() !== year ||
+            date.getUTCMonth() !== month - 1 ||
+            date.getUTCDate() !== day
+        ) {
+            return "";
+        }
+
+        return new Intl.DateTimeFormat(locale || undefined, {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            timeZone: "UTC",
+        }).format(date);
+    }
+
+    return "";
 }
 
 function usePlaytime() {
@@ -1587,7 +1837,7 @@ function Boot() {
         <div className="boot-screen">
             <div className="boot-status">
                 <span>{t("startingLauncher")}</span>
-                <div className="loading-bar">
+                <div className="loading-bar boot-loading-bar">
                     <i />
                 </div>
             </div>
@@ -1752,19 +2002,19 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language, openLin
                 ))}
             </nav>
             <div className="sidebar-bottom">
-                {isAdmin(user) ? (
+                {isAdmin(user) && (
                     <button
                         className={
                             active === "admin"
-                                ? "nav-item active admin-nav"
-                                : "nav-item admin-nav"
+                                ? "nav-item active admin-nav manage-2"
+                                : "nav-item admin-nav manage-2"
                         }
                         onClick={openAdmin}
                     >
                         <GearSix size={21} />
                         <span>{text(language, "manage")}</span>
                     </button>
-                ) : (
+                )}
                     <button
                         className="nav-item social-nav"
                         onClick={openLinks}
@@ -1772,7 +2022,6 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language, openLin
                         <LinkSimple size={21} />
                         <span>{text(language, "linksSocials")}</span>
                     </button>
-                )}
                 <button
                     className={
                         active === "account"
@@ -2010,6 +2259,17 @@ function TopActions({
 }
 
 const gameUpdateCache = new Map();
+const GAME_UPDATE_CACHE_TTL_MS = 5 * 60_000;
+const GAME_UPDATE_ERROR_CACHE_TTL_MS = 30_000;
+
+function invalidateGameUpdateCache(gameId = null) {
+    for (const key of [...gameUpdateCache.keys()]) {
+        if (!gameId || key.startsWith(`${gameId}:`)) gameUpdateCache.delete(key);
+    }
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("deadsmile:game-update-invalidated", { detail: { gameId } }));
+    }
+}
 
 function versionFromLocalFilename(filename) {
   const base = String(filename || "").trim();
@@ -2034,15 +2294,24 @@ function useGameUpdateStatus(game, installedEntry) {
 
     useEffect(() => {
         let alive = true;
-        if (!installedEntry?.path || !game?.downloadUrl || !window.deadsmile?.checkGameUpdate) {
+        if (!installedEntry?.path || (!game?.downloadUrl && !game?.commerceEnabled) || !window.deadsmile?.checkGameUpdate) {
             setState({ available: false, checking: false });
             return () => { alive = false; };
         }
 
         const cached = gameUpdateCache.get(cacheKey);
         if (cached) {
-            setState(cached);
-            return () => { alive = false; };
+            const age = Date.now() - Number(cached.checkedAt || 0);
+            const ttl = Number(cached.ttlMs || GAME_UPDATE_CACHE_TTL_MS);
+            if (age >= 0 && age < ttl) {
+                setState({
+                    available: Boolean(cached.available),
+                    checking: false,
+                    latestVersion: cached.latestVersion || null,
+                });
+                return () => { alive = false; };
+            }
+            gameUpdateCache.delete(cacheKey);
         }
 
         setState({ available: false, checking: true });
@@ -2056,6 +2325,8 @@ function useGameUpdateStatus(game, installedEntry) {
 
             filename: installedEntry.filename,
             path: installedEntry.path,
+            commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
         }).then((result) => {
             if (!alive) return;
             const next = {
@@ -2063,12 +2334,20 @@ function useGameUpdateStatus(game, installedEntry) {
                 checking: false,
                 latestVersion: result?.latestVersion || null,
             };
-            gameUpdateCache.set(cacheKey, next);
+            gameUpdateCache.set(cacheKey, {
+                ...next,
+                checkedAt: Date.now(),
+                ttlMs: result?.reason ? GAME_UPDATE_ERROR_CACHE_TTL_MS : GAME_UPDATE_CACHE_TTL_MS,
+            });
             setState(next);
         }).catch(() => {
             if (!alive) return;
-            const next = { available: false, checking: false };
-            gameUpdateCache.set(cacheKey, next);
+            const next = { available: false, checking: false, latestVersion: null };
+            gameUpdateCache.set(cacheKey, {
+                ...next,
+                checkedAt: Date.now(),
+                ttlMs: GAME_UPDATE_ERROR_CACHE_TTL_MS,
+            });
             setState(next);
         });
 
@@ -2080,9 +2359,19 @@ function useGameUpdateStatus(game, installedEntry) {
             gameUpdateCache.delete(cacheKey);
             setRetryToken((value) => value + 1);
         };
+        const handleInvalidated = (event) => {
+            const gameId = event?.detail?.gameId;
+            if (gameId && String(gameId) !== String(game?.id || "")) return;
+            gameUpdateCache.delete(cacheKey);
+            setRetryToken((value) => value + 1);
+        };
         window.addEventListener("online", handleOnline);
-        return () => window.removeEventListener("online", handleOnline);
-    }, [cacheKey]);
+        window.addEventListener("deadsmile:game-update-invalidated", handleInvalidated);
+        return () => {
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("deadsmile:game-update-invalidated", handleInvalidated);
+        };
+    }, [cacheKey, game?.id]);
 
     return state;
 }
@@ -2099,10 +2388,11 @@ function GameCard({
     entitled,
 }) {
     const { t } = useT();
+    const running = useRunningGames().has(game.id);
     const progress = downloading?.percent;
     const gameUpdate = useGameUpdateStatus(game, installedEntry);
     const isUpdating = downloading?.mode === "update" || downloading?.status === "updating";
-    const owned = entitled || installed;
+    const owned = game?.commerceEnabled ? Boolean(entitled) : Boolean(entitled || installed);
     return (
         <article className="game-card">
             <button className="game-card-image" onClick={() => onOpen(game)}>
@@ -2150,11 +2440,15 @@ function GameCard({
                     </button>
                     {(game.downloadUrl || game.commerceEnabled) && (
                         <button
-                            className="install-button"
+                            className={`install-button ${running ? "is-playing" : ""}`}
                             onClick={() => onInstall(game, installed, gameUpdate.available)}
-                            disabled={Boolean(downloading)}
+                            disabled={Boolean(downloading) || running}
                         >
-                            {isUpdating ? (
+                            {running ? (
+                                <>
+                                    <Play size={14} weight="fill" /> {t("playing")}
+                                </>
+                            ) : isUpdating ? (
                                 t("updating")
                             ) : downloading ? (
                                 `${progress || 0}%`
@@ -2163,7 +2457,7 @@ function GameCard({
                                     <DownloadSimple size={14} />{" "}
                                     {t("update")}
                                 </>
-                            ) : installed ? (
+                            ) : installed && owned ? (
                                 <>
                                     <Play size={14} weight="fill" />{" "}
                                     {t("play")}
@@ -2407,9 +2701,11 @@ function Explore({
     setView,
 }) {
     const { t } = useT();
+    const runningGames = useRunningGames();
     const hero = games.find((g) => g.featured) || games[0];
     const heroUpdate = useGameUpdateStatus(hero, hero ? installed?.[hero.id] : null);
     const heroOwned = hero && (entitlements?.has(hero.id) || Boolean(installed?.[hero.id]));
+    const heroRunning = Boolean(hero && runningGames.has(hero.id));
     const continuePlaying = useMemo(() => {
         if (!playtime || !installed) return [];
         return Object.entries(playtime)
@@ -2449,7 +2745,7 @@ function Explore({
                             </button>
                             {(hero.downloadUrl || hero.commerceEnabled) && (
                                 <button
-                                    className="soft-button"
+                                    className={`soft-button ${heroRunning ? "is-playing" : ""}`}
                                     onClick={() =>
                                         onInstall(
                                             hero,
@@ -2457,9 +2753,9 @@ function Explore({
                                             heroUpdate.available,
                                         )
                                     }
-                                    disabled={Boolean(downloading[hero.id])}
+                                    disabled={Boolean(downloading[hero.id]) || heroRunning}
                                 >
-                                    {downloading[hero.id]?.mode === "update" || downloading[hero.id]?.status === "updating" ? (
+                                    {heroRunning ? (<> <Play size={17} weight="fill" /> {t("playing")} </>) : downloading[hero.id]?.mode === "update" || downloading[hero.id]?.status === "updating" ? (
                                         t("updating")
                                     ) : downloading[hero.id] ? (
                                         <>
@@ -2505,8 +2801,9 @@ function Explore({
                         {continuePlaying.map(({ game, data }) => (
                             <button
                                 key={game.id}
-                                className="continue-card"
+                                className={`continue-card ${runningGames.has(game.id) ? "is-playing" : ""}`}
                                 onClick={() => onInstall(game, true)}
+                                disabled={runningGames.has(game.id)}
                             >
                                 <div className="continue-image">
                                     <SmartImage
@@ -2663,6 +2960,7 @@ function Catalog({
 }
 function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloading, onInstall, onDelete, openGame }) {
     const { t } = useT();
+    const running = useRunningGames().has(g.id);
     const gameUpdate = useGameUpdateStatus(g, installedEntry);
     const isUpdating = downloading?.mode === "update" || downloading?.status === "updating";
     return (
@@ -2681,13 +2979,14 @@ function LibraryGameRow({ game: g, played, lastPlayed, installedEntry, downloadi
             <div className="library-meta">
                 <small>{installedEntry?.filename || t("owned")}</small>
                 <button
-                    className="soft-button"
+                    className={`soft-button ${running ? "is-playing" : ""}`}
                     onClick={() => onInstall(g, Boolean(installedEntry) && !gameUpdate.available, gameUpdate.available)}
-                    disabled={Boolean(downloading)}
+                    disabled={Boolean(downloading) || running}
                 >
-                    {isUpdating ? t("updating") : gameUpdate.available || !installedEntry ? <DownloadSimple size={16} /> : <Play size={16} weight="fill" />}{" "}
-                    {isUpdating ? t("updating") : gameUpdate.available ? t("update") : installedEntry ? t("play") : t("download")}
+                    {running ? <Play size={16} weight="fill" /> : isUpdating ? t("updating") : gameUpdate.available || !installedEntry ? <DownloadSimple size={16} /> : <Play size={16} weight="fill" />}{" "}
+                    {running ? t("playing") : isUpdating ? t("updating") : gameUpdate.available ? t("update") : installedEntry ? t("play") : t("download")}
                 </button>
+                <CloudSaveMenu game={g} compact />
                 <button className="round-action" onClick={() => openGame(g)}>
                     <ArrowUpRight size={17} />
                 </button>
@@ -2712,7 +3011,7 @@ function Library({
     const [sort, setSort] = useState("recent");
     const { t } = useT();
     const items = useMemo(() => {
-        const list = games.filter((g) => installed[g.id] || entitlements.has(g.id));
+        const list = games.filter((g) => g.commerceEnabled ? entitlements.has(g.id) : installed[g.id] || entitlements.has(g.id));
         const withPlay = list.map((g) => ({
             game: g,
             played: playtime?.[g.id]?.totalMs || 0,
@@ -2840,6 +3139,166 @@ function Wishlist({
     );
 }
 
+
+function CloudSaveMenu({ game, compact = false }) {
+    const { t, language } = useT();
+    const [open, setOpen] = useState(false);
+    const [saves, setSaves] = useState([]);
+    const [loadingSaves, setLoadingSaves] = useState(false);
+    const [deletingSlot, setDeletingSlot] = useState("");
+    const [message, setMessage] = useState("");
+    const [pendingDeleteSlot, setPendingDeleteSlot] = useState("");
+    const deleteConfirmTimerRef = useRef(null);
+    const loadRequestRef = useRef(0);
+
+    useEffect(() => {
+        loadRequestRef.current += 1;
+        setOpen(false);
+        setSaves([]);
+        setMessage("");
+        setDeletingSlot("");
+        setPendingDeleteSlot("");
+        if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    }, [game?.id]);
+
+    useEffect(() => () => {
+        if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    }, []);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [open]);
+
+    if (!game?.cloudSavesEnabled) return null;
+
+    async function load() {
+        const requestId = ++loadRequestRef.current;
+        setLoadingSaves(true);
+        setMessage("");
+        try {
+            const result = await api.get(`/platform/saves/${encodeURIComponent(game.id)}`);
+            if (loadRequestRef.current !== requestId) return;
+            setSaves(Array.isArray(result) ? result : []);
+        } catch (error) {
+            if (loadRequestRef.current !== requestId) return;
+            setSaves([]);
+            setMessage(error?.message || t("error"));
+        } finally {
+            if (loadRequestRef.current === requestId) setLoadingSaves(false);
+        }
+    }
+
+    async function openPopup() {
+        setOpen(true);
+        await load();
+    }
+
+    async function remove(slot) {
+        if (deletingSlot) return;
+        const normalizedSlot = String(slot);
+        if (pendingDeleteSlot !== normalizedSlot) {
+            setPendingDeleteSlot(normalizedSlot);
+            setMessage(t("deleteCloudSaveConfirm"));
+            if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+            deleteConfirmTimerRef.current = setTimeout(() => {
+                setPendingDeleteSlot("");
+                deleteConfirmTimerRef.current = null;
+                setMessage((current) =>
+                    current === t("deleteCloudSaveConfirm") ? "" : current,
+                );
+            }, 4500);
+            return;
+        }
+        setPendingDeleteSlot("");
+        if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+        deleteConfirmTimerRef.current = null;
+        setDeletingSlot(normalizedSlot);
+        setMessage("");
+        try {
+            await api.delete(`/platform/saves/${encodeURIComponent(game.id)}/${encodeURIComponent(slot)}`);
+            setSaves((current) => current.filter((save) => String(save.slot) !== normalizedSlot));
+            setMessage(t("cloudSaveDeleted"));
+        } catch (error) {
+            setMessage(error?.message || t("error"));
+        } finally {
+            setDeletingSlot("");
+        }
+    }
+
+    return <>
+        <button
+            type="button"
+            className={`soft-button ${compact ? "compact" : ""}`}
+            onClick={openPopup}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            title={compact ? t("cloudSaves") : undefined}
+        >
+            <FloppyDisk size={16} weight="bold"/>
+            {!compact && <span>{t("cloudSaves")}</span>}
+        </button>
+        {open && <Portal>
+            <div
+                className="cloud-save-overlay"
+                onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}
+            >
+                <section
+                    className="cloud-save-dialog"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`${t("cloudSaves")} — ${game.title || ""}`}
+                    onMouseDown={(event) => event.stopPropagation()}
+                >
+                    <header className="cloud-save-dialog__head">
+                        <div>
+                            <small>{game.title}</small>
+                            <h3><FloppyDisk size={19}/>{t("cloudSaves")}</h3>
+                        </div>
+                        <button
+                            type="button"
+                            className="modal-close"
+                            onClick={() => setOpen(false)}
+                            aria-label={t("close")}
+                        >
+                            <X size={18}/>
+                        </button>
+                    </header>
+                    <div className="cloud-save-dialog__body">
+                        {loadingSaves ? (
+                            <div className="cloud-save-empty">{t("loading") || "Loading…"}</div>
+                        ) : saves.length ? saves.map((save) => (
+                            <div className="cloud-save-row" key={save.slot}>
+                                <div>
+                                    <strong>{save.slot}</strong>
+                                    <small>{save.updatedAt || save.updated_at ? new Date(save.updatedAt || save.updated_at).toLocaleString(language) : ""}</small>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="round-action delete-local"
+                                    disabled={Boolean(deletingSlot)}
+                                    onClick={() => remove(save.slot)}
+                                    aria-label={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")}
+                                    title={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")}
+                                >
+                                    {deletingSlot === String(save.slot) ? <span className="cloud-save-spinner" aria-hidden="true"/> : <Trash size={15}/>}
+                                </button>
+                            </div>
+                        )) : (
+                            <div className="cloud-save-empty">{t("noCloudSaves")}</div>
+                        )}
+                    </div>
+                    {message && <div className="cloud-save-message">{message}</div>}
+                </section>
+            </div>
+        </Portal>}
+    </>;
+}
+
 function GameDetails({
     game,
     onBack,
@@ -2850,23 +3309,53 @@ function GameDetails({
     installedEntry,
     downloading,
     entitled,
+    games = [],
+    videos = [],
+    openGame,
+    openVideo,
 }) {
-    const { t } = useT();
+    const { t, language } = useT();
+    const running = useRunningGames().has(game.id);
     const [detail, setDetail] = useState(game);
     const [selected, setSelected] = useState(null);
     const gameUpdate = useGameUpdateStatus(detail, installedEntry);
-    const owned = entitled || installed;
+    const owned = detail?.commerceEnabled ? Boolean(entitled) : Boolean(entitled || installed);
     const [checkingUpdate, setCheckingUpdate] = useState(false);
     const [manualUpdateCheck, setManualUpdateCheck] = useState(null);
+    const [achievements, setAchievements] = useState([]);
+    const [achievementsLoading, setAchievementsLoading] = useState(false);
     useEffect(() => {
         let alive = true;
-        api.get(`/games/${slugOf(game)}`)
+        api.get(`/games/${encodeURIComponent(slugOf(game))}`)
             .then((data) => alive && setDetail(data))
             .catch(() => {});
         return () => {
             alive = false;
         };
     }, [game]);
+
+    useEffect(() => {
+        const gameId = detail?.id || game?.id;
+        if (!gameId) {
+            setAchievements([]);
+            return undefined;
+        }
+        let alive = true;
+        setAchievementsLoading(true);
+        api.get(`/platform/achievements/${encodeURIComponent(gameId)}`)
+            .then((data) => {
+                if (alive) setAchievements(listFrom(data, "achievements"));
+            })
+            .catch(() => {
+                if (alive) setAchievements([]);
+            })
+            .finally(() => {
+                if (alive) setAchievementsLoading(false);
+            });
+        return () => {
+            alive = false;
+        };
+    }, [detail?.id, game?.id]);
 
     async function checkForGameUpdates() {
         if (checkingUpdate) return;
@@ -2884,6 +3373,8 @@ function GameDetails({
                 versionFromLocalFilename(installedEntry?.filename),
             filename: installedEntry?.filename,
             path: installedEntry?.path,
+            commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
             });
 
             setManualUpdateCheck(result);
@@ -2902,6 +3393,45 @@ function GameDetails({
               (_, i) =>
                   `${SITE_URL}/assets/games/screenshots/${detail?.slug || slugOf(detail)}/${i + 1}.png`,
           );
+    const unlockedAchievements = achievements.filter(
+        (item) => item.unlocked_at || item.unlockedAt,
+    ).length;
+    const currentGameId = String(detail?.id || game?.id || "");
+    const relatedVideos = videos
+        .filter((video) => {
+            const videoGameId =
+                video?.gameId || video?.game_id || video?.game?.id || "";
+            return currentGameId && String(videoGameId) === currentGameId;
+        })
+        .slice(0, 3);
+    const detailGenres = new Set(
+        (detail?.genres || [])
+            .map((genre) => String(genre || "").trim().toLowerCase())
+            .filter(Boolean),
+    );
+    const relatedGames = games
+        .filter((candidate) => String(candidate?.id || "") !== currentGameId)
+        .map((candidate) => {
+            const sharedGenres = (candidate?.genres || []).reduce(
+                (count, genre) =>
+                    count +
+                    (detailGenres.has(String(genre || "").trim().toLowerCase())
+                        ? 1
+                        : 0),
+                0,
+            );
+            return { candidate, sharedGenres };
+        })
+        .filter((item) => item.sharedGenres > 0)
+        .sort(
+            (a, b) =>
+                b.sharedGenres - a.sharedGenres ||
+                String(a.candidate?.title || "").localeCompare(
+                    String(b.candidate?.title || ""),
+                ),
+        )
+        .slice(0, 4)
+        .map((item) => item.candidate);
     return (
         <div className="page game-details">
             <PageHeading title="" description="" />
@@ -2919,12 +3449,12 @@ function GameDetails({
                     <div className="detail-actions">
                         {(detail?.downloadUrl || detail?.commerceEnabled) && (
                             <button
-                                className="primary-button"
+                                className={`primary-button ${running ? "is-playing" : ""}`}
                                 onClick={() => onInstall(detail, installed, gameUpdate.available)}
-                                disabled={Boolean(downloading)}
+                                disabled={Boolean(downloading) || running}
                             >
-                                
-                                {downloading?.mode === "update" || downloading?.status === "updating" ? (
+
+                                {running ? (<> <Play size={17} weight="fill" /> {t("playing")} </>) : downloading?.mode === "update" || downloading?.status === "updating" ? (
                                     t("updating")
                                 ) : downloading ? (
                                     t("downloading")
@@ -2933,7 +3463,7 @@ function GameDetails({
                                         <DownloadSimple size={17} />{" "}
                                         {t("update")}
                                     </>
-                                ) : installed ? (
+                                ) : installed && owned ? (
                                     <>
                                         <Play size={17} weight="fill" />{" "}
                                         {t("play")}
@@ -2955,8 +3485,9 @@ function GameDetails({
                                     </>
                                 )}
                             </button>
-                            
+
                         )}
+                        <CloudSaveMenu game={detail} />
                         {!installed && (
                             <button
                                 className="soft-button"
@@ -3036,6 +3567,128 @@ function GameDetails({
                             ))}
                         </div>
                     </section>
+                    <section className="detail-section">
+                        <div className="detail-section-heading">
+                            <h2>{t("achievements")}</h2>
+                            {!achievementsLoading && achievements.length > 0 && (
+                                <span className="detail-section-count">
+                                    {unlockedAchievements}/{achievements.length}
+                                </span>
+                            )}
+                        </div>
+                        {achievementsLoading ? (
+                            <div className="detail-empty-state">{t("loading")}</div>
+                        ) : achievements.length ? (
+                            <div className="detail-achievements-grid">
+                                {achievements.map((item) => {
+                                    const unlocked = Boolean(
+                                        item.unlocked_at || item.unlockedAt,
+                                    );
+                                    const hidden = Boolean(item.hidden && !unlocked);
+                                    const icon = item.icon_url || item.iconUrl;
+                                    return (
+                                        <article
+                                            key={item.id || item.key}
+                                            className={`detail-achievement ${unlocked ? "unlocked" : "locked"}`}
+                                        >
+                                            <div className="detail-achievement-icon">
+                                                {icon && !hidden ? (
+                                                    <SmartImage
+                                                        src={icon}
+                                                        fallback={FALLBACK_COVER}
+                                                        alt=""
+                                                        loading="lazy"
+                                                    />
+                                                ) : (
+                                                    <CheckCircle
+                                                        size={22}
+                                                        weight={unlocked ? "fill" : "regular"}
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="detail-achievement-copy">
+                                                <strong>{hidden ? "???" : item.title}</strong>
+                                                <small>
+                                                    {hidden ? "???" : item.description || ""}
+                                                </small>
+                                            </div>
+                                            {Number.isFinite(Number(item.points)) && (
+                                                <span className="detail-achievement-points">
+                                                    {Number(item.points)} pts
+                                                </span>
+                                            )}
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="detail-empty-state">{t("noAchievements")}</div>
+                        )}
+                    </section>
+                    {relatedVideos.length > 0 && (
+                        <section className="detail-section">
+                            <h2>{t("relatedVideos")}</h2>
+                            <div className="media-grid detail-related-videos">
+                                {relatedVideos.map((video) => (
+                                    <button
+                                        type="button"
+                                        className="media-card"
+                                        key={video.id}
+                                        onClick={() => openVideo?.(video)}
+                                    >
+                                        <div className="media-image">
+                                            <SmartImage
+                                                src={video.thumbnail}
+                                                fallback={FALLBACK_COVER}
+                                                alt=""
+                                                loading="lazy"
+                                            />
+                                            <span>
+                                                <Play size={21} weight="fill" />
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <small>{video.category || t("video")}</small>
+                                            <strong>{video.title}</strong>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+                    {relatedGames.length > 0 && (
+                        <section className="detail-section">
+                            <h2>{t("relatedGames")}</h2>
+                            <div className="detail-related-games">
+                                {relatedGames.map((relatedGame) => (
+                                    <button
+                                        type="button"
+                                        className="detail-related-game"
+                                        key={relatedGame.id || relatedGame.slug}
+                                        onClick={() => openGame?.(relatedGame)}
+                                    >
+                                        <div className="detail-related-game-image">
+                                            <SmartImage
+                                                src={imageOf(relatedGame)}
+                                                fallback={FALLBACK_COVER}
+                                                alt=""
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                        <span>
+                                            <strong>{relatedGame.title}</strong>
+                                            <small>
+                                                {(relatedGame.genres || []).slice(0, 2).join(" · ") ||
+                                                    relatedGame.status ||
+                                                    t("game")}
+                                            </small>
+                                        </span>
+                                        <CaretRight size={17} />
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </main>
                 <aside className="detail-side">
                     <div>
@@ -3060,7 +3713,7 @@ function GameDetails({
                     {detail?.releaseDate && (
                         <div>
                             <small>{t("release")}</small>
-                            <strong>{new Date(detail.releaseDate).toLocaleDateString()}</strong>
+                            <strong>{formatCalendarDate(detail.releaseDate, language)}</strong>
                         </div>
                     )}
                 </aside>
@@ -3095,13 +3748,12 @@ function GameDetails({
 function videoEmbed(url) {
     try {
         const u = new URL(url);
-        if (u.hostname.includes("youtu.be"))
-            return `https://www.youtube.com/embed/${u.pathname.slice(1)}?autoplay=1`;
-        if (u.hostname.includes("youtube.com")) {
-            const id = u.searchParams.get("v");
-            if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
-        }
-        return null;
+        let id = "";
+        if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("/")[0];
+        else if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(u.hostname)) id = u.searchParams.get("v") || "";
+        else if (["youtube-nocookie.com", "www.youtube-nocookie.com"].includes(u.hostname) && u.pathname.startsWith("/embed/")) id = u.pathname.split("/")[2] || "";
+        if (!/^[A-Za-z0-9_-]{6,20}$/.test(id)) return null;
+        return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
     } catch {
         return null;
     }
@@ -3209,9 +3861,17 @@ function VideoDetail({ video, setView, goBack }) {
                     <small>{video?.category || t("video")}</small>
                     <h2>{video?.title}</h2>
                     {video?.published_at && (
-                        <p>
-                            {new Date(video.published_at).toLocaleDateString()}
-                        </p>
+                        <strong>
+                            {new Date(video.published_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    timeZone: "UTC",
+                                }
+                            )}
+                        </strong>
                     )}
                 </div>
             </article>
@@ -3253,7 +3913,7 @@ function NewsDetail({ item, setView, goBack }) {
     const [detail, setDetail] = useState(item);
     useEffect(() => {
         if (!item?.slug) return;
-        api.get(`/news/${item.slug}`)
+        api.get(`/news/${encodeURIComponent(item.slug)}`)
             .then(setDetail)
             .catch(() => {});
     }, [item]);
@@ -3273,7 +3933,15 @@ function NewsDetail({ item, setView, goBack }) {
                     <small>{detail?.category || t("newswire")}</small>
                     <p className="news-date">
                         {detail?.published_at
-                            ? new Date(detail.published_at).toLocaleDateString()
+                            ? new Date(detail.published_at).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                      timeZone: "UTC",
+                                  }
+                              )
                             : ""}
                     </p>
                     <div className="rich-copy">
@@ -3477,6 +4145,16 @@ function Account({
     const [totp, setTotp] = useState({ enabled: false });
     const [totpLoading, setTotpLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [telemetryEnabled, setTelemetryEnabled] = useState(() => {
+        try { return localStorage.getItem("deadsmile.telemetry") === "true"; } catch { return false; }
+    });
+    const [gameViewSettings, setGameViewSettingsState] = useState({
+        enabled: true,
+        shortcut: "Control+D",
+        label: "Ctrl + D",
+    });
+    const [recordingGameViewShortcut, setRecordingGameViewShortcut] = useState(false);
+    const gameViewShortcutRef = useRef(null);
     const [avatarDraft, setAvatarDraft] = useState(null);
     const [rotation, setRotation] = useState(0);
     const [zoom, setZoom] = useState(1);
@@ -3492,6 +4170,31 @@ function Account({
             .then((d) => setTotp({ enabled: Boolean(d?.enabled) }))
             .catch(() => {});
     }, []);
+
+    useEffect(() => {
+        let alive = true;
+        window.deadsmile?.getGameViewSettings?.()
+            .then((result) => {
+                if (alive && result?.settings) {
+                    setGameViewSettingsState(result.settings);
+                }
+            })
+            .catch(() => {});
+        const off = window.deadsmile?.onGameViewSettingsChanged?.((settings) => {
+            if (alive && settings) setGameViewSettingsState(settings);
+        });
+        return () => {
+            alive = false;
+            off?.();
+            window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => {});
+        };
+    }, []);
+
+    useEffect(() => {
+        if (tab === "launcher" || !recordingGameViewShortcut) return;
+        setRecordingGameViewShortcut(false);
+        window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => {});
+    }, [tab, recordingGameViewShortcut]);
 
     const CROP_VIEWPORT = 260;
     const OUTPUT_SIZE = 420;
@@ -3669,14 +4372,110 @@ function Account({
     async function setup2fa() {
         setTotpLoading(true);
         try {
-            await api.get("/account/totp/setup");
-            openExternal(`${SITE_URL}/account#security`);
-        } catch {
-            openExternal(`${SITE_URL}/account#security`);
+            await openExternal(`${SITE_URL}/account#security`);
         } finally {
             setTotpLoading(false);
         }
     }
+    async function updateTelemetry(enabled) {
+        try {
+            await api.patch("/platform/telemetry-consent", { enabled });
+            setTelemetryEnabled(enabled);
+            localStorage.setItem("deadsmile.telemetry", String(enabled));
+            setMessage(t(enabled ? "telemetryEnabled" : "telemetryDisabled"));
+            setTimeout(() => setMessage(""), 1800);
+        } catch {
+            setMessage(t("unableToSaveChanges"));
+        }
+    }
+
+    async function saveGameViewSettings(patch) {
+        try {
+            const result = await window.deadsmile?.setGameViewSettings?.(patch);
+            if (!result?.ok) {
+                if (result?.settings) setGameViewSettingsState(result.settings);
+                setMessage(
+                    t(
+                        result?.error === "SHORTCUT_UNAVAILABLE"
+                            ? "gameViewShortcutUnavailable"
+                            : "gameViewShortcutInvalid",
+                    ),
+                );
+                return false;
+            }
+            if (result.settings) setGameViewSettingsState(result.settings);
+            return true;
+        } catch {
+            setMessage(t("unableToSaveChanges"));
+            return false;
+        }
+    }
+
+    function shortcutFromEvent(event) {
+        const key = String(event.key || "");
+        if (["Control", "Shift", "Alt", "Meta"].includes(key)) return null;
+
+        let finalKey = null;
+        if (/^[a-z0-9]$/i.test(key)) finalKey = key.toUpperCase();
+        else if (/^F([1-9]|1[0-2])$/i.test(key)) finalKey = key.toUpperCase();
+        if (!finalKey) return null;
+
+        const modifiers = [];
+        if (event.ctrlKey) modifiers.push("Control");
+        if (event.altKey) modifiers.push("Alt");
+        if (event.shiftKey) modifiers.push("Shift");
+        if (event.metaKey) modifiers.push("Super");
+        if (!modifiers.length) return null;
+        return [...modifiers, finalKey].join("+");
+    }
+
+    async function startShortcutCapture() {
+        try {
+            await window.deadsmile?.beginGameViewShortcutCapture?.();
+            setRecordingGameViewShortcut(true);
+            requestAnimationFrame(() => gameViewShortcutRef.current?.focus());
+        } catch {
+            setMessage(t("unableToSaveChanges"));
+        }
+    }
+
+    async function cancelShortcutCapture() {
+        if (!recordingGameViewShortcut) return;
+        setRecordingGameViewShortcut(false);
+        try {
+            await window.deadsmile?.cancelGameViewShortcutCapture?.();
+        } catch {}
+    }
+
+    async function handleShortcutKeyDown(event) {
+        if (!recordingGameViewShortcut) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (event.key === "Escape") {
+            await cancelShortcutCapture();
+            return;
+        }
+
+        const shortcut = shortcutFromEvent(event);
+        if (!shortcut) return;
+
+        const ok = await saveGameViewSettings({ shortcut });
+        setRecordingGameViewShortcut(false);
+        if (ok) {
+            setMessage(t("gameViewShortcutUpdated"));
+            setTimeout(() => setMessage(""), 1800);
+        }
+    }
+
+    async function toggleGameViewEnabled() {
+        if (recordingGameViewShortcut) {
+            setRecordingGameViewShortcut(false);
+            await window.deadsmile?.cancelGameViewShortcutCapture?.();
+        }
+        await saveGameViewSettings({ enabled: !gameViewSettings.enabled });
+    }
+
     const tabs = [
         { id: "profile", label: text(language, "profile"), icon: User },
         { id: "account", label: text(language, "account"), icon: GearSix },
@@ -3974,6 +4773,63 @@ function Account({
                                     ))}
                                 </select>
                             </div>
+                            <div className="launcher-settings">
+                                <div className="launcher-setting-copy">
+                                    <strong>{t("gameViewSetting")}</strong>
+                                    <span>{t("gameViewSettingDescription")}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={`status-pill${gameViewSettings.enabled ? " on" : ""}`}
+                                    role="switch"
+                                    aria-checked={gameViewSettings.enabled}
+                                    onClick={toggleGameViewEnabled}
+                                >
+                                    {t(gameViewSettings.enabled ? "gameViewEnabled" : "gameViewDisabled")}
+                                </button>
+                            </div>
+                            <div
+                                className={`launcher-settings${
+                                    !gameViewSettings.enabled ? " gameview-setting-disabled" : ""
+                                }`}
+                            >
+                                <div className="launcher-setting-copy">
+                                    <strong>{t("gameViewShortcut")}</strong>
+                                    <span>{t("gameViewShortcutDescription")}</span>
+                                </div>
+                                <button
+                                    ref={gameViewShortcutRef}
+                                    type="button"
+                                    disabled={!gameViewSettings.enabled}
+                                    className={`gameview-shortcut-button${
+                                        recordingGameViewShortcut ? " recording" : ""
+                                    }`}
+                                    onClick={startShortcutCapture}
+                                    onKeyDown={handleShortcutKeyDown}
+                                    onBlur={cancelShortcutCapture}
+                                    title={t("changeGameViewShortcut")}
+                                >
+                                    {recordingGameViewShortcut
+                                        ? t("pressGameViewShortcut")
+                                        : gameViewSettings.label}
+                                </button>
+                            </div>
+                            <div className="launcher-settings">
+                                <div className="launcher-setting-copy">
+                                    <strong>{t("telemetry")}</strong>
+                                    <span>{t("telemetryDescription")}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={`status-pill${telemetryEnabled ? " on" : ""}`}
+                                    role="switch"
+                                    aria-checked={telemetryEnabled}
+                                    onClick={() => updateTelemetry(!telemetryEnabled)}
+                                >
+                                    {t(telemetryEnabled ? "telemetryEnabled" : "telemetryDisabled")}
+                                </button>
+                            </div>
+                            {message && <span className="success-text">{message}</span>}
                         </section>
                     )}
                     {tab === "connections" && (
@@ -4070,7 +4926,7 @@ function Account({
             )}
         {launcherVersion && <span className="launcher-version account-version">v{launcherVersion}</span>}
         </div>
-        
+
     );
 }
 
@@ -4184,7 +5040,7 @@ function Admin({ onPublished, setView }) {
                   ? "newsletter"
                   : "video";
         try {
-            await api.delete(`/admin/${endpoint}/${id}`);
+            await api.delete(`/admin/${encodeURIComponent(endpoint)}/${encodeURIComponent(id)}`);
             setItems((x) => ({
                 ...x,
                 [kind]: x[kind].filter((i) => i.id !== id),
@@ -4573,6 +5429,306 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
     );
 }
 
+
+function GameOverlay({ user, games, shortcutLabel = "Ctrl + D" }) {
+    const { t } = useT();
+    const [running, setRunning] = useState([]);
+    const [selectedGameId, setSelectedGameId] = useState(null);
+    const [achievements, setAchievements] = useState([]);
+    const [cloudSaves, setCloudSaves] = useState([]);
+    const [cloudLoading, setCloudLoading] = useState(false);
+    const [deletingSlot, setDeletingSlot] = useState("");
+    const [pendingDeleteSlot, setPendingDeleteSlot] = useState("");
+    const [screenshotState, setScreenshotState] = useState(null);
+    const screenshotTimerRef = useRef(null);
+    const deleteConfirmTimerRef = useRef(null);
+    const cloudLoadRef = useRef(0);
+    const [tutorialOpen, setTutorialOpen] = useState(() => {
+        try {
+            return localStorage.getItem("deadsmile.gameView.tutorial.v1") !== "seen";
+        } catch {
+            return true;
+        }
+    });
+
+    useEffect(() => {
+        document.documentElement.classList.add("game-view-document");
+        document.body.classList.add("game-view-document-body");
+        return () => {
+            document.documentElement.classList.remove("game-view-document");
+            document.body.classList.remove("game-view-document-body");
+        };
+    }, []);
+
+    useEffect(() => {
+        window.deadsmile?.getRunningGames?.().then((items) => setRunning(Array.isArray(items) ? items : [])).catch(() => {});
+        return window.deadsmile?.onGameState?.((state) => setRunning((current) =>
+            state.running
+                ? [...current.filter((item) => String(item.id) !== String(state.id)), state]
+                : current.filter((item) => String(item.id) !== String(state.id)),
+        ));
+    }, []);
+
+    const current = running[0];
+    const currentGame = games.find((item) => String(item.id) === String(current?.id));
+    const selectedGame = games.find((item) => String(item.id) === String(selectedGameId)) || currentGame || games[0] || null;
+
+    useEffect(() => {
+        if (selectedGameId && games.some((item) => String(item.id) === String(selectedGameId))) return;
+        if (current?.id && games.some((item) => String(item.id) === String(current.id))) {
+            setSelectedGameId(current.id);
+            return;
+        }
+        if (games[0]?.id) setSelectedGameId(games[0].id);
+    }, [games, current?.id, selectedGameId]);
+
+    useEffect(() => {
+        let alive = true;
+        setAchievements([]);
+        if (!selectedGame?.id) return undefined;
+        api.get(`/platform/achievements/${encodeURIComponent(selectedGame.id)}`)
+            .then((items) => alive && setAchievements(Array.isArray(items) ? items : []))
+            .catch(() => alive && setAchievements([]));
+        return () => { alive = false; };
+    }, [selectedGame?.id]);
+
+    const loadCloudSaves = useCallback(async () => {
+        const requestId = ++cloudLoadRef.current;
+        if (!selectedGame?.id || !selectedGame?.cloudSavesEnabled) {
+            setCloudSaves([]);
+            setCloudLoading(false);
+            return;
+        }
+        setCloudLoading(true);
+        try {
+            const items = await api.get(`/platform/saves/${encodeURIComponent(selectedGame.id)}`);
+            if (cloudLoadRef.current !== requestId) return;
+            setCloudSaves(Array.isArray(items) ? items : []);
+        } catch {
+            if (cloudLoadRef.current === requestId) setCloudSaves([]);
+        } finally {
+            if (cloudLoadRef.current === requestId) setCloudLoading(false);
+        }
+    }, [selectedGame?.id, selectedGame?.cloudSavesEnabled]);
+
+    useEffect(() => {
+        loadCloudSaves();
+    }, [loadCloudSaves]);
+
+    useEffect(() => {
+        setPendingDeleteSlot("");
+        if (deleteConfirmTimerRef.current) {
+            clearTimeout(deleteConfirmTimerRef.current);
+            deleteConfirmTimerRef.current = null;
+        }
+    }, [selectedGame?.id]);
+
+    useEffect(() => () => {
+        if (screenshotTimerRef.current) clearTimeout(screenshotTimerRef.current);
+        if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    }, []);
+
+    function dismissTutorial() {
+        try { localStorage.setItem("deadsmile.gameView.tutorial.v1", "seen"); } catch {}
+        setTutorialOpen(false);
+    }
+
+    async function removeCloudSave(slot) {
+        if (!selectedGame?.id || deletingSlot) return;
+        const normalizedSlot = String(slot);
+        if (pendingDeleteSlot !== normalizedSlot) {
+            setPendingDeleteSlot(normalizedSlot);
+            setScreenshotState({ saving: false, message: t("deleteCloudSaveConfirm") });
+            if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+            deleteConfirmTimerRef.current = setTimeout(() => {
+                setPendingDeleteSlot("");
+                deleteConfirmTimerRef.current = null;
+                setScreenshotState((state) => state?.message === t("deleteCloudSaveConfirm") ? null : state);
+            }, 4500);
+            return;
+        }
+        setPendingDeleteSlot("");
+        if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+        deleteConfirmTimerRef.current = null;
+        setScreenshotState(null);
+        setDeletingSlot(normalizedSlot);
+        try {
+            await api.delete(`/platform/saves/${encodeURIComponent(selectedGame.id)}/${encodeURIComponent(slot)}`);
+            setCloudSaves((items) => items.filter((item) => String(item.slot) !== normalizedSlot));
+        } catch {
+        } finally {
+            setDeletingSlot("");
+        }
+    }
+
+    async function takeScreenshot() {
+        if (screenshotState?.saving) return;
+        setScreenshotState({ saving: true, message: t("takeScreenshot") });
+        try {
+            const result = await window.deadsmile?.takeScreenshot?.();
+            if (!result?.ok) throw new Error(result?.error || t("screenshotFailed"));
+            setScreenshotState({ saving: false, ok: true, message: t("screenshotSaved"), folder: result.folder, path: result.path });
+        } catch (error) {
+            setScreenshotState({ saving: false, ok: false, message: error?.message || t("screenshotFailed") });
+        }
+        if (screenshotTimerRef.current) clearTimeout(screenshotTimerRef.current);
+        screenshotTimerRef.current = setTimeout(() => setScreenshotState(null), 5000);
+    }
+
+    const unlockedCount = achievements.filter((item) => item.unlocked_at || item.unlockedAt).length;
+
+    return (
+        <div className="game-view-shell">
+            <div className="game-view-toolbar" role="toolbar" aria-label={t("gameView")}>
+                <div className="game-view-brand">
+                    <GameController size={18} weight="fill" />
+                    <strong>{t("gameView")}</strong>
+                    <kbd>{shortcutLabel}</kbd>
+                </div>
+                <span className="game-view-toolbar-separator" />
+                <button type="button" onClick={takeScreenshot} title={t("takeScreenshot")} aria-label={t("takeScreenshot")}>
+                    <ImageSquare size={19} />
+                </button>
+                <button type="button" onClick={() => setTutorialOpen(true)} title={t("gameViewTutorialTitle")} aria-label={t("gameViewTutorialTitle")}>
+                    <span className="game-view-help">?</span>
+                </button>
+                <button type="button" onClick={() => window.deadsmile?.closeOverlay?.()} title={t("close")} aria-label={t("close")}>
+                    <X size={19} />
+                </button>
+            </div>
+
+            <main className="game-view-layout">
+                <section className="game-view-card game-view-profile-card">
+                    <div className="game-view-card-title"><UserCircle size={17} /><span>{t("profile")}</span></div>
+                    <div className="game-view-profile-row">
+                        <div className="game-view-avatar">
+                            {user?.avatarUrl ? <SmartImage src={user.avatarUrl} fallback="" alt="" /> : initials(user)}
+                        </div>
+                        <div>
+                            <strong>{user?.username || "Player"}</strong>
+                            <span>{currentGame?.title ? `${t("playing")}: ${currentGame.title}` : t("gameViewSubtitle")}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="game-view-card game-view-library-card">
+                    <div className="game-view-card-heading">
+                        <div className="game-view-card-title"><GameController size={17} /><span>{t("library")}</span></div>
+                        <small>{games.length}</small>
+                    </div>
+                    <div className="game-view-library-list">
+                        {games.length ? games.slice(0, 12).map((item) => {
+                            const active = String(item.id) === String(selectedGame?.id);
+                            const runningNow = running.some((state) => String(state.id) === String(item.id));
+                            return (
+                                <button
+                                    type="button"
+                                    key={item.id}
+                                    className={`game-view-game ${active ? "active" : ""}`}
+                                    onClick={() => setSelectedGameId(item.id)}
+                                >
+                                    <SmartImage src={imageOf(item)} fallback={FALLBACK_COVER} alt="" />
+                                    <span><strong>{item.title}</strong><small>{runningNow ? t("playing") : item.cloudSavesEnabled ? t("cloudSaves") : t("game")}</small></span>
+                                    {runningNow && <i className="game-view-running-dot" aria-label={t("playing")} />}
+                                </button>
+                            );
+                        }) : <div className="game-view-empty">{t("noResults")}</div>}
+                    </div>
+                </section>
+
+                <section className="game-view-card game-view-cloud-card">
+                    <div className="game-view-card-heading">
+                        <div className="game-view-card-title"><FloppyDisk size={17} /><span>{t("cloudSaves")}</span></div>
+                        {selectedGame && <small title={selectedGame.title}>{selectedGame.title}</small>}
+                    </div>
+                    {!selectedGame ? (
+                        <div className="game-view-empty">{t("selectGame")}</div>
+                    ) : !selectedGame.cloudSavesEnabled ? (
+                        <div className="game-view-empty">{t("cloudSavesUnavailable")}</div>
+                    ) : cloudLoading ? (
+                        <div className="game-view-empty">{t("loading")}</div>
+                    ) : cloudSaves.length ? (
+                        <div className="game-view-save-list">
+                            {cloudSaves.slice(0, 8).map((save) => (
+                                <div className="game-view-save" key={save.slot}>
+                                    <span>
+                                        <strong>{save.slot}</strong>
+                                        <small>{save.updatedAt || save.updated_at ? new Date(save.updatedAt || save.updated_at).toLocaleString() : ""}</small>
+                                    </span>
+                                    <button type="button" disabled={Boolean(deletingSlot)} onClick={() => removeCloudSave(save.slot)} aria-label={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")} title={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")}>
+                                        {deletingSlot === String(save.slot) ? <span className="cloud-save-spinner" aria-hidden="true" /> : <Trash size={15} />}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <div className="game-view-empty">{t("noCloudSaves")}</div>}
+                </section>
+
+                <section className="game-view-card game-view-achievements-card">
+                    <div className="game-view-card-heading">
+                        <div className="game-view-card-title"><CheckCircle size={17} /><span>{t("achievements")}</span></div>
+                        <small>{unlockedCount}/{achievements.length}</small>
+                    </div>
+                    {achievements.length ? (
+                        <div className="game-view-achievements-list">
+                            {achievements.slice(0, 6).map((item) => {
+                                const unlocked = item.unlocked_at || item.unlockedAt;
+                                return (
+                                    <div key={item.id || item.key} className={`game-view-achievement ${unlocked ? "unlocked" : "locked"}`}>
+                                        <CheckCircle size={17} weight={unlocked ? "fill" : "regular"} />
+                                        <span><strong>{item.hidden && !unlocked ? "???" : item.title}</strong><small>{item.description}</small></span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : <div className="game-view-empty">{t("noAchievements")}</div>}
+                </section>
+            </main>
+
+            {screenshotState && (
+                <div className={`game-view-status ${screenshotState.ok === false ? "error" : ""}`}>
+                    <ImageSquare size={18} />
+                    <span>{screenshotState.saving ? t("loading") : screenshotState.message}</span>
+                    {screenshotState.ok && screenshotState.folder && (
+                        <button type="button" onClick={() => window.deadsmile?.openScreenshotFolder?.()}>{t("openScreenshotFolder")}</button>
+                    )}
+                </div>
+            )}
+
+            {tutorialOpen && (
+                <div className="game-view-tutorial-layer">
+                    <section className="game-view-tutorial" role="dialog" aria-modal="true" aria-label={t("gameViewTutorialTitle")}>
+                        <header>
+                            <div><GameController size={22} weight="fill" /><strong>{t("gameViewTutorialTitle")}</strong></div>
+                            <kbd>{shortcutLabel}</kbd>
+                        </header>
+                        <p>{t("gameViewTutorialDescription", { shortcut: shortcutLabel })}</p>
+                        <div className="game-view-tutorial-grid">
+                            <div><UserCircle size={21} /><span><strong>{t("profile")}</strong><small>{t("gameViewTutorialProfile")}</small></span></div>
+                            <div><GameController size={21} /><span><strong>{t("library")}</strong><small>{t("gameViewTutorialLibrary")}</small></span></div>
+                            <div><FloppyDisk size={21} /><span><strong>{t("cloudSaves")}</strong><small>{t("gameViewTutorialCloud")}</small></span></div>
+                            <div><ImageSquare size={21} /><span><strong>{t("takeScreenshot")}</strong><small>{t("gameViewTutorialScreenshot")}</small></span></div>
+                        </div>
+                        <button type="button" className="game-view-tutorial-done" onClick={dismissTutorial}>{t("gotIt")}</button>
+                    </section>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function AchievementToast({ item, game }) {
+    const { t } = useT();
+    if (!item) return null;
+    return <div className="achievement-toast"><CheckCircle size={28} weight="fill"/><div><small>{t("achievementUnlocked")}</small><strong>{item.title || item.key}</strong>{game?.title && <span>{game.title}</span>}</div></div>;
+}
+
+function AchievementToastWindow() {
+    const [payload, setPayload] = useState(null);
+    useEffect(() => window.deadsmile?.onAchievementUnlocked?.((data) => setPayload(data)), []);
+    return <div className="achievement-toast-window"><AchievementToast item={payload?.achievement} /></div>;
+}
+
 export default function App() {
     const [status, setStatus] = useState("booting");
     const [pendingUpdate, setPendingUpdate] = useState(null);
@@ -4584,6 +5740,10 @@ export default function App() {
         }
     });
     const [user, setUser] = useState(null);
+    const [runningGames, setRunningGames] = useState(new Set());
+    const [gameViewShortcutLabel, setGameViewShortcutLabel] = useState("Ctrl + D");
+    const [achievementToast, setAchievementToast] = useState(null);
+    const achievementToastTimer = useRef(null);
     const [active, setActive] = useState("explore");
     const [view, setViewState] = useState(null);
     const [games, setGames] = useState([]);
@@ -4645,6 +5805,55 @@ export default function App() {
             [language],
         );
         const languageCtx = useMemo(() => ({ language, t }), [language, t]);
+        useEffect(() => {
+            window.deadsmile
+                ?.syncGameViewLanguage?.({
+                    language,
+                    strings: COPY[language] || COPY.en,
+                })
+                ?.catch?.(() => {});
+        }, [language]);
+
+    useEffect(() => {
+        let alive = true;
+        window.deadsmile?.getGameViewSettings?.()
+            .then((result) => {
+                if (alive && result?.settings?.label) {
+                    setGameViewShortcutLabel(result.settings.label);
+                }
+            })
+            .catch(() => {});
+        const off = window.deadsmile?.onGameViewSettingsChanged?.((settings) => {
+            if (alive && settings?.label) setGameViewShortcutLabel(settings.label);
+        });
+        return () => {
+            alive = false;
+            off?.();
+        };
+    }, []);
+
+    useEffect(() => {
+        window.deadsmile?.getRunningGames?.().then(items => setRunningGames(new Set((items || []).map(x => x.id)))).catch(() => {});
+        const offState = window.deadsmile?.onGameState?.((state) => setRunningGames(current => { const next = new Set(current); state.running ? next.add(state.id) : next.delete(state.id); return next; }));
+        const offAchievement = window.deadsmile?.onAchievementUnlocked?.((payload) => {
+            setAchievementToast(payload);
+            if (achievementToastTimer.current) clearTimeout(achievementToastTimer.current);
+            achievementToastTimer.current = setTimeout(() => {
+                achievementToastTimer.current = null;
+                setAchievementToast(null);
+            }, 5500);
+        });
+        const offCloudConflict = window.deadsmile?.onCloudSaveConflict?.(() => {
+            setNotice(t("cloudSaveConflict"));
+        });
+        return () => {
+            offState?.();
+            offAchievement?.();
+            offCloudConflict?.();
+            if (achievementToastTimer.current) clearTimeout(achievementToastTimer.current);
+        };
+    }, [t]);
+
     useEffect(() => {
         let alive = true;
         window.deadsmile?.storage
@@ -4669,6 +5878,11 @@ export default function App() {
             alive = false;
         };
     }, []);
+
+    useEffect(() => {
+        const ids = Object.keys(installed || {});
+        window.deadsmile?.syncGameViewLibrary?.(ids)?.catch?.(() => {});
+    }, [installed]);
 
     useEffect(() => {
         if (status !== "ready") return undefined;
@@ -4734,7 +5948,8 @@ export default function App() {
     useEffect(() => {
         let alive = true;
         const start = async () => {
-            const minBoot = new Promise((r) => setTimeout(r, 5600));
+            const utilityMode = new URLSearchParams(window.location.search).has("overlay") || new URLSearchParams(window.location.search).has("toast");
+            const minBoot = new Promise((r) => setTimeout(r, utilityMode ? 0 : 1400));
             let me = null;
             try {
                 me = await api.get("/auth/me");
@@ -4754,62 +5969,292 @@ export default function App() {
 useEffect(() => {
     if (status !== "ready") return;
     let alive = true;
+    const userId = validUserId(user?.id) ? String(user.id) : null;
     setLoading(true);
-    const cached = readContentCache();
-    if (cached) {
-        setGames(cached.games || []);
-        setNews(cached.news || []);
-        setVideos(cached.videos || []);
-        if (Array.isArray(cached.wishlistIds)) {
-            setWishlist(new Set(cached.wishlistIds));
-        }
+    const publicCached = readPublicContentCache();
+    const userCached = readUserContentCache(userId);
+
+    if (publicCached) {
+        setGames(publicCached.games || []);
+        setNews(publicCached.news || []);
+        setVideos(publicCached.videos || []);
     }
-    Promise.all([
+    setWishlist(new Set(Array.isArray(userCached?.wishlistIds) ? userCached.wishlistIds : []));
+    setEntitlements(new Set());
+    setItchAccount({ connected: false, loading: true });
+
+    Promise.allSettled([
         api.get("/games?page=1&limit=48"),
         api.get("/news?limit=48"),
         api.get("/videos?limit=48"),
         api.get("/wishlist"),
         api.get("/library"),
         api.get("/integrations/itch"),
-    ])
-        .then(([g, n, v, w, libraryData, itchData]) => {
-            if (!alive) return;
-            const gs = listFrom(g, "games");
-            const ns = listFrom(n, "news");
-            const vs = listFrom(v, "videos");
-            const ids = listFrom(w, "games").map((x) => x.id);
+    ]).then((results) => {
+        if (!alive) return;
+        const [gamesResult, newsResult, videosResult, wishlistResult, libraryResult, itchResult] = results;
+        let gs = publicCached?.games || [];
+        let ns = publicCached?.news || [];
+        let vs = publicCached?.videos || [];
 
+        if (gamesResult.status === "fulfilled") {
+            gs = listFrom(gamesResult.value, "games");
             setGames(gs);
+        }
+        if (newsResult.status === "fulfilled") {
+            ns = listFrom(newsResult.value, "news");
             setNews(ns);
+        }
+        if (videosResult.status === "fulfilled") {
+            vs = listFrom(videosResult.value, "videos");
             setVideos(vs);
-            setWishlist(new Set(ids));
-            setEntitlements(new Set(listFrom(libraryData, "items").map((item) => item.id)));
-            setItchAccount({ ...itchData, loading: false });
+        }
+        if (gamesResult.status === "fulfilled" || newsResult.status === "fulfilled" || videosResult.status === "fulfilled") {
+            writePublicContentCache({ games: gs, news: ns, videos: vs });
+        }
 
-            writeContentCache({
-                games: gs,
-                news: ns,
-                videos: vs,
-                wishlistIds: ids,
-            });
-        })
-        .catch(() => {
-            if (!alive) return;
-            if (cached) {
-                setNotice(
-                    COPY[language]?.offlineCacheNotice ||
-                        "Sem conexão — mostrando conteúdo em cache.",
-                );
-            } else {
-                setNotice(t("unableToLoadContent"));
-            }
-        })
-        .finally(() => alive && setLoading(false));
+        if (wishlistResult.status === "fulfilled") {
+            const ids = listFrom(wishlistResult.value, "games").map((item) => item.id).filter(Boolean);
+            setWishlist(new Set(ids));
+            writeUserContentCache(userId, { wishlistIds: ids });
+        }
+        if (libraryResult.status === "fulfilled") {
+            setEntitlements(new Set(listFrom(libraryResult.value, "items").map((item) => item.id).filter(Boolean)));
+        }
+        if (itchResult.status === "fulfilled") {
+            setItchAccount({ ...itchResult.value, loading: false });
+        } else {
+            setItchAccount({ connected: false, loading: false });
+        }
+
+        const publicFailures = [gamesResult, newsResult, videosResult].filter((result) => result.status === "rejected").length;
+        if (publicFailures === 3) {
+            setNotice(
+                publicCached
+                    ? COPY[language]?.offlineCacheNotice || "Sem conexão — mostrando conteúdo em cache."
+                    : t("unableToLoadContent"),
+            );
+        }
+    }).finally(() => {
+        if (alive) setLoading(false);
+    });
 
     return () => {
         alive = false;
     };
-}, [status]);
+}, [status, user?.id]);
+    useEffect(() => {
+        if (status !== "ready") return undefined;
+        const userId = validUserId(user?.id) ? String(user.id) : null;
+        if (!userId) return undefined;
+        let active = true;
+        let socket = null;
+        let reconnectTimer = null;
+        let reconnectAttempt = 0;
+        let pollTimer = null;
+        let pollInFlight = null;
+        let pollAgain = false;
+        let processingChain = Promise.resolve();
+        let recoveryNeeded = false;
+        const checkpointKey = `deadsmile.live.after:${userId}`;
+        let after = Number(localStorage.getItem(checkpointKey) || 0);
+        if (!Number.isSafeInteger(after) || after < 0) after = 0;
+        let initialized = after > 0;
+
+        const remember = (event) => {
+            const id = Number(event?.id || 0);
+            if (!Number.isSafeInteger(id) || id <= after) return false;
+            after = id;
+            try { localStorage.setItem(checkpointKey, String(after)); } catch {}
+            return true;
+        };
+
+        const refreshType = async (event) => {
+            const type = event?.event_type;
+            if (type === "wishlist.updated") {
+                const gameId = event.payload?.gameId;
+                if (!gameId) return;
+                setWishlist((current) => {
+                    const next = new Set(current);
+                    if (event.payload?.inWishlist) next.add(gameId);
+                    else next.delete(gameId);
+                    writeUserContentCache(userId, { wishlistIds: [...next] });
+                    return next;
+                });
+                return;
+            }
+            if (type === "game.published") {
+                const data = await api.get("/games?page=1&limit=48");
+                if (!active) return;
+                const items = listFrom(data, "games");
+                setGames(items);
+                const cached = readPublicContentCache() || {};
+                writePublicContentCache({ games: items, news: cached.news || [], videos: cached.videos || [] });
+                invalidateGameUpdateCache(event.payload?.id || event.entity_id || null);
+            } else if (type === "news.published") {
+                const data = await api.get("/news?limit=48");
+                if (!active) return;
+                const items = listFrom(data, "news");
+                setNews(items);
+                const cached = readPublicContentCache() || {};
+                writePublicContentCache({ games: cached.games || [], news: items, videos: cached.videos || [] });
+            } else if (type === "video.published") {
+                const data = await api.get("/videos?limit=48");
+                if (!active) return;
+                const items = listFrom(data, "videos");
+                setVideos(items);
+                const cached = readPublicContentCache() || {};
+                writePublicContentCache({ games: cached.games || [], news: cached.news || [], videos: items });
+            } else {
+                return;
+            }
+            if (!active) return;
+            setNotifications((current) => {
+                const notification = {
+                    id: `content-${event.id}`,
+                    title: event.payload?.title || "Deadsmile Games",
+                    message: event.payload?.preview || t("newContentAvailable"),
+                    time: Date.parse(event.created_at || 0) || Date.now(),
+                    unread: true,
+                };
+                return current.some((item) => item.id === notification.id) ? current : [notification, ...current];
+            });
+        };
+
+        const processEvents = async (events, { recovery = false } = {}) => {
+            const ordered = [...events]
+                .filter((event) => Number.isSafeInteger(Number(event?.id || 0)))
+                .sort((a, b) => Number(a.id) - Number(b.id));
+            if (!initialized) {
+                for (const event of ordered) remember(event);
+                initialized = true;
+                recoveryNeeded = false;
+                return;
+            }
+            if (recoveryNeeded && !recovery) return;
+            for (const event of ordered) {
+                const id = Number(event.id || 0);
+                if (id <= after) continue;
+                try {
+                    await refreshType(event);
+                    remember(event);
+                } catch (error) {
+                    recoveryNeeded = true;
+                    throw error;
+                }
+            }
+            if (recovery) recoveryNeeded = false;
+        };
+
+        const queueEvents = (events, options = {}) => {
+            const task = processingChain.then(() => processEvents(events, options));
+            processingChain = task.catch(() => {});
+            return task;
+        };
+
+        const poll = async () => {
+            if (pollInFlight) {
+                pollAgain = true;
+                return pollInFlight;
+            }
+            const baseline = !initialized;
+            pollInFlight = (async () => {
+                try {
+                    for (let page = 0; page < 20 && active; page += 1) {
+                        const events = await api.get(`/platform/events?after=${after}&limit=100`);
+                        if (!active || !Array.isArray(events)) return;
+                        await queueEvents(events, { recovery: true });
+                        if (baseline || events.length < 100) break;
+                    }
+                } catch {}
+            })().finally(() => {
+                pollInFlight = null;
+                if (pollAgain && active) {
+                    pollAgain = false;
+                    queueMicrotask(() => poll());
+                }
+            });
+            return pollInFlight;
+        };
+
+        const scheduleReconnect = () => {
+            if (!active || reconnectTimer) return;
+            const base = Math.min(30_000, 1_000 * (2 ** Math.min(reconnectAttempt, 5)));
+            const delay = base + Math.floor(Math.random() * 750);
+            reconnectAttempt += 1;
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                connect();
+            }, delay);
+        };
+
+        const connect = async () => {
+            let ticket;
+            try {
+                const result = await api.get("/platform/live-ticket");
+                ticket = typeof result?.ticket === "string" ? result.ticket : "";
+            } catch {
+                scheduleReconnect();
+                return;
+            }
+            if (!active || !ticket) {
+                if (active) scheduleReconnect();
+                return;
+            }
+
+            try {
+                socket = new WebSocket(`wss://deadsmile.vercel.app/api/live?ticket=${encodeURIComponent(ticket)}`);
+            } catch {
+                scheduleReconnect();
+                return;
+            }
+
+            let authenticated = false;
+            let handshakeTimer = null;
+            socket.onopen = () => {
+                handshakeTimer = setTimeout(() => {
+                    if (!authenticated && socket?.readyState === WebSocket.OPEN) socket.close(4001, "Authentication timeout");
+                }, 8_000);
+            };
+            socket.onmessage = (message) => {
+                try {
+                    const event = JSON.parse(message.data);
+                    if (event.type === "connected") {
+                        if (event.authenticated === true) {
+                            authenticated = true;
+                            reconnectAttempt = 0;
+                            clearTimeout(handshakeTimer);
+                        } else {
+                            socket?.close(4001, "Authentication required");
+                        }
+                        return;
+                    }
+                    if (!authenticated) {
+                        socket?.close(4001, "Authentication required");
+                        return;
+                    }
+                    poll();
+                } catch {}
+            };
+            socket.onclose = () => {
+                clearTimeout(handshakeTimer);
+                socket = null;
+                scheduleReconnect();
+            };
+            socket.onerror = () => socket?.close();
+        };
+
+        poll().finally(() => {
+            if (active) connect();
+        });
+        pollTimer = setInterval(poll, 15_000);
+        return () => {
+            active = false;
+            socket?.close();
+            clearTimeout(reconnectTimer);
+            clearInterval(pollTimer);
+        };
+    }, [status, user?.id, t]);
     useEffect(() => {
         if (status !== "ready" || !window.deadsmile?.checkForUpdate) return;
         let alive = true;
@@ -4880,15 +6325,21 @@ useEffect(() => {
     async function toggleWishlist(game) {
         try {
             if (wishlist.has(game.id)) {
-                await api.delete(`/wishlist/${game.id}`);
-                setWishlist((s) => {
-                    const n = new Set(s);
-                    n.delete(game.id);
-                    return n;
+                await api.delete(`/wishlist/${encodeURIComponent(game.id)}`);
+                setWishlist((current) => {
+                    const next = new Set(current);
+                    next.delete(game.id);
+                    writeUserContentCache(user?.id, { wishlistIds: [...next] });
+                    return next;
                 });
             } else {
                 await api.post("/wishlist", { gameId: game.id });
-                setWishlist((s) => new Set(s).add(game.id));
+                setWishlist((current) => {
+                    const next = new Set(current);
+                    next.add(game.id);
+                    writeUserContentCache(user?.id, { wishlistIds: [...next] });
+                    return next;
+                });
             }
         } catch {
             setNotice(t("unableToUpdateWishlist"));
@@ -4896,12 +6347,17 @@ useEffect(() => {
     }
     async function verifyCommerce(game, openCheckout = true) {
         try {
-            const result = await api.post(`/library/${game.id}/verify`);
+            const result = await api.post(`/library/${encodeURIComponent(game.id)}/verify`);
             if (result?.owned) {
                 setEntitlements((current) => new Set(current).add(game.id));
                 setCommerceModal({ game, status: "owned", message: "" });
                 return true;
             }
+            setEntitlements((current) => {
+                const next = new Set(current);
+                next.delete(game.id);
+                return next;
+            });
             setCommerceModal({ game, status: "checkout", message: "" });
             if (openCheckout && result?.purchaseUrl) openExternal(result.purchaseUrl);
             return false;
@@ -4997,18 +6453,39 @@ useEffect(() => {
         });
     }, [itchAccount.connecting, language]);
     async function installGame(game, play = false, forceUpdate = false) {
+        if (game.commerceEnabled && !entitlements.has(game.id)) {
+            if (!online) {
+                setNotice(t("unableToPlayGame"));
+                return;
+            }
+            const owned = await verifyCommerce(game, true);
+            if (!owned) return;
+            setCommerceModal(null);
+        }
+
         if (play && !forceUpdate && installed[game.id]?.path) {
-            if (window.deadsmile?.playGame) {
-                const result = await window.deadsmile.playGame({
-                    id: game.id,
-                    exePath: installed[game.id].path,
-                });
-                if (result?.error) setNotice(t("unableToPlayGame"));
-            } else {
-                const error = await window.deadsmile?.openPath(
-                    installed[game.id].path,
-                );
-                if (error) setNotice(t("unableToPlayGame"));
+            if (!online || !window.deadsmile?.playGame) {
+                setNotice(t("unableToPlayGame"));
+                return;
+            }
+            const result = await window.deadsmile.playGame({
+                id: game.id,
+                slug: game.slug || null,
+                title: game.title || null,
+                coverImage: game.coverImage || game.cover_image || null,
+                exePath: installed[game.id].path,
+                gameVersion: installed[game.id].version || null,
+            });
+            if (result?.error) {
+                if (game.commerceEnabled && result?.code === "GAME_ACCESS_REQUIRED") {
+                    setEntitlements((current) => {
+                        const next = new Set(current);
+                        next.delete(game.id);
+                        return next;
+                    });
+                    await verifyCommerce(game, false);
+                }
+                setNotice(t("unableToPlayGame"));
             }
             return;
         }
@@ -5016,12 +6493,6 @@ useEffect(() => {
         if (!online) {
             setNotice(t("offlineNoDownload"));
             return;
-        }
-
-        if (game.commerceEnabled && !entitlements.has(game.id)) {
-            const owned = await verifyCommerce(game, true);
-            if (!owned) return;
-            setCommerceModal(null);
         }
 
     if (!game.downloadUrl && !game.commerceEnabled) {
@@ -5042,8 +6513,10 @@ useEffect(() => {
             filename: currentEntry?.filename,
             path: currentEntry?.path,
             commerceEnabled: Boolean(game.commerceEnabled),
+            itchGameId: game.itchGameId || null,
         });
 
+        invalidateGameUpdateCache(game.id);
         setInstalled((x) => {
             const n = {
                 ...x,
@@ -5076,6 +6549,16 @@ useEffect(() => {
             setNotice(`${game.title}: ${t("downloadCancelled")}`);
             return;
         }
+        try {
+            if (localStorage.getItem("deadsmile.telemetry") === "true") {
+                await api.post("/platform/telemetry", {
+                    gameId: game.id,
+                    eventType: forceUpdate ? "update_failed" : "install_failed",
+                    appVersion: null,
+                    payload: { stage: forceUpdate ? "update" : "install" },
+                });
+            }
+        } catch {}
         setNotifications((n) => [
             {
                 id: `error-${Date.now()}`,
@@ -5126,9 +6609,20 @@ useEffect(() => {
         setNotifications([]);
     }
     async function logout() {
+        const userId = validUserId(user?.id) ? String(user.id) : null;
         try {
             await api.post("/auth/logout");
         } catch {}
+        try {
+            await window.deadsmile?.clearAuthSession?.();
+        } catch {}
+        api.resetSecurity?.();
+        clearUserContentCache(userId);
+        gameUpdateCache.clear();
+        setWishlist(new Set());
+        setEntitlements(new Set());
+        setItchAccount({ connected: false, loading: false });
+        setCommerceModal(null);
         setUser(null);
         setStatus("login");
         setActive("explore");
@@ -5142,9 +6636,13 @@ useEffect(() => {
                 api.get("/news?limit=48"),
                 api.get("/videos?limit=48"),
             ]);
-            setGames(listFrom(g, "games"));
-            setNews(listFrom(n, "news"));
-            setVideos(listFrom(v, "videos"));
+            const nextGames = listFrom(g, "games");
+            const nextNews = listFrom(n, "news");
+            const nextVideos = listFrom(v, "videos");
+            setGames(nextGames);
+            setNews(nextNews);
+            setVideos(nextVideos);
+            writePublicContentCache({ games: nextGames, news: nextNews, videos: nextVideos });
         } catch {}
     }
     function goBack() {
@@ -5164,6 +6662,24 @@ useEffect(() => {
         setHistory((h) => [...h, current]);
         applyRoute(next);
         setQuery("");
+    }
+    const utilityParams = new URLSearchParams(window.location.search);
+    const isGameView = utilityParams.get("overlay") === "1";
+    if (utilityParams.get("toast") === "1") return (
+        <LanguageContext.Provider value={languageCtx}><AchievementToast item={achievementToast?.achievement} /></LanguageContext.Provider>
+    );
+    if (isGameView) {
+        if (status === "booting") return null;
+        if (status === "login") return (
+            <LanguageContext.Provider value={languageCtx}>
+                <div className="game-view-shell game-view-auth-message">
+                    <div className="game-view-auth-card"><GameController size={22} weight="fill"/><strong>{t("gameView")}</strong><span>{t("signIn")}</span><kbd>{gameViewShortcutLabel}</kbd></div>
+                </div>
+            </LanguageContext.Provider>
+        );
+        return (
+            <LanguageContext.Provider value={languageCtx}><RunningGamesContext.Provider value={runningGames}><GameOverlay user={user} games={games.filter(g => g.commerceEnabled ? entitlements.has(g.id) : installed[g.id] || entitlements.has(g.id))} shortcutLabel={gameViewShortcutLabel}/></RunningGamesContext.Provider></LanguageContext.Provider>
+        );
     }
     if (status === "booting")
         return (
@@ -5198,6 +6714,10 @@ useEffect(() => {
                 installedEntry={installed[selectedGame.id]}
                 downloading={downloadsById[selectedGame.id]}
                 entitled={entitlements.has(selectedGame.id)}
+                games={games}
+                videos={videos}
+                openGame={openGame}
+                openVideo={openVideo}
             />
         );
     else if (view?.type === "catalog")
@@ -5246,6 +6766,10 @@ useEffect(() => {
                 installedEntry={installed[view.item.id]}
                 downloading={downloadsById[view.item.id]}
                 entitled={entitlements.has(view.item.id)}
+                games={games}
+                videos={videos}
+                openGame={openGame}
+                openVideo={openVideo}
             />
         );
     else if (active === "explore")
@@ -5323,6 +6847,7 @@ useEffect(() => {
     return (
         <>
             <LanguageContext.Provider value={languageCtx}>
+            <RunningGamesContext.Provider value={runningGames}>
             <WindowChrome locked={updating} />
             <div className="launcher">
                 <Sidebar
@@ -5428,6 +6953,8 @@ useEffect(() => {
                     />
                 </Portal>
             )}
+                <AchievementToast item={achievementToast?.achievement} game={games.find(g => g.id === achievementToast?.gameId)} />
+                </RunningGamesContext.Provider>
                 </LanguageContext.Provider>
         </>
     );

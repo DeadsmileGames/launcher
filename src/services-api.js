@@ -97,6 +97,7 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path, body) => request(path, { method: 'DELETE', body }),
+  resetSecurity: () => { csrfToken = null; },
 };
 
 export { ApiError, API_FALLBACK };

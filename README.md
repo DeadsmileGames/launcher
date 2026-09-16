@@ -1,10 +1,5 @@
-<!--
-  Deadsmile Games Launcher
-  Copyright (c) Deadsmile Games
--->
-
 <p align="center">
-  <img src="https://github.com/deadsmilegames/launcher/blob/main/public/readme.png?raw=true" width="120px" alt="Deadsmile Games">
+  <img src="https://raw.githubusercontent.com/deadsmilegames/launcher/main/public/readme.png" width="120px" alt="Deadsmile Games">
 </p>
 
 <h3 align="center">
@@ -15,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/STATUS-OPERATIONAL-green">
-  <img src="https://img.shields.io/badge/VERSION-1.0.1gold">
+  <img src="https://img.shields.io/badge/VERSION-1.0.2-gold">
   <img src="https://img.shields.io/badge/PLATFORM-WINDOWS-red">
   <img src="https://img.shields.io/badge/ELECTRON-44.3.0-blue">
   <img src="https://img.shields.io/badge/LICENSE-MIT-lightgrey">

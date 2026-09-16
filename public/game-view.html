@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Game View</title>
+  <link rel="stylesheet" href="./game-view.css">
+</head>
+
+<body>
+  <div id="shell" class="shell">
+    <div class="toolbar interactive" data-interactive>
+      <div class="brand">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path
+            d="M7.2 8.2h9.6a4.2 4.2 0 0 1 4.02 3l1.04 3.47A3.42 3.42 0 0 1 15.8 17.7l-1.27-1.48H9.47L8.2 17.7a3.42 3.42 0 0 1-6.06-3.03L3.18 11.2a4.2 4.2 0 0 1 4.02-3Zm-.7 3.05v1.5H5v1.5h1.5v1.5H8v-1.5h1.5v-1.5H8v-1.5H6.5Zm9.5.75a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm2.5 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />
+        </svg>
+        <strong data-i18n="gameView">Game View</strong><kbd id="shortcutBadge">Ctrl + D</kbd>
+      </div><span class="sep"></span>
+      <button id="shotBtn" class="iconbtn" data-interactive title="Screenshot" aria-label="Screenshot">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="m8 13 2.2-2.2a1 1 0 0 1 1.4 0L16 15m-2-2 1.2-1.2a1 1 0 0 1 1.4 0L21 16" />
+          <circle cx="8" cy="9" r="1" />
+        </svg>
+      </button>
+      <button id="shareXBtn" class="iconbtn" data-interactive title="Share on X" aria-label="Share on X">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M18.244 2H21.5l-7.11 8.126L22.75 22h-6.545l-5.126-6.704L5.214 22H1.956l7.607-8.694L1.55 2h6.71l4.634 6.126L18.244 2Zm-1.143 17.91h1.804L7.28 3.986H5.344L17.101 19.91Z"/>
+        </svg>
+      </button>
+      <button id="helpBtn" class="iconbtn" data-interactive title="Tutorial" aria-label="Tutorial"><span
+          class="helpmark">?</span></button>
+      <button id="closeBtn" class="iconbtn" data-interactive title="Close" aria-label="Close">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </div>
+
+    <section class="panel profile interactive" data-interactive>
+      <div class="title">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+        </svg><span data-i18n="profile">Profile</span>
+      </div>
+      <div class="profile-row">
+        <div id="avatar" class="avatar">P</div>
+        <div class="profile-copy"><strong id="username">Player</strong><span id="playingText"></span></div>
+      </div>
+    </section>
+
+    <section class="panel library interactive" data-interactive>
+      <div class="panelhead">
+        <div class="title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path
+              d="M7 8h10a4 4 0 0 1 3.82 2.82l1.03 3.33A3.2 3.2 0 0 1 16.2 17l-1.25-1.45h-5.9L7.8 17a3.2 3.2 0 0 1-5.65-2.85l1.03-3.33A4 4 0 0 1 7 8Z" />
+            <path d="M6 12h4M8 10v4M16 12h.01M18 14h.01" />
+          </svg><span data-i18n="library">Library</span>
+        </div><small id="libraryCount">0</small>
+      </div>
+      <div id="gameList" class="scroll game-list">
+        <div class="empty" data-i18n="loading">Loading…</div>
+      </div>
+    </section>
+
+    <section class="panel cloud interactive" data-interactive>
+      <div class="panelhead">
+        <div class="title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M5 4h12l2 2v14H5z" />
+            <path d="M8 4v6h8V4M8 16h8" />
+          </svg><span data-i18n="cloudSaves">Cloud saves</span>
+        </div><small id="cloudGame"></small>
+      </div>
+      <div id="saveList" class="scroll save-list">
+        <div class="empty" data-i18n="selectGame">Select a game</div>
+      </div>
+    </section>
+
+    <section class="panel achievements interactive" data-interactive>
+      <div class="panelhead">
+        <div class="title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="m8 12 2.5 2.5L16 9" />
+          </svg><span data-i18n="achievements">Achievements</span>
+        </div><small id="achievementCount">0/0</small>
+      </div>
+      <div id="achievementList" class="scroll achievement-list">
+        <div class="empty" data-i18n="selectGame">Select a game</div>
+      </div>
+    </section>
+
+    <div id="status" class="status interactive hidden" data-interactive><span id="statusIcon"></span><span
+        id="statusText"></span><button id="statusAction" class="hidden"></button></div>
+
+    <div id="tutorialLayer" class="tutorial-layer interactive hidden" data-interactive>
+      <section class="tutorial">
+        <header>
+          <div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M7.2 8.2h9.6a4.2 4.2 0 0 1 4.02 3l1.04 3.47A3.42 3.42 0 0 1 15.8 17.7l-1.27-1.48H9.47L8.2 17.7a3.42 3.42 0 0 1-6.06-3.03L3.18 11.2a4.2 4.2 0 0 1 4.02-3Z" />
+            </svg>
+            <h2 id="tutorialTitle">Game View (Ctrl + D)</h2>
+          </div><kbd id="tutorialShortcutBadge">Ctrl + D</kbd>
+        </header>
+        <p id="tutorialDescription">Open or close Game View at any time without leaving your game.</p>
+        <div class="tutorial-grid">
+          <div class="tutorial-item"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+            </svg>
+            <div class="copy"><strong data-i18n="profile">Profile</strong><small data-i18n="gameViewTutorialProfile">See your
+                profile and the game currently running.</small></div>
+          </div>
+          <div class="tutorial-item"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8">
+              <rect x="4" y="5" width="16" height="14" rx="2" />
+              <path d="M8 9h8M8 13h5" />
+            </svg>
+            <div class="copy"><strong data-i18n="library">Library</strong><small data-i18n="gameViewTutorialLibrary">Browse the
+                games that belong to your library.</small></div>
+          </div>
+          <div class="tutorial-item"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8">
+              <path d="M5 4h12l2 2v14H5z" />
+              <path d="M8 4v6h8V4M8 16h8" />
+            </svg>
+            <div class="copy"><strong data-i18n="cloudSaves">Cloud saves</strong><small data-i18n="gameViewTutorialCloud">View
+                and delete cloud saves for supported games.</small></div>
+          </div>
+          <div class="tutorial-item"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m8 13 2-2 6 5" />
+            </svg>
+            <div class="copy"><strong data-i18n="takeScreenshot">Screenshot</strong><small
+                data-i18n="gameViewTutorialScreenshot">Capture the game cleanly; Game View hides itself from the image.</small>
+            </div>
+          </div>
+        </div>
+        <button id="tutorialDone" class="done" data-i18n="gotIt">Got it</button>
+      </section>
+    </div>
+  </div>
+  <script src="./game-view.js"></script>
+</body>
+
+</html>

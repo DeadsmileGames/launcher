@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Achievement</title>
+  <link rel="stylesheet" href="./achievement-toast.css">
+</head>
+<body>
+  <div id="toast" class="toast">
+    <div class="icon" aria-hidden="true">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>
+      </svg>
+    </div>
+    <div class="copy">
+      <small id="label">Achievement unlocked</small>
+      <strong id="title">Achievement</strong>
+      <span id="game"></span>
+    </div>
+  </div>
+  <script src="./achievement-toast.js"></script>
+</body>
+</html>

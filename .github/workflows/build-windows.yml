@@ -1,0 +1,185 @@
+name: Build and Release Windows Launcher
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-launcher-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Validate release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "package.json version must use Major.Minor.Patch."
+          }
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $tagVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+            if ($tagVersion -cne $version) {
+              throw "Tag version '$tagVersion' does not match package.json version '$version'."
+            }
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Require production signing credentials
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK)) {
+            throw "WIN_CSC_LINK is required for tagged production releases."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)) {
+            throw "WIN_CSC_KEY_PASSWORD is required for tagged production releases."
+          }
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Build signed installer
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx --no-install electron-builder --win nsis --publish never -c.forceCodeSigning=true
+
+      - name: Build unsigned test installer
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npx --no-install electron-builder --win nsis --publish never
+
+      - name: Build signed unpacked launcher
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx --no-install electron-builder --win --dir --publish never -c.forceCodeSigning=true
+
+      - name: Build unsigned unpacked launcher
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npx --no-install electron-builder --win --dir --publish never
+
+      - name: Verify Authenticode signatures
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "release/Deadsmile-Games-Launcher-Setup-*.exe" | Select-Object -First 1
+          $launcher = Get-ChildItem "release/win-unpacked/*.exe" | Select-Object -First 1
+          if (-not $installer -or -not $launcher) {
+            throw "Signed release executables were not created."
+          }
+          foreach ($file in @($installer, $launcher)) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            if ($signature.Status -ne 'Valid') {
+              throw "Authenticode signature is not valid for $($file.Name): $($signature.Status)"
+            }
+          }
+
+      - name: Create updater package and checksums
+        shell: pwsh
+        run: |
+          $version = "${{ steps.metadata.outputs.version }}"
+          $zipName = "Deadsmile-Games-Launcher-$version.zip"
+          $zipPath = Join-Path "release" $zipName
+          if (-not (Test-Path "release/win-unpacked" -PathType Container)) {
+            throw "release/win-unpacked was not created."
+          }
+          Compress-Archive -Path "release/win-unpacked/*" -DestinationPath $zipPath -CompressionLevel Optimal -Force
+          $zipHash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$zipHash  $zipName" | Set-Content "$zipPath.sha256" -Encoding ascii -NoNewline
+          $installer = Get-ChildItem "release/Deadsmile-Games-Launcher-Setup-*.exe" | Select-Object -First 1
+          if (-not $installer) {
+            throw "NSIS installer was not created."
+          }
+          $installerHash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "$installerHash  $($installer.Name)",
+            "$zipHash  $zipName"
+          ) | Set-Content "release/SHA256SUMS.txt" -Encoding ascii
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-launcher-${{ steps.metadata.outputs.version }}
+          path: |
+            release/Deadsmile-Games-Launcher-Setup-*.exe
+            release/Deadsmile-Games-Launcher-*.zip
+            release/Deadsmile-Games-Launcher-*.zip.sha256
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: windows-launcher-${{ needs.build.outputs.version }}
+          path: release-artifacts
+
+      - name: Verify release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-artifacts
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          version="${{ needs.build.outputs.version }}"
+          mapfile -t files < <(find release-artifacts -maxdepth 1 -type f -print | sort)
+          if (( ${#files[@]} < 4 )); then
+            echo "Expected release artifacts are missing." >&2
+            exit 1
+          fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" "${files[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "Deadsmile Games Launcher $version" \
+              --generate-notes
+          fi

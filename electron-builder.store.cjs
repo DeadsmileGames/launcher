@@ -19,14 +19,13 @@ module.exports = {
     buildResources: "build",
   },
   win: {
-    ...build.win,
-    sign: null,
-    target: [
-      {
-        target: "appx",
-        arch: ["x64"],
-      },
-    ],
+      ...build.win,
+      target: [
+          {
+              target: "appx",
+              arch: ["x64"],
+          },
+      ],
   },
   appx: {
     identityName,

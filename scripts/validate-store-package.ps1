@@ -100,6 +100,18 @@ try {
     throw "The package must expose only the deadsmile protocol."
   }
 
+  $deadsmileProtocols = @($protocols | Where-Object { [string]$_.Name -ceq "deadsmile" })
+  if ($deadsmileProtocols.Count -ne 1) {
+    throw "The package must contain exactly one deadsmile protocol declaration."
+  }
+  $deadsmileProtocol = $deadsmileProtocols[0]
+  if ($deadsmileProtocol.NamespaceURI -cne "http://schemas.microsoft.com/appx/manifest/uap/windows10/3") {
+    throw "The deadsmile protocol must use the uap3 namespace so full-trust URI parameters are forwarded."
+  }
+  if ([string]$deadsmileProtocol.Parameters -cne '"%1"') {
+    throw 'The deadsmile protocol must forward the activated URI to Electron through Parameters="%1".'
+  }
+
   $requiredLanguages = @("pt-BR", "en-US", "es-ES")
   $languageNames = @($resources | ForEach-Object { [string]$_.Language })
   foreach ($language in $requiredLanguages) {

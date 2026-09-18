@@ -39,27 +39,34 @@ async function requestViaElectron({ path, method = 'GET', body, headers = {} }) 
 async function getCsrfToken(force = false) {
   if (csrfToken && !force) return csrfToken;
 
-  const result = await window.deadsmile.api({
-    path: '/csrf',
-    method: 'GET',
-  });
+  try {
+    const result = await window.deadsmile.api({
+      path: '/csrf',
+      method: 'GET',
+    });
 
-  if (!result?.ok || !result?.data?.data?.token) {
-    throw new ApiError('Unable to initialize request security.', result?.status || 0, 'CSRF_INIT_FAILED');
+    if (!result?.ok || !result?.data?.data?.token) {
+      const code = result?.data?.error?.code || 'CSRF_INIT_FAILED';
+      const message = result?.data?.error?.message || 'Unable to initialize request security.';
+      throw new ApiError(message, result?.status || 0, code);
+    }
+
+    csrfToken = result.data.data.token;
+    return csrfToken;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Unable to reach the Deadsmile Games servers.', 0, 'NETWORK_ERROR');
   }
-
-  csrfToken = result.data.data.token;
-  return csrfToken;
 }
 
 async function request(path, { method = 'GET', body, retryCsrf = true } = {}) {
-  const headers = {};
-
-  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-    headers['X-CSRF-Token'] = await getCsrfToken();
-  }
-
   try {
+    const headers = {};
+
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      headers['X-CSRF-Token'] = await getCsrfToken();
+    }
+
     const result = await window.deadsmile.api({
       path,
       method,

@@ -5762,6 +5762,8 @@ export default function App() {
             return {};
         }
     });
+    const shortcutEnsuredRef = useRef(new Set());
+    const [pendingExternalLaunchId, setPendingExternalLaunchId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedGame, setSelectedGame] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
@@ -5883,6 +5885,29 @@ export default function App() {
         const ids = Object.keys(installed || {});
         window.deadsmile?.syncGameViewLibrary?.(ids)?.catch?.(() => {});
     }, [installed]);
+
+    useEffect(() => {
+        if (window.deadsmile?.platform !== "win32" || !window.deadsmile?.ensureGameShortcut) return;
+        if (!Array.isArray(games) || games.length === 0) return;
+        const gamesById = new Map(games.map((game) => [String(game?.id || ""), game]));
+
+        for (const [gameId, entry] of Object.entries(installed || {})) {
+            if (!entry?.path) continue;
+            const key = `${gameId}:${entry.path}`;
+            if (shortcutEnsuredRef.current.has(key)) continue;
+            shortcutEnsuredRef.current.add(key);
+            const game = gamesById.get(String(gameId));
+            window.deadsmile.ensureGameShortcut({
+                id: gameId,
+                title: game?.title || game?.name || gameId,
+                exePath: entry.path,
+            }).then((result) => {
+                if (!result?.created) shortcutEnsuredRef.current.delete(key);
+            }).catch(() => {
+                shortcutEnsuredRef.current.delete(key);
+            });
+        }
+    }, [games, installed]);
 
     useEffect(() => {
         if (status !== "ready") return undefined;
@@ -6572,6 +6597,38 @@ useEffect(() => {
         setNotice(t("downloadFailed"));
     }
 }
+    useEffect(() => {
+        if (!window.deadsmile?.onLaunchGame) return undefined;
+        const off = window.deadsmile.onLaunchGame((gameId) => {
+            setPendingExternalLaunchId(String(gameId || ""));
+        });
+        window.deadsmile.readyForLaunchRequests?.().catch(() => {});
+        return off;
+    }, []);
+
+    useEffect(() => {
+        if (!pendingExternalLaunchId) return;
+        const entry = installed[pendingExternalLaunchId];
+        if (!entry?.path || !online || !window.deadsmile?.playGame) {
+            setPendingExternalLaunchId(null);
+            setNotice(t("unableToPlayGame"));
+            return;
+        }
+
+        const gameId = pendingExternalLaunchId;
+        setPendingExternalLaunchId(null);
+        window.deadsmile.playGame({
+            id: gameId,
+            slug: null,
+            title: null,
+            coverImage: null,
+            exePath: entry.path,
+            gameVersion: entry.version || null,
+        }).then((result) => {
+            if (result?.error) setNotice(t("unableToPlayGame"));
+        }).catch(() => setNotice(t("unableToPlayGame")));
+    }, [pendingExternalLaunchId, installed, online, t]);
+
     async function deleteInstalledGame(game) {
         const entry = installed[game.id];
         if (!entry?.path) return;
@@ -6582,6 +6639,7 @@ useEffect(() => {
         try {
             const error = await window.deadsmile?.deleteGame(
                 entry.folderPath || entry.path,
+                game.id,
             );
             if (error) throw new Error(error);
             setInstalled((x) => {

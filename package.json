@@ -13,12 +13,13 @@
     "build": "vite build",
     "build:windows": "npm run build && electron-builder --win --publish never",
     "build:store": "npm run build && electron-builder --config electron-builder.store.cjs --win appx --x64 --publish never",
-    "package:update": "npm run build && electron-builder --win --dir"
+    "package:update": "npm run build && electron-builder --win --dir",
+    "validate:auth-bridge": "node scripts/validate-auth-bridge.cjs",
+    "validate:shortcuts": "node scripts/validate-game-shortcuts.cjs"
   },
   "dependencies": {
     "@itchio/butlerd": "^15.0.0",
     "@phosphor-icons/react": "^2.1.7",
-    "@rollup/rollup-win32-x64-msvc": "^4.63.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
@@ -39,8 +40,7 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*",
-      "public/**/*"
+      "electron/**/*"
     ],
     "win": {
       "target": "nsis",
@@ -69,6 +69,7 @@
       "enableEmbeddedAsarIntegrityValidation": true,
       "onlyLoadAppFromAsar": true,
       "grantFileProtocolExtraPrivileges": false
-    }
+    },
+    "asar": true
   }
 }

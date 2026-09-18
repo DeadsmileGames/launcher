@@ -149,6 +149,30 @@ async function moveDirectory(from, to) {
   throw lastError || new Error(`Unable to move ${from} to ${to}.`);
 }
 
+async function preserveInstallerManagedFiles(fromDirectory, toDirectory) {
+  let entries = [];
+  try {
+    entries = await fsp.readdir(fromDirectory, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const name = entry.name;
+    if (!(/^Uninstall .+\.exe$/i.test(name) || /^uninstallerIcon\.ico$/i.test(name))) continue;
+    const source = path.join(fromDirectory, name);
+    const destination = path.join(toDirectory, name);
+    try {
+      await fsp.copyFile(source, destination);
+      log(`preserved installer-managed file: ${name}`);
+    } catch (error) {
+      log(`failed to preserve installer-managed file ${name}: ${error.message}`);
+      throw error;
+    }
+  }
+}
+
 async function validateInstall(directory) {
   const launcherExe = path.join(directory, path.basename(exe));
   if (!(await exists(launcherExe))) {
@@ -255,6 +279,7 @@ async function relaunchOriginal() {
       newMoved = true;
       await report("installing", 75);
 
+      await preserveInstallerManagedFiles(oldTarget, target);
       const installedExe = await validateInstall(target);
       const confirmation = await launchAndConfirm(installedExe);
       await report("complete", 100, { version: confirmation.version });

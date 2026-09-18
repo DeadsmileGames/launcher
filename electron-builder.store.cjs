@@ -12,6 +12,7 @@ const publisherDisplayName = required("MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME");
 
 module.exports = {
   ...build,
+  appxManifestCreated: "./scripts/patch-store-manifest.cjs",
   forceCodeSigning: false,
   directories: {
     ...build.directories,

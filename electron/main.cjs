@@ -29,7 +29,7 @@ const APP_HOST = "launcher";
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
-    privileges: { standard: true, secure: true, supportFetchAPI: true, codeCache: true },
+    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, codeCache: true },
   },
 ]);
 const STORAGE_ROOT = path.join(
@@ -85,6 +85,7 @@ let gameUpdateCheckNextAt = 0;
 const gameUpdateChecksInFlight = new Map();
 const GAME_UPDATE_AUTH_INTERVAL_MS = 10_000;
 let pendingLaunchGameId = null;
+let rendererReadyForLaunch = false;
 let butlerInstance = null;
 let butlerClient = null;
 const API_ALLOWED_REQUESTS = [
@@ -608,7 +609,13 @@ if (
 gameViewSettings = readGameViewSettings();
 
 app.setPath("userData", SETTINGS_DIR);
-if (!IS_MICROSOFT_STORE) app.setAsDefaultProtocolClient("deadsmile");
+if (!IS_MICROSOFT_STORE) {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("deadsmile", process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient("deadsmile");
+  }
+}
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
@@ -624,21 +631,53 @@ if (!gotTheLock) {
       }
       if (!playSessions.size) win.focus();
     }
-    const url = argv.find((arg) => arg.startsWith("deadsmile://"));
-    if (url) handleDeepLink(url);
+    handleLaunchArguments(argv);
   });
   app.on("open-url", (_event, url) => {
     _event.preventDefault();
     handleDeepLink(url);
   });
 }
+function launchGameIdFromArgs(argv = []) {
+  if (!Array.isArray(argv)) return null;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = String(argv[index] || "");
+    if (arg === "--launch-game") {
+      const gameId = String(argv[index + 1] || "");
+      return UUID_PATTERN.test(gameId) ? gameId : null;
+    }
+    if (arg.startsWith("--launch-game=")) {
+      const gameId = arg.slice("--launch-game=".length);
+      return UUID_PATTERN.test(gameId) ? gameId : null;
+    }
+  }
+  return null;
+}
+
 function dispatchLaunchGame(gameId) {
-  if (!gameId) return;
-  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isLoading()) {
+  if (!UUID_PATTERN.test(String(gameId || ""))) return;
+  if (
+    rendererReadyForLaunch &&
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    !mainWindow.webContents.isLoading()
+  ) {
     send(mainWindow.webContents, "deadsmile:launch-game", gameId);
     return;
   }
   pendingLaunchGameId = gameId;
+}
+
+function handleLaunchArguments(argv = []) {
+  const gameId = launchGameIdFromArgs(argv);
+  if (gameId) {
+    dispatchLaunchGame(gameId);
+    return;
+  }
+  const url = Array.isArray(argv)
+    ? argv.find((arg) => String(arg || "").startsWith("deadsmile://"))
+    : null;
+  if (url) handleDeepLink(url);
 }
 
 function handleDeepLink(url) {
@@ -716,6 +755,269 @@ function isHttps(value) {
     return false;
   }
 }
+
+function shortcutDetailsLaunchGame(details, gameId) {
+  const id = String(gameId || "");
+  if (!UUID_PATTERN.test(id)) return false;
+  const args = String(details?.args || "").trim().replace(/^"|"$/g, "");
+  if (args === `--launch-game ${id}` || args === `--launch-game=${id}`) return true;
+  try {
+    const parsed = new URL(args);
+    return (
+      parsed.protocol === "deadsmile:" &&
+      parsed.hostname === "launch" &&
+      parsed.searchParams.get("gameId") === id
+    );
+  } catch {
+    return false;
+  }
+}
+
+function internetShortcutLaunchGame(contents, gameId) {
+  const id = String(gameId || "");
+  if (!UUID_PATTERN.test(id)) return false;
+  const match = String(contents || "").match(/^URL\s*=\s*(.+?)\s*$/im);
+  if (!match) return false;
+  try {
+    const parsed = new URL(match[1].trim());
+    return (
+      parsed.protocol === "deadsmile:" &&
+      parsed.hostname === "launch" &&
+      parsed.searchParams.get("gameId") === id
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function readInternetShortcut(filePath) {
+  try {
+    const data = await fsp.readFile(filePath);
+    if (data.length > 64 * 1024) return "";
+    if (data.length >= 2 && data[0] === 0xff && data[1] === 0xfe) {
+      return data.subarray(2).toString("utf16le");
+    }
+    return data.toString("utf8").replace(/^\uFEFF/, "");
+  } catch {
+    return "";
+  }
+}
+
+function encodeInternetShortcut(contents) {
+  const body = Buffer.from(String(contents || ""), "utf16le");
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), body]);
+}
+
+async function candidateDesktopDirectories() {
+  const values = [];
+  try {
+    values.push(app.getPath("desktop"));
+  } catch {}
+  const userProfile = String(process.env.USERPROFILE || "").trim();
+  const oneDrive = String(process.env.OneDrive || "").trim();
+  const oneDriveCommercial = String(process.env.OneDriveCommercial || "").trim();
+  if (userProfile) values.push(path.join(userProfile, "Desktop"));
+  if (oneDrive) values.push(path.join(oneDrive, "Desktop"));
+  if (oneDriveCommercial) values.push(path.join(oneDriveCommercial, "Desktop"));
+
+  const unique = [];
+  const seen = new Set();
+  for (const value of values) {
+    if (!value) continue;
+    const resolved = path.resolve(value);
+    const key = resolved.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(resolved);
+  }
+  return unique;
+}
+
+async function chooseInternetShortcutPath(desktop, shortcutName, gameId) {
+  const baseNames = [
+    shortcutName,
+    `${shortcutName} - Deadsmile Games`,
+    `${shortcutName} - ${String(gameId).slice(0, 8)}`,
+  ];
+  for (const baseName of baseNames) {
+    const candidate = path.join(desktop, `${baseName}.url`);
+    if (!(await pathExists(candidate))) return candidate;
+    const existing = await readInternetShortcut(candidate);
+    if (internetShortcutLaunchGame(existing, gameId)) return candidate;
+  }
+  return path.join(desktop, `${shortcutName} - Deadsmile Games - ${Date.now()}.url`);
+}
+
+async function createSteamStyleInternetShortcut({ desktop, id, shortcutName, installedExe }) {
+  const shortcutPath = await chooseInternetShortcutPath(desktop, shortcutName, id);
+  const launchUrl = `deadsmile://launch?gameId=${encodeURIComponent(id)}`;
+  const lines = ["[InternetShortcut]", `URL=${launchUrl}`];
+
+  const resolvedGameExe = typeof installedExe === "string" ? path.resolve(installedExe) : "";
+  if (resolvedGameExe.toLowerCase().endsWith(".exe") && await pathExists(resolvedGameExe)) {
+    lines.push(`IconFile=${resolvedGameExe}`, "IconIndex=0");
+  } else {
+    lines.push(`IconFile=${path.resolve(process.execPath)}`, "IconIndex=0");
+  }
+  lines.push("");
+
+  await fsp.mkdir(desktop, { recursive: true });
+  await fsp.writeFile(shortcutPath, encodeInternetShortcut(lines.join("\r\n")));
+
+  const written = await readInternetShortcut(shortcutPath);
+  if (!internetShortcutLaunchGame(written, id)) {
+    await fsp.rm(shortcutPath, { force: true }).catch(() => {});
+    throw new Error("GAME_URL_SHORTCUT_VERIFY_FAILED");
+  }
+  return shortcutPath;
+}
+
+async function createLegacyGameLinkShortcut({ desktop, id, shortcutName, installedExe }) {
+  const launcherExe = path.resolve(process.execPath);
+  const launchUrl = `deadsmile://launch?gameId=${encodeURIComponent(id)}`;
+  const systemRoot = String(process.env.SystemRoot || process.env.WINDIR || "C:\\Windows");
+  const storeLauncherTarget = path.join(systemRoot, "explorer.exe");
+  const devAppPath = process.defaultApp && process.argv[1] ? path.resolve(process.argv[1]) : null;
+  const target = IS_MICROSOFT_STORE ? storeLauncherTarget : launcherExe;
+  const launchArgs = IS_MICROSOFT_STORE
+    ? launchUrl
+    : devAppPath
+      ? `"${devAppPath}" --launch-game ${id}`
+      : `--launch-game ${id}`;
+  const cwd = IS_MICROSOFT_STORE ? systemRoot : (devAppPath ? path.dirname(devAppPath) : path.dirname(launcherExe));
+
+  let shortcutPath = path.join(desktop, `${shortcutName}.lnk`);
+  if (fs.existsSync(shortcutPath)) {
+    try {
+      const existing = shell.readShortcutLink(shortcutPath);
+      if (!shortcutDetailsLaunchGame(existing, id)) {
+        shortcutPath = path.join(desktop, `${shortcutName} - Deadsmile Games.lnk`);
+      }
+    } catch {
+      shortcutPath = path.join(desktop, `${shortcutName} - Deadsmile Games.lnk`);
+    }
+  }
+
+  const options = {
+    target,
+    args: launchArgs,
+    cwd,
+    description: `Play ${shortcutName} with Deadsmile Games Launcher`,
+  };
+  const resolvedGameExe = typeof installedExe === "string" ? path.resolve(installedExe) : "";
+  if (resolvedGameExe.toLowerCase().endsWith(".exe") && await pathExists(resolvedGameExe)) {
+    options.icon = resolvedGameExe;
+    options.iconIndex = 0;
+  }
+  const created = shell.writeShortcutLink(shortcutPath, "create", options);
+  if (!created) throw new Error("GAME_SHORTCUT_CREATE_FAILED");
+  return shortcutPath;
+}
+
+async function createGameDesktopShortcut({ id, title, installedExe }) {
+  if (process.platform !== "win32") {
+    return { created: false, reason: "unsupported-platform", path: null, type: null };
+  }
+  if (!UUID_PATTERN.test(String(id || ""))) {
+    return { created: false, reason: "invalid-game-id", path: null, type: null };
+  }
+
+  let shortcutName = sanitizeName(title || "Deadsmile Game").replace(/[. ]+$/g, "");
+  if (!shortcutName || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(shortcutName)) {
+    shortcutName = `Deadsmile ${shortcutName || "Game"}`;
+  }
+
+  const desktopCandidates = await candidateDesktopDirectories();
+  let lastError = null;
+  for (const desktop of desktopCandidates) {
+    try {
+      const shortcutPath = await createSteamStyleInternetShortcut({
+        desktop,
+        id,
+        shortcutName,
+        installedExe,
+      });
+      await removeGameDesktopShortcuts(id, { keepPaths: [shortcutPath] }).catch(() => {});
+      console.log(`[Shortcut] Created Steam-style game shortcut: ${shortcutPath}`);
+      return { created: true, path: shortcutPath, type: "url" };
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Shortcut] .url creation failed in ${desktop}:`, error?.message || error);
+    }
+  }
+  for (const desktop of desktopCandidates) {
+    try {
+      const shortcutPath = await createLegacyGameLinkShortcut({
+        desktop,
+        id,
+        shortcutName,
+        installedExe,
+      });
+      console.log(`[Shortcut] Created fallback .lnk game shortcut: ${shortcutPath}`);
+      return { created: true, path: shortcutPath, type: "lnk" };
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Shortcut] .lnk creation failed in ${desktop}:`, error?.message || error);
+    }
+  }
+
+  throw lastError || new Error("GAME_SHORTCUT_CREATE_FAILED");
+}
+
+async function removeGameDesktopShortcuts(gameId, { keepPaths = [] } = {}) {
+  const id = String(gameId || "");
+  if (process.platform !== "win32" || !UUID_PATTERN.test(id)) return 0;
+
+  const keep = new Set(
+    (Array.isArray(keepPaths) ? keepPaths : [])
+      .filter(Boolean)
+      .map((value) => path.resolve(value).toLowerCase()),
+  );
+  const launcherName = path.basename(process.execPath).toLowerCase();
+  const explorerPath = path.join(
+    String(process.env.SystemRoot || process.env.WINDIR || "C:\\Windows"),
+    "explorer.exe",
+  ).toLowerCase();
+  const desktops = await candidateDesktopDirectories();
+  let removed = 0;
+
+  for (const desktop of desktops) {
+    let entries = [];
+    try {
+      entries = await fsp.readdir(desktop, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries.slice(0, 5000)) {
+      if (!entry.isFile()) continue;
+      const lowerName = entry.name.toLowerCase();
+      if (!lowerName.endsWith(".lnk") && !lowerName.endsWith(".url")) continue;
+      const shortcutPath = path.join(desktop, entry.name);
+      if (keep.has(path.resolve(shortcutPath).toLowerCase())) continue;
+
+      try {
+        if (lowerName.endsWith(".url")) {
+          const contents = await readInternetShortcut(shortcutPath);
+          if (!internetShortcutLaunchGame(contents, id)) continue;
+          await fsp.rm(shortcutPath, { force: true });
+          removed += 1;
+          continue;
+        }
+
+        const details = shell.readShortcutLink(shortcutPath);
+        if (!shortcutDetailsLaunchGame(details, id)) continue;
+        const target = path.resolve(String(details?.target || "")).toLowerCase();
+        const targetName = path.basename(target).toLowerCase();
+        if (target !== explorerPath && targetName !== launcherName) continue;
+        await fsp.rm(shortcutPath, { force: true });
+        removed += 1;
+      } catch {}
+    }
+  }
+  return removed;
+}
+
 function isItch(value) {
   try {
     const u = new URL(value);
@@ -767,36 +1069,70 @@ function retryAfterMs(value) {
   return Number.isFinite(timestamp) ? Math.max(0, Math.min(24 * 60 * 60_000, timestamp - Date.now())) : 0;
 }
 
+function apiTransportFailure(error) {
+  const raw = String(error?.message || error || "");
+  const codeMatch = raw.match(/net::(ERR_[A-Z0-9_]+)/i);
+  const transportCode = codeMatch ? codeMatch[1].toUpperCase() : null;
+  const timedOut = error?.name === "TimeoutError" || transportCode === "ERR_TIMED_OUT";
+  return {
+    ok: false,
+    status: 0,
+    data: {
+      error: {
+        code: timedOut ? "REQUEST_TIMEOUT" : "NETWORK_ERROR",
+        message: timedOut
+          ? "The Deadsmile Games servers took too long to respond. Please try again."
+          : "Unable to reach the Deadsmile Games servers. Check your internet connection and try again.",
+        ...(transportCode ? { transportCode } : {}),
+      },
+    },
+    retryAfterMs: 0,
+  };
+}
+
 async function apiRequest({
   path: endpoint,
   method = "GET",
   body,
   headers = {},
 }) {
-  const response = await session.defaultSession.fetch(`${API_URL}${endpoint}`, {
-    method,
-    signal: AbortSignal.timeout(30_000),
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const text = await response.text();
-  let data = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = null;
+  const attempts = method === "GET" && endpoint === "/csrf" ? 2 : 1;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await session.defaultSession.fetch(`${API_URL}${endpoint}`, {
+        method,
+        signal: AbortSignal.timeout(30_000),
+        credentials: "include",
+        cache: endpoint.startsWith("/auth/") || endpoint === "/csrf" ? "no-store" : "default",
+        headers: {
+          Accept: "application/json",
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...headers,
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      const text = await response.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
+      return {
+        ok: response.ok,
+        status: response.status,
+        data,
+        retryAfterMs: retryAfterMs(response.headers.get("retry-after")),
+      };
+    } catch (error) {
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        continue;
+      }
+      return apiTransportFailure(error);
+    }
   }
-  return {
-    ok: response.ok,
-    status: response.status,
-    data,
-    retryAfterMs: retryAfterMs(response.headers.get("retry-after")),
-  };
+  return apiTransportFailure(new Error("NETWORK_ERROR"));
 }
 
 async function clearLocalAuthSession() {
@@ -1670,7 +2006,18 @@ async function runDownloadWorker(job, ctx) {
 
     if (mode === "update") {
       const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
-      return { ...swapped, slug, version: remoteVersion || currentVersion };
+      let shortcut = null;
+      try {
+        shortcut = await createGameDesktopShortcut({
+          id,
+          title: job.title || slug || id,
+          installedExe: swapped.path,
+        });
+      } catch (error) {
+        shortcut = { created: false, reason: error?.message || "GAME_SHORTCUT_CREATE_FAILED", path: null, type: null };
+        console.warn("[Shortcut] Could not create game desktop shortcut:", error?.message || error);
+      }
+      return { ...swapped, slug, version: remoteVersion || currentVersion, shortcut };
     }
 
     await assertSafeManagedGameDirectory(gameFolder, { allowMissing: true });
@@ -1678,9 +2025,16 @@ async function runDownloadWorker(job, ctx) {
     await fsp.rename(stagingFolder, gameFolder);
     const installedExe = await firstExe(gameFolder);
     if (!installedExe) throw new Error("WINDOWS_EXECUTABLE_MISSING");
+    let shortcut = null;
+    try {
+      shortcut = await createGameDesktopShortcut({ id, title: job.title || slug || id, installedExe });
+    } catch (error) {
+      shortcut = { created: false, reason: error?.message || "GAME_SHORTCUT_CREATE_FAILED", path: null, type: null };
+      console.warn("[Shortcut] Could not create game desktop shortcut:", error?.message || error);
+    }
     ctx.onProgress({ status: "complete", percent: 100, fileName: path.basename(installedExe) });
     return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe),
-      version: remoteVersion || versionFromFilename(path.basename(installedExe)), slug };
+      version: remoteVersion || versionFromFilename(path.basename(installedExe)), slug, shortcut };
   } finally {
     await fsp.rm(jobRoot, { recursive: true, force: true }).catch(() => {});
   }
@@ -2531,12 +2885,8 @@ function createWindow() {
     confirmUpdatedStartup();
   });
   win.on("focus", () => send(win.webContents, "deadsmile:app-focus", true));
-  win.webContents.on("did-finish-load", () => {
-    if (mainWindow === win && pendingLaunchGameId) {
-      const gameId = pendingLaunchGameId;
-      pendingLaunchGameId = null;
-      send(win.webContents, "deadsmile:launch-game", gameId);
-    }
+  win.webContents.on("did-start-loading", () => {
+    if (mainWindow === win) rendererReadyForLaunch = false;
   });
   if (!app.isPackaged) win.loadURL("http://127.0.0.1:5173");
   else win.loadURL(packagedRendererUrl("main"));
@@ -2551,9 +2901,24 @@ function rendererKindForContents(contents) {
   return null;
 }
 
+function sameUnderlyingFrame(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  try {
+    if (Number.isInteger(a.frameTreeNodeId) && Number.isInteger(b.frameTreeNodeId)) {
+      return a.frameTreeNodeId === b.frameTreeNodeId;
+    }
+    return a.processId === b.processId && a.routingId === b.routingId;
+  } catch {
+    return false;
+  }
+}
+
 function rendererKindForEvent(event) {
   if (!event?.sender || event.sender.isDestroyed()) return null;
-  if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame) return null;
+  const senderFrame = event.senderFrame;
+  const mainFrame = event.sender.mainFrame;
+  if (!sameUnderlyingFrame(senderFrame, mainFrame)) return null;
   return rendererKindForContents(event.sender);
 }
 
@@ -2848,6 +3213,17 @@ secureIpcHandle(
     }
     return normalized;
   });
+  secureIpcHandle("deadsmile:renderer-ready-for-launch", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win !== mainWindow || win.isDestroyed()) return false;
+    rendererReadyForLaunch = true;
+    if (pendingLaunchGameId) {
+      const gameId = pendingLaunchGameId;
+      pendingLaunchGameId = null;
+      send(win.webContents, "deadsmile:launch-game", gameId);
+    }
+    return true;
+  });
   secureIpcHandle("deadsmile:app-version", () => APP_VERSION);
   secureIpcHandle("deadsmile:clear-auth-session", () => clearLocalAuthSession());
   secureIpcHandle("deadsmile:update-check", () => checkForUpdate());
@@ -2865,6 +3241,22 @@ secureIpcHandle(
       win.isMaximized() ? win.unmaximize() : win.maximize();
     return win.isMaximized();
   });
+  secureIpcHandle("deadsmile:ensure-game-shortcut", async (_event, request) => {
+      const id = String(request?.id || "");
+      if (!UUID_PATTERN.test(id)) throw new Error("GAME_INVALID");
+      const requestedExe = String(request?.exePath || "");
+      if (!requestedExe.toLowerCase().endsWith(".exe")) throw new Error("GAME_PATH_INVALID");
+      const installedExe = await resolveExistingPathInsideRoot(GAMES_DIR, requestedExe);
+      if (!installedExe) throw new Error("GAME_PATH_INVALID");
+      const stat = await fsp.stat(installedExe);
+      if (!stat.isFile()) throw new Error("GAME_PATH_INVALID");
+      return createGameDesktopShortcut({
+        id,
+        title: String(request?.title || id).slice(0, 200),
+        installedExe,
+      });
+  });
+
   secureIpcHandle("deadsmile:download-game", async (_event, request) => {
       const id = String(request?.id || "");
       if (!UUID_PATTERN.test(id)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
@@ -3453,11 +3845,21 @@ secureIpcHandle(
       },
   );
 
-  secureIpcHandle("deadsmile:delete-game", async (_event, target) => {
-    const targetPath = await resolveExistingPathInsideRoot(GAMES_DIR, target);
+  secureIpcHandle("deadsmile:delete-game", async (_event, request) => {
+    const payload = request && typeof request === "object" && !Array.isArray(request)
+      ? request
+      : { target: request };
+    const gameId = String(payload.id || "");
+    if (UUID_PATTERN.test(gameId) && playSessions.has(gameId)) return "Game is currently running.";
+    const targetPath = await resolveExistingPathInsideRoot(GAMES_DIR, payload.target);
     if (!targetPath) return "Invalid game path.";
     try {
       await fsp.rm(targetPath, { recursive: true, force: true });
+      if (UUID_PATTERN.test(gameId)) {
+        await removeGameDesktopShortcuts(gameId).catch((error) => {
+          console.warn("[Shortcut] Could not remove game desktop shortcut:", error?.message || error);
+        });
+      }
       return "";
     } catch (error) {
       return error?.message || "Unable to delete the local game.";
@@ -3471,8 +3873,7 @@ secureIpcHandle(
   }, 30_000);
   achievementSyncTimer.unref?.();
 
-  const initialDeepLink = process.argv.find((arg) => arg.startsWith("deadsmile://"));
-  if (initialDeepLink) handleDeepLink(initialDeepLink);
+  handleLaunchArguments(process.argv);
   app.on("activate", () => {
     if (!mainWindow || mainWindow.isDestroyed()) createWindow();
     else {

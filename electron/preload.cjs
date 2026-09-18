@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('deadsmile', {
     ipcRenderer.on('deadsmile:app-focus', listener);
     return () => ipcRenderer.removeListener('deadsmile:app-focus', listener);
   },
-  deleteGame: (target) => ipcRenderer.invoke('deadsmile:delete-game', target),
+  deleteGame: (target, id = null) => ipcRenderer.invoke('deadsmile:delete-game', { target, id }),
   consumePendingUpdate: () => ipcRenderer.invoke('deadsmile:consume-pending-update'),
   version: () => ipcRenderer.invoke('deadsmile:app-version'),
   clearAuthSession: () => ipcRenderer.invoke('deadsmile:clear-auth-session'),
@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('deadsmile', {
   },
   downloadGame: (payload) =>
     ipcRenderer.invoke('deadsmile:download-game', payload),
+  ensureGameShortcut: (payload) =>
+    ipcRenderer.invoke('deadsmile:ensure-game-shortcut', payload),
   pauseDownload: (id) => ipcRenderer.invoke('deadsmile:download-pause', id),
   resumeDownload: (id) => ipcRenderer.invoke('deadsmile:download-resume', id),
   cancelDownload: (id) => ipcRenderer.invoke('deadsmile:download-cancel', id),
@@ -111,4 +113,6 @@ contextBridge.exposeInMainWorld('deadsmile', {
     ipcRenderer.on('deadsmile:launch-game', listener);
     return () => ipcRenderer.removeListener('deadsmile:launch-game', listener);
   },
+  readyForLaunchRequests: () =>
+    ipcRenderer.invoke('deadsmile:renderer-ready-for-launch'),
 });

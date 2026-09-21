@@ -1,0 +1,669 @@
+@font-face {
+      font-family: Inter;
+      src: url('./assets/fonts/Inter_18pt-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-display: swap
+    }
+
+    @font-face {
+      font-family: Inter;
+      src: url('./assets/fonts/Inter_18pt-Medium.ttf') format('truetype');
+      font-weight: 500;
+      font-display: swap
+    }
+
+    @font-face {
+      font-family: Inter;
+      src: url('./assets/fonts/Inter_18pt-SemiBold.ttf') format('truetype');
+      font-weight: 650;
+      font-display: swap
+    }
+
+    :root {
+      --gv-scale: 1.4;
+      --bg: #0c0d12;
+      --sidebar: #111219;
+      --surface: #171922;
+      --card: #181a22;
+      --text: #f5f5f7;
+      --hover: #20232c;
+      --active: #282b36;
+      --muted: #858894;
+      --success: #8fd09f;
+      --green: #107c10;
+      --danger: #ffb1b5
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent !important;
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      color: inherit;
+      background: none;
+      cursor: pointer
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: default
+    }
+
+    img {
+      display: block
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .shell {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.30);
+      user-select: none;
+      opacity: 1;
+      transition: opacity 180ms cubic-bezier(.2, .7, .2, 1);
+    }
+
+    html.overlay-hiding .shell {
+      opacity: 0;
+    }
+
+    .interactive {
+      pointer-events: auto
+    }
+
+    .toolbar {
+      position: absolute;
+      z-index: 30;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) scale(var(--gv-scale));
+      transform-origin: top center;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px 5px 12px;
+      border-radius: 12px;
+      background: var(--sidebar);
+      box-shadow: 0 14px 38px rgba(0, 0, 0, .48)
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding-right: 4px;
+      white-space: nowrap
+    }
+
+    .brand strong {
+      font-size: 12px;
+      font-weight: 650
+    }
+
+    .brand svg {
+      color: #d7d9df
+    }
+
+    .toolbar kbd,
+    .tutorial kbd {
+      padding: 5px 8px;
+      border-radius: 7px;
+      background: #252832;
+      color: #b7bac3;
+      font: 650 10px/1 Inter, system-ui, sans-serif
+    }
+
+    .sep {
+      width: 1px;
+      height: 22px;
+      background: #292c35;
+      margin: 0 2px
+    }
+
+    .iconbtn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: #a9acb5
+    }
+
+    .iconbtn:hover {
+      background: var(--hover);
+      color: #fff
+    }
+
+    .helpmark {
+      font-size: 16px;
+      font-weight: 650
+    }
+
+    .panel {
+      position: absolute;
+      z-index: 10;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      overflow: hidden;
+      border: 0;
+      border-radius: 13px;
+      background: var(--sidebar);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .52)
+    }
+
+    .profile {
+      left: 28px;
+      top: 86px;
+      width: min(300px, 27vw);
+      transform: scale(var(--gv-scale));
+      transform-origin: top left
+    }
+
+    .library {
+      left: 50%;
+      top: 86px;
+      width: min(430px, 38vw);
+     
+      max-height: min(560px, 58vh);
+      transform: translateX(-50%) scale(var(--gv-scale));
+      transform-origin: top center
+    }
+
+    .cloud {
+      right: 28px;
+      top: 86px;
+      width: min(350px, 31vw);
+     
+      max-height: min(560px, 58vh);
+      transform: scale(var(--gv-scale));
+      transform-origin: top right
+    }
+
+    .achievements {
+      left: 28px;
+      bottom: 28px;
+      width: min(330px, 29vw);
+      max-height: min(360px, 40vh);
+      transform: scale(var(--gv-scale));
+      transform-origin: bottom left
+    }
+
+    .panelhead,
+    .title {
+      display: flex;
+      align-items: center
+    }
+
+    .panelhead {
+      min-height: 44px;
+      gap: 12px;
+      padding: 0 13px;
+      background: #15171f
+    }
+
+    .panelhead .title {
+      padding: 0
+    }
+
+    .panelhead>small {
+      margin-left: auto;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #797d87;
+      font-size: 10px
+    }
+
+    .title {
+      gap: 8px;
+      padding: 13px;
+      color: #d8dae0;
+      font-size: 11px;
+      font-weight: 650
+    }
+
+    .title svg {
+      color: #8f939e
+    }
+
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 3px 13px 15px
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #262932;
+      font-weight: 650
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover
+    }
+
+    .profile-copy {
+      min-width: 0;
+      display: grid;
+      gap: 4px
+    }
+
+    .profile-copy strong,
+    .profile-copy span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .profile-copy strong {
+      font-size: 13px
+    }
+
+    .profile-copy span {
+      color: #838791;
+      font-size: 10px
+    }
+
+    .scroll {
+      min-height: 0;
+      overflow: auto;
+      padding: 7px;
+      scrollbar-width: thin;
+      scrollbar-color: #333640 transparent
+    }
+
+    .game-list {
+      display: grid;
+      gap: 3px
+    }
+
+    .game {
+      width: 100%;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px;
+      border-radius: 9px;
+      text-align: left;
+      color: #d9dbe0
+    }
+
+    .game:hover {
+      background: #1c1f27
+    }
+
+    .game.active {
+      background: #252832
+    }
+
+    .game img {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      object-fit: cover;
+      background: #252832
+    }
+
+    .game .copy {
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      gap: 3px
+    }
+
+    .game strong,
+    .game small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .game strong {
+      font-size: 11px;
+      font-weight: 650
+    }
+
+    .game small {
+      color: #747883;
+      font-size: 9px
+    }
+
+    .running-dot {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(16, 124, 16, .12)
+    }
+
+    .save-list,
+    .achievement-list {
+      display: grid;
+      gap: 4px
+    }
+
+    .save,
+    .achievement {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px;
+      border-radius: 9px;
+      background: var(--card)
+    }
+
+    .save {
+      min-height: 50px;
+      padding-left: 10px
+    }
+
+    .save .copy,
+    .achievement .copy {
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      gap: 3px
+    }
+
+    .save strong,
+    .save small,
+    .achievement strong,
+    .achievement small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .save strong,
+    .achievement strong {
+      font-size: 10px
+    }
+
+    .save small,
+    .achievement small {
+      color: #777b85;
+      font-size: 9px
+    }
+
+    .delete {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #888c96;
+      background: var(--hover)
+    }
+
+    .delete:hover {
+      background: #2b2024;
+      color: var(--danger)
+    }
+
+    .achievement svg {
+      flex: 0 0 auto;
+      color: #6f737d
+    }
+
+    .achievement.unlocked svg {
+      color: var(--success)
+    }
+
+    .achievement.locked {
+      opacity: .48
+    }
+
+    .empty {
+      padding: 25px 16px;
+      color: #747883;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.45
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .status {
+      position: absolute;
+      z-index: 55;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%) scale(var(--gv-scale));
+      transform-origin: bottom center;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      max-width: min(620px, calc(100vw - 44px));
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #15171f;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, .48);
+      font-size: 10px
+    }
+
+    .status.error {
+      background: #2c1d20;
+      color: var(--danger)
+    }
+
+    .status button {
+      margin-left: 3px;
+      padding: 6px 8px;
+      border-radius: 7px;
+      background: #252832;
+      font-size: 9px
+    }
+
+    .status button:hover {
+      background: #313541
+    }
+
+    .tutorial-layer {
+      position: absolute;
+      z-index: 80;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(5, 6, 9, .34)
+    }
+
+    .tutorial {
+      width: min(560px, calc(100vw - 40px));
+      padding: 18px;
+      border-radius: 14px;
+      background: var(--sidebar);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .62);
+      transform: scale(var(--gv-scale));
+      transform-origin: center
+    }
+
+    .tutorial header {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .tutorial header>div {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1
+    }
+
+    .tutorial h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 650
+    }
+
+    .tutorial>p {
+      margin: 11px 0 15px;
+      color: #8f939d;
+      font-size: 11px;
+      line-height: 1.5
+    }
+
+    .tutorial-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px
+    }
+
+    .tutorial-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-height: 76px;
+      padding: 11px;
+      border-radius: 10px;
+      background: var(--card)
+    }
+
+    .tutorial-item svg {
+      flex: 0 0 auto;
+      color: #a8abb5
+    }
+
+    .tutorial-item .copy {
+      display: grid;
+      gap: 4px
+    }
+
+    .tutorial-item strong {
+      font-size: 10px
+    }
+
+    .tutorial-item small {
+      color: #80848e;
+      font-size: 9px;
+      line-height: 1.45
+    }
+
+    .done {
+      width: 100%;
+      margin-top: 10px;
+      min-height: 38px;
+      border-radius: 9px;
+      background: var(--active);
+      font-size: 10px;
+      font-weight: 650
+    }
+
+    .done:hover {
+      background: #323641
+    }
+
+    .toast-mini {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      z-index: 50;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #15171f;
+      color: #dfe1e5;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, .48);
+      font-size: 10px
+    }
+
+    @media(max-width:1500px) {
+      :root {
+        --gv-scale: 1.18
+      }
+    }
+
+    @media(max-width:1100px) {
+      .profile {
+        left: 18px;
+        width: 250px
+      }
+
+      .library {
+        width: 390px
+      }
+
+      .cloud {
+        right: 18px;
+        width: 300px
+      }
+
+      .achievements {
+        left: 18px;
+        width: 270px
+      }
+    }
+
+    @media(max-width:900px) {
+      :root {
+        --gv-scale: 1
+      }
+
+      .profile,
+      .achievements {
+        display: none
+      }
+
+      .library {
+        left: 18px;
+        transform: scale(var(--gv-scale));
+        transform-origin: top left;
+        width: calc(50vw - 25px)
+      }
+
+      .cloud {
+        right: 18px;
+        width: calc(50vw - 25px)
+      }
+    }
+
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    transition-duration: 1ms;
+  }
+}

@@ -1,0 +1,173 @@
+name: Build Microsoft Store MSIX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: microsoft-store-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      MICROSOFT_STORE_IDENTITY_NAME: ${{ vars.MICROSOFT_STORE_IDENTITY_NAME }}
+      MICROSOFT_STORE_PUBLISHER: ${{ vars.MICROSOFT_STORE_PUBLISHER }}
+      MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Validate Partner Center identity
+        shell: pwsh
+        run: |
+          $required = @(
+            "MICROSOFT_STORE_IDENTITY_NAME",
+            "MICROSOFT_STORE_PUBLISHER",
+            "MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME"
+          )
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "$name is not configured as a GitHub repository variable."
+            }
+          }
+          $identity = $env:MICROSOFT_STORE_IDENTITY_NAME
+          if ($identity.Length -lt 3 -or $identity.Length -gt 50) {
+            throw "MICROSOFT_STORE_IDENTITY_NAME must contain 3 to 50 characters."
+          }
+          if ($identity -notmatch '^[A-Za-z0-9.-]+$' -or $identity.EndsWith('.')) {
+            throw "MICROSOFT_STORE_IDENTITY_NAME contains characters that are not valid for an MSIX identity."
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Validate package version
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+            throw "package.json version must use Major.Minor.Patch for Store packaging."
+          }
+          $parts = $version.Split('.') | ForEach-Object { [int]$_ }
+          if ($parts[0] -lt 1 -or $parts[0] -gt 65535 -or $parts[1] -gt 65535 -or $parts[2] -gt 65535) {
+            throw "package.json version cannot be represented as a Microsoft Store package version."
+          }
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Build MSIX
+        run: npm run build:store
+
+      - name: Validate MSIX manifest and contents
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem "release-store/*.msix")
+          if ($packages.Count -ne 1) {
+            throw "Exactly one MSIX artifact is required, found $($packages.Count)."
+          }
+          ./scripts/validate-store-package.ps1 -PackagePath $packages[0].FullName
+
+      - name: Run Windows App Certification Kit
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem "release-store/*.msix" | Select-Object -First 1
+          if (-not $package) {
+            throw "The Microsoft Store MSIX was not created."
+          }
+          $appCert = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\App Certification Kit\appcert.exe"
+          if (-not (Test-Path $appCert -PathType Leaf)) {
+            throw "Windows App Certification Kit was not found on the runner."
+          }
+          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName |
+            Select-Object -Last 1
+          if (-not $signTool) {
+            throw "SignTool was not found on the runner."
+          }
+          $releaseDir = Resolve-Path "release-store"
+          $report = Join-Path $releaseDir "WACK-report.xml"
+          $wackDir = Join-Path $env:RUNNER_TEMP "deadsmile-wack-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $wackDir -Force | Out-Null
+          $wackPackage = Join-Path $wackDir $package.Name
+          Copy-Item $package.FullName $wackPackage
+          $cert = $null
+          $trustedCert = $null
+          $certFile = Join-Path $wackDir "wack-test.cer"
+          try {
+            $cert = New-SelfSignedCertificate `
+              -Type Custom `
+              -Subject $env:MICROSOFT_STORE_PUBLISHER `
+              -KeyUsage DigitalSignature `
+              -CertStoreLocation "Cert:\CurrentUser\My" `
+              -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}") `
+              -NotAfter (Get-Date).AddDays(2)
+            Export-Certificate -Cert $cert -FilePath $certFile | Out-Null
+            $trustedCert = Import-Certificate -FilePath $certFile -CertStoreLocation "Cert:\CurrentUser\TrustedPeople"
+            & $signTool.FullName sign /fd SHA256 /sha1 $cert.Thumbprint $wackPackage
+            if ($LASTEXITCODE -ne 0) {
+              throw "Temporary WACK package signing failed."
+            }
+            & $appCert reset
+            if ($LASTEXITCODE -ne 0) {
+              throw "Windows App Certification Kit reset failed."
+            }
+            & $appCert test -appxpackagepath $wackPackage -reportoutputpath $report
+            $wackExitCode = $LASTEXITCODE
+            if (-not (Test-Path $report -PathType Leaf)) {
+              throw "Windows App Certification Kit did not create a report."
+            }
+            [xml]$wackReport = Get-Content $report -Raw
+            $overall = [string]$wackReport.DocumentElement.GetAttribute("OVERALL_RESULT")
+            if ([string]::IsNullOrWhiteSpace($overall)) {
+              throw "Windows App Certification Kit report has no OVERALL_RESULT."
+            }
+            if ($wackExitCode -ne 0 -or $overall -cne "PASS") {
+              throw "Windows App Certification Kit result is '$overall' with exit code $wackExitCode. See WACK-report.xml."
+            }
+          } finally {
+            if ($trustedCert) {
+              Remove-Item "Cert:\CurrentUser\TrustedPeople\$($trustedCert.Thumbprint)" -Force -ErrorAction SilentlyContinue
+            }
+            if ($cert) {
+              Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force -ErrorAction SilentlyContinue
+            }
+            Remove-Item $wackDir -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Create MSIX checksum
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem "release-store/*.msix" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($package) {
+            $hash = (Get-FileHash $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($package.Name)" | Set-Content "$($package.FullName).sha256" -Encoding ascii -NoNewline
+          }
+
+      - name: Upload Microsoft Store package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: deadsmile-games-launcher-microsoft-store
+          path: |
+            release-store/*.msix
+            release-store/*.msix.sha256
+            release-store/WACK-report.xml
+          if-no-files-found: error
+          retention-days: 30

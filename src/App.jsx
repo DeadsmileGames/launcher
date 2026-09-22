@@ -28,6 +28,8 @@ import {
     Minus,
     PencilSimple,
     Play,
+    Bookmark,
+    Binoculars,
     Plus,
     ShieldCheck,
     SignOut,
@@ -59,8 +61,8 @@ import { api, friendlyErrorMessage } from "./services-api";
 const SITE_URL = "https://deadsmilegames.vercel.app";
 const API_ASSET_ROOT = SITE_URL;
 const TABS = [
-    { id: "explore", label: "Explore", icon: Compass },
-    { id: "library", label: "Library", icon: GameController },
+    { id: "explore", label: "Explore", icon: Binoculars },
+    { id: "library", label: "Library", icon: Bookmark },
     { id: "wishlist", label: "Wishlist", icon: HeartStraight },
 ];
 
@@ -1582,32 +1584,6 @@ function WindowChrome({ locked = false }) {
                 className="window-drag-zone"
                 onDoubleClick={() => window.deadsmile?.window?.toggleMaximize()}
             />
-            <div className="window-controls">
-                <span className="window-status-dot" aria-hidden="true" />
-                <button
-                    type="button"
-                    onClick={() => window.deadsmile?.window?.minimize()}
-                    aria-label={t("minimize")}
-                >
-                    <Minus size={18} weight="bold" />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => window.deadsmile?.window?.toggleMaximize()}
-                    aria-label={t("maximize")}
-                >
-                    <Square size={16} weight="bold" />
-                </button>
-                <button
-                    type="button"
-                    className="window-close"
-                    onClick={() => !locked && window.deadsmile?.window?.close()}
-                    aria-label={t("close")}
-                    disabled={locked}
-                >
-                    <X size={18} weight="bold" />
-                </button>
-            </div>
         </header>
     );
 }
@@ -1643,7 +1619,20 @@ function DownloadPanel({
 }) {
     const { t } = useT();
     const [collapsed, setCollapsed] = useState(false);
+    const [concurrentLimit, setConcurrentLimit] = useState(() => {
+        const configured = Number(localStorage.getItem('deadsmile.maxConcurrentDownloads') || 2);
+        return Number.isInteger(configured) && configured >= 1 && configured <= 5 ? configured : 2;
+    });
     const dragId = useRef(null);
+
+    useEffect(() => { onConcurrencyChange?.(concurrentLimit); }, []);
+
+    function changeConcurrency(value) {
+        if (!Number.isInteger(value) || value < 1 || value > 5) return;
+        setConcurrentLimit(value);
+        localStorage.setItem('deadsmile.maxConcurrentDownloads', String(value));
+        onConcurrencyChange?.(value);
+    }
 
     const active = queue.filter((q) => q.status !== "complete").length;
     const downloadingCount = queue.filter(
@@ -1693,10 +1682,8 @@ function DownloadPanel({
                 </div>
                 <div className="download-panel-actions">
                     <select
-                        value={downloadingCount || 2}
-                        onChange={(e) =>
-                            onConcurrencyChange?.(Number(e.target.value))
-                        }
+                        value={concurrentLimit}
+                        onChange={(e) => changeConcurrency(Number(e.target.value))}
                         onClick={(e) => e.stopPropagation()}
                         aria-label={t("downloads")}
                     >
@@ -1836,10 +1823,14 @@ function Boot() {
     return (
         <div className="boot-screen">
             <div className="boot-status">
-                <span>{t("startingLauncher")}</span>
-                <div className="loading-bar boot-loading-bar">
-                    <i />
+                
+                <div className="boot-loading-bar">
+                <svg viewBox="0 0 48 48">
+                    <circle className="boot-loading-track" cx="24" cy="24" r="19" />
+                    <circle className="boot-loading-arc" cx="24" cy="24" r="19" />
+                </svg>
                 </div>
+
             </div>
         </div>
     );
@@ -3377,7 +3368,11 @@ function GameDetails({
             itchGameId: game.itchGameId || null,
             });
 
-            setManualUpdateCheck(result);
+            setManualUpdateCheck(result?.reason
+                ? { error: t("updateCheckFailed") }
+                : result?.latestVersion && result?.localVersion
+                    ? result
+                    : { error: t("updateCheckFailed") });
         } catch {
             setManualUpdateCheck({
             error: t("updateCheckFailed"),
@@ -3510,7 +3505,7 @@ function GameDetails({
                                 <Play size={16} /> {t("trailer")}
                             </button>
                         )}
-                        {(detail?.downloadUrl && installed) && (
+                        {installed?.path && (
                         <button
                             type="button"
                             onClick={checkForGameUpdates}
@@ -4506,13 +4501,6 @@ function Account({
                             <span>{item.label}</span>
                         </button>
                     ))}
-                    <span className="account-nav-title related">
-                        {t("launcher")}
-                    </span>
-                    <button onClick={() => setTab("wishlist")}>
-                        <HeartStraight size={18} />
-                        <span>{t("wishlist")}</span>
-                    </button>
                 </aside>
                 <div className="account-content">
                     <section className="account-hero">
@@ -4863,42 +4851,6 @@ function Account({
                                     )}
                                 </div>
                             </div>
-                        </section>
-                    )}
-                    {tab === "wishlist" && (
-                        <section className="account-block account-wishlist">
-                            <div className="account-block-head">
-                                <h2>{t("wishlist")}</h2>
-                                <p>{t("wishlistAccount")}</p>
-                            </div>
-                            {games.filter((g) => wishlist.has(g.id)).length ? (
-                                <div className="game-grid" style={{ padding: '0px 28px 28px' }}>
-                                    {games
-                                        .filter((g) => wishlist.has(g.id))
-                                        .map((g) => (
-                                            <GameCard
-                                                key={g.id}
-                                                game={g}
-                                                wishlisted
-                                                onWishlist={onWishlist}
-                                                onOpen={openGame}
-                                                onInstall={onInstall}
-                                                installed={Boolean(
-                                                    installed?.[g.id],
-                                                )}
-                                                installedEntry={installed?.[g.id]}
-                                                downloading={
-                                                    downloading?.[g.id]
-                                                }
-                                            />
-                                        ))}
-                                </div>
-                            ) : (
-                                <Empty
-                                    title={t("nothingSaved")}
-                                    text={t("nothingSavedText")}
-                                />
-                            )}
                         </section>
                     )}
                 </div>
@@ -5763,6 +5715,7 @@ export default function App() {
             return {};
         }
     });
+    const [libraryRefreshSeq, setLibraryRefreshSeq] = useState(0);
     const shortcutEnsuredRef = useRef(new Set());
     const [pendingExternalLaunchId, setPendingExternalLaunchId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -5773,15 +5726,8 @@ export default function App() {
     const [searchResults, setSearchResults] = useState([]);
     const [history, setHistory] = useState([]);
     const [future, setFuture] = useState([]);
-    const [notifications, setNotifications] = useState(() => {
-        try {
-            return JSON.parse(
-                localStorage.getItem("deadsmile.notifications") || "[]",
-            );
-        } catch {
-            return [];
-        }
-    });
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsForUser, setNotificationsForUser] = useState(null);
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
     const [updateProgress, setUpdateProgress] = useState(null);
@@ -5818,6 +5764,11 @@ export default function App() {
         }, [language]);
 
     useEffect(() => {
+        const off = window.deadsmile?.onAppFocus?.(() => setLibraryRefreshSeq((n) => n + 1));
+        return () => off?.();
+    }, []);
+
+    useEffect(() => {
         let alive = true;
         window.deadsmile?.getGameViewSettings?.()
             .then((result) => {
@@ -5837,7 +5788,10 @@ export default function App() {
 
     useEffect(() => {
         window.deadsmile?.getRunningGames?.().then(items => setRunningGames(new Set((items || []).map(x => x.id)))).catch(() => {});
-        const offState = window.deadsmile?.onGameState?.((state) => setRunningGames(current => { const next = new Set(current); state.running ? next.add(state.id) : next.delete(state.id); return next; }));
+        const offState = window.deadsmile?.onGameState?.((state) => {
+            setRunningGames(current => { const next = new Set(current); state.running ? next.add(state.id) : next.delete(state.id); return next; });
+            if (state?.launchFailed) setNotice(t('unableToPlayGame'));
+        });
         const offAchievement = window.deadsmile?.onAchievementUnlocked?.((payload) => {
             setAchievementToast(payload);
             if (achievementToastTimer.current) clearTimeout(achievementToastTimer.current);
@@ -5880,7 +5834,7 @@ export default function App() {
         return () => {
             alive = false;
         };
-    }, []);
+    }, [installed, libraryRefreshSeq]);
 
     useEffect(() => {
         const ids = Object.keys(installed || {});
@@ -6045,7 +5999,22 @@ useEffect(() => {
             writeUserContentCache(userId, { wishlistIds: ids });
         }
         if (libraryResult.status === "fulfilled") {
-            setEntitlements(new Set(listFrom(libraryResult.value, "items").map((item) => item.id).filter(Boolean)));
+            const ownedGames = listFrom(libraryResult.value, "items").filter((item) => item?.id);
+            setEntitlements(new Set(ownedGames.map((item) => item.id)));
+            // The public catalog is paged. Paid titles in later pages must still
+            // appear in this account's library, without entering the public cache.
+            setGames((current) => {
+                const byId = new Map(current.map((item) => [String(item.id), item]));
+                for (const item of ownedGames) {
+                    if (!byId.has(String(item.id))) {
+                        byId.set(String(item.id), {
+                            ...item,
+                            commerceEnabled: Boolean(item.purchaseUrl && item.itchGameId),
+                        });
+                    }
+                }
+                return Array.from(byId.values());
+            });
         }
         if (itchResult.status === "fulfilled") {
             setItchAccount({ ...itchResult.value, loading: false });
@@ -6282,7 +6251,7 @@ useEffect(() => {
         };
     }, [status, user?.id, t]);
     useEffect(() => {
-        if (status !== "ready" || !window.deadsmile?.checkForUpdate) return;
+        if (!window.deadsmile?.checkForUpdate) return;
         let alive = true;
         window.deadsmile
             .checkForUpdate()
@@ -6304,7 +6273,7 @@ useEffect(() => {
         return () => {
             alive = false;
         };
-    }, [status]);
+    }, []);
     useEffect(() => {
         if (!window.deadsmile?.onUpdateProgress) return;
         return window.deadsmile.onUpdateProgress((p) => setUpdateProgress(p));
@@ -6341,13 +6310,26 @@ useEffect(() => {
         return () => clearTimeout(timer);
     }, [query, games]);
     useEffect(() => {
+        const userId = validUserId(user?.id) ? String(user.id) : null;
+        if (status !== "ready" || !userId) {
+            setNotifications([]);
+            setNotificationsForUser(null);
+            return;
+        }
         try {
-            localStorage.setItem(
-                "deadsmile.notifications",
-                JSON.stringify(notifications.slice(0, 40)),
-            );
+            const stored = JSON.parse(localStorage.getItem(`deadsmile.notifications:${userId}`) || "[]");
+            setNotifications(Array.isArray(stored) ? stored : []);
+        } catch { setNotifications([]); }
+        setNotificationsForUser(userId);
+    }, [status, user?.id]);
+
+    useEffect(() => {
+        const userId = validUserId(user?.id) ? String(user.id) : null;
+        if (status !== "ready" || !userId || notificationsForUser !== userId) return;
+        try {
+            localStorage.setItem(`deadsmile.notifications:${userId}`, JSON.stringify(notifications.slice(0, 40)));
         } catch {}
-    }, [notifications]);
+    }, [notifications, notificationsForUser, status, user?.id]);
     async function toggleWishlist(game) {
         try {
             if (wishlist.has(game.id)) {
@@ -6494,15 +6476,30 @@ useEffect(() => {
                 setNotice(t("unableToPlayGame"));
                 return;
             }
-            const result = await window.deadsmile.playGame({
+            let result;
+            try { result = await window.deadsmile.playGame({
                 id: game.id,
                 slug: game.slug || null,
                 title: game.title || null,
                 coverImage: game.coverImage || game.cover_image || null,
                 exePath: installed[game.id].path,
                 gameVersion: installed[game.id].version || null,
-            });
+            }); } catch {
+                setNotice(t("unableToPlayGame"));
+                return;
+            }
             if (result?.error) {
+                if (result.code === "GAME_EXECUTABLE_INVALID" || result.code === "GAME_EXECUTABLE_MISMATCH") {
+                    const verified = await window.deadsmile.storage?.normalizeLibrary?.({ [game.id]: installed[game.id] }).catch(() => null);
+                    if (verified && !verified[game.id]) {
+                        setInstalled((previous) => {
+                            const next = { ...previous };
+                            delete next[game.id];
+                            localStorage.setItem("deadsmile.library", JSON.stringify(next));
+                            return next;
+                        });
+                    }
+                }
                 if (game.commerceEnabled && result?.code === "GAME_ACCESS_REQUIRED") {
                     setEntitlements((current) => {
                         const next = new Set(current);
@@ -6641,6 +6638,7 @@ useEffect(() => {
             const error = await window.deadsmile?.deleteGame(
                 entry.folderPath || entry.path,
                 game.id,
+                game.slug || null,
             );
             if (error) throw new Error(error);
             setInstalled((x) => {

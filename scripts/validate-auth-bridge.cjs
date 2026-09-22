@@ -18,7 +18,7 @@ const checks = [
   ['launcher login still calls mobile-login', /api\.post\(['"]\/auth\/mobile-login['"]\s*,\s*\{\s*email\s*,\s*password\s*\}\)/.test(app)],
   ['launcher still restores session with auth/me', /api\.get\(['"]\/auth\/me['"]\)/.test(app)],
   ['launcher still obtains CSRF token before writes', /headers\[['"]X-CSRF-Token['"]\]\s*=\s*await getCsrfToken\(\)/.test(service)],
-  ['network errors are normalized instead of leaking ipcRenderer.invoke text', /Unable to reach the Deadsmile Games servers\./.test(service)],
+  ['network errors are normalized instead of leaking ipcRenderer.invoke text', /throw new ApiError\(['"]Could not connect\. Check your internet\.['"],\s*0,\s*['"]NETWORK_ERROR['"]\)/.test(service)],
   ['main process normalizes transport failures', /function apiTransportFailure\(/.test(main)],
   ['IPC frame validation compares the underlying frame', /function sameUnderlyingFrame\(/.test(main) && /sameUnderlyingFrame\(senderFrame, mainFrame\)/.test(main)],
   ['fragile WebFrameMain wrapper identity check is gone', !/event\.senderFrame\s*!==\s*event\.sender\.mainFrame/.test(main)],

@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('deadsmile', {
     ipcRenderer.on('deadsmile:app-focus', listener);
     return () => ipcRenderer.removeListener('deadsmile:app-focus', listener);
   },
-  deleteGame: (target, id = null) => ipcRenderer.invoke('deadsmile:delete-game', { target, id }),
+  deleteGame: (target, id = null, slug = null) => ipcRenderer.invoke('deadsmile:delete-game', { target, id, slug }),
   consumePendingUpdate: () => ipcRenderer.invoke('deadsmile:consume-pending-update'),
   version: () => ipcRenderer.invoke('deadsmile:app-version'),
   clearAuthSession: () => ipcRenderer.invoke('deadsmile:clear-auth-session'),

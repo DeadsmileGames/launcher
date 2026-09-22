@@ -38,6 +38,9 @@ const STORAGE_ROOT = path.join(
 );
 const SETTINGS_DIR = path.join(STORAGE_ROOT, "settings");
 const GAMES_DIR = path.join(STORAGE_ROOT, "Games");
+const { verifyGameInstallation, reconcileLibrary } = require('./install-state.cjs');
+const { swapWithBackup } = require('./install-transaction.cjs');
+const { monitorGameProcess } = require('./game-process-lifecycle.cjs');
 const SCREENSHOTS_DIR = path.join(app.getPath("pictures"), "Deadsmile Games", "Screenshots");
 const GAME_VIEW_SETTINGS_FILE = path.join(
   SETTINGS_DIR,
@@ -213,15 +216,16 @@ const ACHIEVEMENT_SYNC_BATCH_SIZE = 2;
 const ACHIEVEMENT_RETRY_BASE_MS = 30_000;
 const ACHIEVEMENT_RETRY_MAX_MS = 30 * 60_000;
 
-function enqueueAchievementUnlock(gameId, key) {
+function enqueueAchievementUnlock(gameId, key, userId) {
   const id = String(gameId || "");
   const achievementKey = String(key || "");
-  if (!UUID_PATTERN.test(id) || !/^[a-z0-9_]{2,80}$/.test(achievementKey)) return;
+  if (!UUID_PATTERN.test(id) || !UUID_PATTERN.test(String(userId || "")) || !/^[a-z0-9_]{2,80}$/.test(achievementKey)) return;
   const items = readAchievementSyncQueue();
-  if (items.some((item) => item.gameId === id && item.key === achievementKey)) return;
+  if (items.some((item) => item.gameId === id && item.key === achievementKey && item.userId === userId)) return;
   items.push({
     gameId: id,
     key: achievementKey,
+    userId,
     createdAt: new Date().toISOString(),
     lastAttemptAt: null,
     nextAttemptAt: null,
@@ -230,10 +234,10 @@ function enqueueAchievementUnlock(gameId, key) {
   writeAchievementSyncQueue(items);
 }
 
-function removeQueuedAchievementUnlock(gameId, key) {
+function removeQueuedAchievementUnlock(gameId, key, userId) {
   const items = readAchievementSyncQueue();
   writeAchievementSyncQueue(
-    items.filter((item) => !(item.gameId === String(gameId) && item.key === String(key))),
+    items.filter((item) => !(item.gameId === String(gameId) && item.key === String(key) && item.userId === userId)),
   );
 }
 
@@ -243,12 +247,12 @@ function achievementRetryDelay(attempts) {
   return base + Math.floor(Math.random() * 5_000);
 }
 
-function markQueuedAchievementAttempt(gameId, key) {
+function markQueuedAchievementAttempt(gameId, key, userId) {
   const items = readAchievementSyncQueue();
   const now = Date.now();
   let updated = null;
   for (const item of items) {
-    if (item.gameId === String(gameId) && item.key === String(key)) {
+    if (item.gameId === String(gameId) && item.key === String(key) && item.userId === userId) {
       item.attempts = Number(item.attempts || 0) + 1;
       item.lastAttemptAt = new Date(now).toISOString();
       item.nextAttemptAt = new Date(now + achievementRetryDelay(item.attempts)).toISOString();
@@ -260,12 +264,12 @@ function markQueuedAchievementAttempt(gameId, key) {
   return updated;
 }
 
-function delayQueuedAchievementUnlock(gameId, key, minimumDelayMs) {
+function delayQueuedAchievementUnlock(gameId, key, userId, minimumDelayMs) {
   const items = readAchievementSyncQueue();
   const now = Date.now();
   let changed = false;
   for (const item of items) {
-    if (item.gameId === String(gameId) && item.key === String(key)) {
+    if (item.gameId === String(gameId) && item.key === String(key) && item.userId === userId) {
       const current = Date.parse(item.nextAttemptAt || 0) || now;
       const requested = now + Math.max(0, Number(minimumDelayMs) || 0);
       item.nextAttemptAt = new Date(Math.max(current, requested)).toISOString();
@@ -291,18 +295,28 @@ function achievementFailureIsPermanent(failure) {
   return false;
 }
 
-async function attemptQueuedAchievementUnlock(gameId, key) {
-  markQueuedAchievementAttempt(gameId, key);
+async function authenticatedUserId() {
+  const response = await apiRequest({ path: "/auth/me" });
+  const id = String(response?.data?.data?.id || "");
+  return response?.ok && UUID_PATTERN.test(id) ? id : null;
+}
+
+async function attemptQueuedAchievementUnlock(gameId, key, userId) {
+  if (!UUID_PATTERN.test(String(userId || ""))) return false;
+  // A game may continue running after logout. Never submit its pending events
+  // using a different player's active cookie.
+  if ((await authenticatedUserId()) !== userId) return false;
+  markQueuedAchievementAttempt(gameId, key, userId);
   try {
     const result = await protectedApi(
       `/platform/achievements/${gameId}/${key}/unlock`,
       "POST",
-      {},
+      { expectedUserId: userId },
     );
     if (!result?.ok) {
       const failure = apiFailureDetails(result);
       if (achievementFailureIsPermanent(failure)) {
-        removeQueuedAchievementUnlock(gameId, key);
+        removeQueuedAchievementUnlock(gameId, key, userId);
         achievementLog("unlock_dropped", { gameId, key, ...failure });
       } else {
         const minimumDelay = failure.status === 429
@@ -310,7 +324,7 @@ async function attemptQueuedAchievementUnlock(gameId, key) {
           : failure.code === "GAME_ACCESS_REQUIRED"
             ? 30 * 60_000
             : failure.retryAfterMs;
-        if (minimumDelay > 0) delayQueuedAchievementUnlock(gameId, key, minimumDelay);
+        if (minimumDelay > 0) delayQueuedAchievementUnlock(gameId, key, userId, minimumDelay);
         achievementLog("unlock_failed", { gameId, key, ...failure });
       }
       console.warn(
@@ -318,7 +332,7 @@ async function attemptQueuedAchievementUnlock(gameId, key) {
       );
       return false;
     }
-    removeQueuedAchievementUnlock(gameId, key);
+    removeQueuedAchievementUnlock(gameId, key, userId);
     console.info(`[Achievements] Synced ${gameId}/${key}.`);
     achievementLog("unlock_synced", { gameId, key });
     return true;
@@ -335,8 +349,11 @@ async function attemptQueuedAchievementUnlock(gameId, key) {
 async function syncPendingAchievementUnlocks(gameId = null) {
   if (achievementSyncPromise) return achievementSyncPromise;
   achievementSyncPromise = (async () => {
+    const currentUserId = await authenticatedUserId();
+    if (!currentUserId) return;
     const now = Date.now();
     const items = readAchievementSyncQueue()
+      .filter((item) => item.userId === currentUserId)
       .filter((item) => !gameId || item.gameId === String(gameId))
       .filter((item) => {
         const next = Date.parse(item.nextAttemptAt || 0) || 0;
@@ -344,7 +361,7 @@ async function syncPendingAchievementUnlocks(gameId = null) {
       })
       .slice(0, ACHIEVEMENT_SYNC_BATCH_SIZE);
     for (const item of items) {
-      await attemptQueuedAchievementUnlock(item.gameId, item.key);
+      await attemptQueuedAchievementUnlock(item.gameId, item.key, currentUserId);
     }
   })().finally(() => {
     achievementSyncPromise = null;
@@ -1338,7 +1355,7 @@ function validatedCloudSaveBytes(remote) {
   return bytes;
 }
 
-async function preserveCloudSaveConflict(gameId, state) {
+async function preserveCloudSaveConflict(gameId, state, knownRemote = null) {
   const target = await safePicoSaveTarget(state?.target);
   if (!target) return null;
   const folder = path.join(CLOUD_SAVE_CONFLICTS_DIR, String(gameId));
@@ -1358,7 +1375,8 @@ async function preserveCloudSaveConflict(gameId, state) {
     localBackup = null;
   }
   try {
-    const remoteResult = await apiRequest({ path: `/platform/saves/${gameId}/default` });
+    const remoteResult = knownRemote ? { ok: true, data: { data: knownRemote } }
+      : await apiRequest({ path: `/platform/saves/${gameId}/default` });
     const remote = remoteResult?.data?.data;
     if (remoteResult?.ok && remote?.payload) {
       const bytes = validatedCloudSaveBytes(remote);
@@ -1386,26 +1404,44 @@ async function restoreCloudSave(gameId, template, title = null) {
   const target = await safePicoSaveTarget(resolveSavePath(template, title), { createParent: true });
   if (!target) return null;
   const result = await apiRequest({ path: `/platform/saves/${gameId}/default` });
-  if (!result.ok || !result.data?.data?.payload) return { target, revision: null };
+  if (!result.ok) {
+    if (result.status === 404 && result.data?.error?.code === 'SAVE_NOT_FOUND') {
+      return { target, revision: null, conflict: false };
+    }
+    throw new Error('CLOUD_SAVE_LOOKUP_UNAVAILABLE');
+  }
+  if (!result.data?.data?.payload) throw new Error('CLOUD_SAVE_INVALID_RESPONSE');
   const remote = result.data.data;
   const remoteTime = Date.parse(remote.updated_at || remote.updatedAt || 0) || 0;
   let localTime = 0;
-  try { localTime = (await fsp.stat(target)).mtimeMs; } catch {}
+  let localBytes = null;
+  try {
+    localTime = (await fsp.stat(target)).mtimeMs;
+    localBytes = await fsp.readFile(target);
+  } catch (error) { if (error?.code !== 'ENOENT') throw error; }
   if (!localTime || remoteTime > localTime) {
-    let bytes = validatedCloudSaveBytes(remote);
+    const bytes = validatedCloudSaveBytes(remote);
     if (bytes.length <= 256 * 1024) {
-      try {
-        const localBytes = await fsp.readFile(target);
-        bytes = mergePicoAchievementFlags(bytes, localBytes);
-      } catch {}
+      if (localBytes && !localBytes.equals(bytes)) {
+        const preserved = await preserveCloudSaveConflict(gameId, { target }, remote);
+        if (!preserved?.localBackup) throw new Error('CLOUD_SAVE_BACKUP_FAILED');
+        // Retain the former local version as a recoverable copy while loading
+        // the newer cloud revision, just as the pre-existing restore flow did.
+      }
       await fsp.mkdir(path.dirname(target), { recursive: true });
-      await fsp.writeFile(target, bytes, { mode: 0o600 });
+      const temporaryTarget = `${target}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+      try {
+        await fsp.writeFile(temporaryTarget, bytes, { mode: 0o600, flag: 'wx' });
+        await fsp.rename(temporaryTarget, target);
+      } finally {
+        await fsp.rm(temporaryTarget, { force: true }).catch(() => {});
+      }
     }
   }
-  return { target, revision: remote.revision ?? null };
+  return { target, revision: remote.revision ?? null, conflict: false };
 }
 
-async function uploadCloudSave(gameId, state) {
+async function uploadCloudSave(gameId, state, sessionUserId) {
   if (state?.conflict) {
     return {
       ok: false,
@@ -1415,11 +1451,15 @@ async function uploadCloudSave(gameId, state) {
   }
   const target = await safePicoSaveTarget(state?.target);
   if (!target || !(await pathExists(target))) return null;
+  if (!UUID_PATTERN.test(String(sessionUserId || '')) || (await authenticatedUserId()) !== sessionUserId) {
+    return { ok: false, status: 409, data: { error: { code: 'ACCOUNT_CHANGED' } } };
+  }
   const bytes = await fsp.readFile(target);
   if (!bytes.length || bytes.length > 256 * 1024) return null;
   const result = await protectedApi(`/platform/saves/${gameId}/default`, "PUT", {
     payload: bytes.toString("base64"),
     revision: state.revision,
+    expectedUserId: sessionUserId,
   });
   const saved = result?.data?.data;
   if (result?.ok && saved?.revision != null) {
@@ -1998,28 +2038,19 @@ function versionFromFilename(filename) {
 }
 
 async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
-  const oldFolder = `${gameFolder}.old`;
+  const backupFolder = `${gameFolder}.old`;
   await assertSafeManagedGameDirectory(gameFolder, { allowMissing: true });
-  await assertSafeManagedGameDirectory(oldFolder, { allowMissing: true });
-  await fsp.rm(oldFolder, { recursive: true, force: true });
-  if (ctx.isAborted()) throw new Error("Cancelled");
-  if (ctx.isPaused()) throw new Error("Paused");
-  let movedOld = false, installedNew = false;
-  try {
-    if (await pathExists(gameFolder)) { await fsp.rename(gameFolder, oldFolder); movedOld = true; }
-    await fsp.rename(stagingFolder, gameFolder); installedNew = true;
-    const newExe = await firstExe(gameFolder);
-    if (!newExe) throw new Error("The Windows update does not contain a game executable.");
-    if (ctx.isAborted()) throw new Error("Cancelled");
-    if (ctx.isPaused()) throw new Error("Paused");
-    ctx.onProgress({ status: "updating", percent: 99, fileName: path.basename(newExe) });
-    await fsp.rm(oldFolder, { recursive: true, force: true });
-    return { path: newExe, folderPath: gameFolder, filename: path.basename(newExe) };
-  } catch (error) {
-    if (installedNew) await fsp.rm(gameFolder, { recursive: true, force: true }).catch(() => {});
-    if (movedOld && !(await pathExists(gameFolder))) await fsp.rename(oldFolder, gameFolder).catch(() => {});
-    throw error;
-  }
+  await assertSafeManagedGameDirectory(backupFolder, { allowMissing: true });
+  const installedExe = await swapWithBackup({
+    gameFolder,
+    stagingFolder,
+    validateInstalled: firstExe,
+    checkInterrupted: () => {
+      if (ctx.isAborted()) throw new Error("Cancelled");
+      if (ctx.isPaused()) throw new Error("Paused");
+    },
+  });
+  return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe) };
 }
 
 async function runDownloadWorker(job, ctx) {
@@ -2039,9 +2070,11 @@ async function runDownloadWorker(job, ctx) {
   const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
   await fsp.mkdir(GAMES_DIR, { recursive: true });
 
-  if (mode === "update" && playSessions.has(id)) throw new Error("GAME_RUNNING");
+  if (playSessions.has(id)) throw new Error("GAME_RUNNING");
 
-  const downloadRoot = path.join(app.getPath("temp"), "deadsmile-game-downloads");
+  // Keep the staging folder on the destination volume so rename can commit it.
+  const downloadRoot = path.join(GAMES_DIR, ".deadsmile-staging");
+  await assertSafeManagedGameDirectory(downloadRoot, { allowMissing: true });
   await fsp.mkdir(downloadRoot, { recursive: true });
   const jobRoot = await fsp.mkdtemp(path.join(downloadRoot, `${sanitizeName(slug || id).slice(0, 60)}-`));
   const stagingFolder = path.join(jobRoot, "install");
@@ -2086,11 +2119,8 @@ async function runDownloadWorker(job, ctx) {
       return { ...swapped, slug, version: remoteVersion || currentVersion, shortcut };
     }
 
-    await assertSafeManagedGameDirectory(gameFolder, { allowMissing: true });
-    await fsp.rm(gameFolder, { recursive: true, force: true });
-    await fsp.rename(stagingFolder, gameFolder);
-    const installedExe = await firstExe(gameFolder);
-    if (!installedExe) throw new Error("WINDOWS_EXECUTABLE_MISSING");
+    const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
+    const installedExe = swapped.path;
     let shortcut = null;
     try {
       shortcut = await createGameDesktopShortcut({ id, title: job.title || slug || id, installedExe });
@@ -2161,6 +2191,10 @@ async function checkForUpdate() {
 async function updateLauncher(sender) {
   if (IS_MICROSOFT_STORE) throw new Error("UPDATE_MANAGED_BY_MICROSOFT_STORE");
   if (updateInProgress) throw new Error("Launcher update already in progress.");
+  const updateUnsafe = () => playSessions.size > 0 || downloadQueue.snapshot().some(
+    (job) => !['complete', 'failed'].includes(job.status)
+  );
+  if (updateUnsafe()) throw new Error('Close games and finish or cancel downloads before updating the launcher.');
   const update = await checkForUpdate();
   if (!update.available) throw new Error(update.reason || "No update is available.");
 
@@ -2284,6 +2318,8 @@ async function updateLauncher(sender) {
     );
   } catch {}
 
+  // A new game/download may have started while the update was being prepared.
+  if (updateUnsafe()) throw new Error('A game or download started during update preparation.');
   send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
   forceQuit = true;
@@ -2910,10 +2946,11 @@ function showAchievementToast(payload) {
 function createWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
   const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1100,
-    minHeight: 700,
+    width: 1271,
+    height: 796,
+    minWidth: 1024,
+    minHeight: 600,
+    center: true,
     backgroundColor: "#0b0c10",
     title: "Deadsmile Games Launcher",
     icon: path.join(
@@ -2922,7 +2959,15 @@ function createWindow() {
       app.isPackaged ? "dist" : "public",
       "favicon.ico",
     ),
-    frame: false,
+    
+    frame: true,
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+        color: "#000000",
+        symbolColor: "#f0f0f0",
+        height: 40,
+    },
+
     autoHideMenuBar: true,
     show: false,
     resizable: true,
@@ -3259,7 +3304,7 @@ secureIpcHandle(
     games: GAMES_DIR,
   }));
 
-  secureIpcHandle("deadsmile:normalize-library", (_event, library) => {
+  secureIpcHandle("deadsmile:normalize-library", async (_event, library) => {
     if (!library || typeof library !== "object") return {};
     const legacyRoot = path.resolve(LEGACY_GAMES_DIR);
     const newRoot = path.resolve(GAMES_DIR);
@@ -3278,7 +3323,7 @@ secureIpcHandle(
       }
       normalized[id] = next;
     }
-    return normalized;
+    return reconcileLibrary(GAMES_DIR, normalized);
   });
   secureIpcHandle("deadsmile:renderer-ready-for-launch", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -3456,12 +3501,17 @@ secureIpcHandle(
           if (effectiveCloudSavesEnabled && picoIntegrationEnabled) {
             try {
               const restored = await restoreCloudSave(id, safeSavePathTemplate, safeTitle);
-              if (restored?.target) cloudSave = { ...restored, conflict: false };
+              if (restored?.target) cloudSave = restored;
             } catch (error) {
+              // An unavailable remote save is not an empty slot: suppress upload
+              // until the remote revision can be checked on a subsequent launch.
+              if (cloudSave) cloudSave.conflict = true;
               console.warn("[Achievements] Cloud-save restore failed; local tracking remains active:", error?.message || error);
             }
           }
 
+          const sessionUserId = await authenticatedUserId();
+          if (!sessionUserId) return { error: "Unable to verify the current account.", code: "GAME_ACCESS_UNAVAILABLE" };
           let created;
           try {
             created = await protectedApi("/platform/sessions", "POST", {
@@ -3504,6 +3554,7 @@ secureIpcHandle(
           }
 
           let child;
+          let gameProcess;
           try {
             child = spawn(resolvedExe, [], {
               detached: true,
@@ -3511,6 +3562,10 @@ secureIpcHandle(
               windowsHide: false,
               cwd: path.dirname(resolvedExe),
             });
+            // Must be installed before awaiting the spawn event: Windows can
+            // launch an .exe successfully and terminate it immediately if a
+            // DLL is missing. EventEmitter does not replay an earlier exit.
+            gameProcess = monitorGameProcess(child);
             await new Promise((resolve, reject) => {
               const onSpawn = () => {
                 child.off("error", onError);
@@ -3612,12 +3667,12 @@ secureIpcHandle(
 
           const tryServerUnlock = async (definition) => {
             if (catalogUnlocked(definition.key)) {
-              removeQueuedAchievementUnlock(id, definition.key);
+              removeQueuedAchievementUnlock(id, definition.key, sessionUserId);
               return true;
             }
 
-            enqueueAchievementUnlock(id, definition.key);
-            const synced = await attemptQueuedAchievementUnlock(id, definition.key);
+            enqueueAchievementUnlock(id, definition.key, sessionUserId);
+            const synced = await attemptQueuedAchievementUnlock(id, definition.key, sessionUserId);
             if (!synced) return false;
 
             try {
@@ -3761,7 +3816,7 @@ secureIpcHandle(
 
               if (newlyUnlocked.length) {
                 try {
-                  await uploadCloudSave(id, cloudSave);
+                  await uploadCloudSave(id, cloudSave, sessionUserId);
                 } catch {}
               }
 
@@ -3813,53 +3868,49 @@ secureIpcHandle(
             coverImage: sessionInfo.coverImage,
             cloudSavesEnabled: sessionInfo.cloudSavesEnabled,
           });
-          if (picoIntegrationEnabled && cloudSave?.target && achievementDefinitions.length) {
-            try {
-              await primeAchievementTracking();
-            } catch (error) {
-              achievementLog("tracking_prime_error", {
-                gameId: id,
-                save: cloudSave?.target || null,
-                message: error?.message || String(error),
-              });
-            }
-            achievementTimer = setInterval(() => {
-              checkGameAchievements().catch(() => {});
-            }, 500);
-
-            achievementEventTimer = setInterval(() => {
-              pollLiveAchievementEvents().catch(() => {});
-            }, 100);
-            pollLiveAchievementEvents().catch(() => {});
-          }
-
           let finished = false;
-          const finish = async () => {
+          const finish = async (exitState = {}) => {
               if (finished) return;
               finished = true;
               const session = playSessions.get(id);
               if (!session) return;
               if (achievementTimer) clearInterval(achievementTimer);
               if (achievementEventTimer) clearInterval(achievementEventTimer);
-              try { await pollLiveAchievementEvents(); } catch {}
               stopGameWindowWatcher(id);
               playSessions.delete(id);
-              broadcast("deadsmile:game-state", { id, running: false, startedAt: session.startedAt });
+              const durationMs = Date.now() - session.startedAt;
+              const launchFailed = Boolean(exitState.error) || (
+                typeof exitState.code === 'number' && exitState.code !== 0 && durationMs < 30_000
+              );
+              achievementLog('game_process_ended', {
+                gameId: id,
+                exitCode: typeof exitState.code === 'number' ? exitState.code : null,
+                signal: exitState.signal || null,
+                durationMs,
+                launchFailed,
+              });
+              broadcast('deadsmile:game-state', {
+                id, running: false, startedAt: session.startedAt,
+                launchFailed,
+                exitCode: typeof exitState.code === 'number' ? exitState.code : null,
+              });
               if (!playSessions.size) {
                 overlayShowPending = false;
                 unregisterGameViewShortcut();
 
                 hideGameOverlay({ close: true });
               }
-              const durationMs = Date.now() - session.startedAt;
+              try { await pollLiveAchievementEvents(); } catch {}
               const data = readPlaytime();
               const prev = data[id] || { totalMs: 0, sessions: 0 };
-              data[id] = {
-                  totalMs: prev.totalMs + durationMs,
-                  lastPlayedAt: Date.now(),
-                  sessions: prev.sessions + 1,
-              };
-              writePlaytime(data);
+              if (!launchFailed) {
+                data[id] = {
+                    totalMs: prev.totalMs + durationMs,
+                    lastPlayedAt: Date.now(),
+                    sessions: prev.sessions + 1,
+                };
+                writePlaytime(data);
+              }
 
               if (platformSession?.id) {
                 const ended = await endPlatformSessionWithRetry(platformSession.id);
@@ -3874,7 +3925,7 @@ secureIpcHandle(
 
               if (effectiveCloudSavesEnabled && picoIntegrationEnabled && cloudSave?.target) {
                 try {
-                  await uploadCloudSave(id, cloudSave);
+                  await uploadCloudSave(id, cloudSave, sessionUserId);
                 } catch (error) {
                   console.warn("[Achievements] Final cloud-save upload failed:", error?.message || error);
                 }
@@ -3905,28 +3956,69 @@ secureIpcHandle(
               }
           };
 
-          child.once("exit", finish);
-          child.once("error", finish);
+          // Replay an exit that occurred while the async setup above ran.
+          // This is also the only listener that finalizes the game session.
+          gameProcess.onEnd((state) => {
+            void finish(state).catch((error) => {
+              console.error('[Game] Could not complete session cleanup:', error);
+            });
+          });
+
+          if (!finished && picoIntegrationEnabled && cloudSave?.target && achievementDefinitions.length) {
+            try {
+              await primeAchievementTracking();
+            } catch (error) {
+              achievementLog("tracking_prime_error", {
+                gameId: id,
+                save: cloudSave?.target || null,
+                message: error?.message || String(error),
+              });
+            }
+            // Exit may occur while the asynchronous catalog/save request runs.
+            // Never start polling timers again after finish() stopped a game.
+            if (!finished) {
+              achievementTimer = setInterval(() => {
+                checkGameAchievements().catch(() => {});
+              }, 500);
+
+              achievementEventTimer = setInterval(() => {
+                pollLiveAchievementEvents().catch(() => {});
+              }, 100);
+              pollLiveAchievementEvents().catch(() => {});
+            }
+          }
 
           return { pid: child.pid, startedAt };
       },
   );
 
   secureIpcHandle("deadsmile:delete-game", async (_event, request) => {
-    const payload = request && typeof request === "object" && !Array.isArray(request)
-      ? request
-      : { target: request };
+    const payload = request && typeof request === "object" && !Array.isArray(request) ? request : {};
     const gameId = String(payload.id || "");
-    if (UUID_PATTERN.test(gameId) && playSessions.has(gameId)) return "Game is currently running.";
-    const targetPath = await resolveExistingPathInsideRoot(GAMES_DIR, payload.target);
-    if (!targetPath) return "Invalid game path.";
+    if (!UUID_PATTERN.test(gameId)) return "Invalid game ID.";
+    if (playSessions.has(gameId)) return "Game is currently running.";
+    const queued = downloadQueue.jobs.get(gameId);
+    if (queued && !["complete", "failed"].includes(queued.status)) return "Game download or update is in progress.";
+    const metadata = await trustedGameMetadata(gameId, payload.slug);
+    if (!metadata?.slug) return "The game identity could not be verified.";
+    const expectedFolder = path.resolve(GAMES_DIR, sanitizeName(metadata.slug));
+    if (!isPathInside(GAMES_DIR, expectedFolder) || typeof payload.target !== "string") return "Invalid game path.";
+    const supplied = path.resolve(payload.target);
+    if (supplied !== expectedFolder && !isPathInside(expectedFolder, supplied)) return "Game path does not match this game.";
     try {
-      await fsp.rm(targetPath, { recursive: true, force: true });
-      if (UUID_PATTERN.test(gameId)) {
-        await removeGameDesktopShortcuts(gameId).catch((error) => {
-          console.warn("[Shortcut] Could not remove game desktop shortcut:", error?.message || error);
-        });
+      const stat = await fsp.lstat(expectedFolder).catch((error) => {
+        if (error?.code === "ENOENT") return null;
+        throw error;
+      });
+      if (stat) {
+        if (!stat.isDirectory() || stat.isSymbolicLink()) return "Unsafe game directory.";
+        const safeFolder = await resolveExistingPathInsideRoot(GAMES_DIR, expectedFolder);
+        if (!safeFolder || path.resolve(safeFolder) !== expectedFolder) return "Unsafe game directory.";
+        await fsp.rm(safeFolder, { recursive: true, force: true });
       }
+      await removeGameDesktopShortcuts(gameId).catch((error) => {
+        console.warn("[Shortcut] Could not remove game shortcut:", error?.message || error);
+      });
       return "";
     } catch (error) {
       return error?.message || "Unable to delete the local game.";

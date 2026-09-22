@@ -15,7 +15,13 @@ class DownloadQueue {
     }
 
     enqueue({ id, slug, title, url, itchGameId = null, preferredItchChannel = null, commerceEnabled = false, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
-        if (this.jobs.has(id)) return this.jobs.get(id).promise;
+        const previous = this.jobs.get(id);
+        if (previous && previous.status !== 'failed') return previous.promise;
+        // An unsuccessful attempt must not prevent the user from retrying.
+        if (previous) {
+            this.jobs.delete(id);
+            this.order = this.order.filter((itemId) => itemId !== id);
+        }
 
         let resolve, reject;
         const promise = new Promise((res, rej) => {
@@ -236,6 +242,7 @@ class DownloadQueue {
             job._reject?.(err);
 
             setTimeout(() => {
+                if (this.jobs.get(id) !== job) return;
                 this.jobs.delete(id);
                 this.order = this.order.filter((x) => x !== id);
                 this._emit();
@@ -243,22 +250,8 @@ class DownloadQueue {
             this._pump();
             return;
         }
-        if (job.aborted) {
-            if (this.jobs.get(id) === job) this.jobs.delete(id);
-            this.order = this.order.filter((x) => x !== id);
-            job._reject?.(new Error("Cancelled"));
-            this._emit();
-            this._pump();
-            return;
-        }
-
-        if (job.paused) {
-            job.status = "paused";
-            this._emit();
-            this._pump();
-            return;
-        }
-
+        // A successfully finished worker has committed its installation.
+        // A late pause/cancel must not discard that result or leave its promise pending.
         job.status = "complete";
         job.percent = 100;
         job.result = result;

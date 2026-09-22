@@ -6001,8 +6001,6 @@ useEffect(() => {
         if (libraryResult.status === "fulfilled") {
             const ownedGames = listFrom(libraryResult.value, "items").filter((item) => item?.id);
             setEntitlements(new Set(ownedGames.map((item) => item.id)));
-            // The public catalog is paged. Paid titles in later pages must still
-            // appear in this account's library, without entering the public cache.
             setGames((current) => {
                 const byId = new Map(current.map((item) => [String(item.id), item]));
                 for (const item of ownedGames) {

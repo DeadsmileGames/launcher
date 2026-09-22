@@ -1,6 +1,3 @@
-// Verify the filesystem rather than trusting the install record stored by the renderer.
-// Only ENOENT is evidence that an installation was removed; permission/I/O errors
-// must not silently delete the player's install record.
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
@@ -15,14 +12,11 @@ async function verifyGameInstallation(root, entry) {
   const executable = path.resolve(entry.path);
   if (!inside(directory, executable) || path.extname(executable).toLowerCase() !== '.exe') return 'invalid';
   const components = path.relative(directory, executable).split(path.sep);
-  // Each game is installed in its own immediate child directory.
   if (components.length < 2 || components[0] === '.deadsmile-staging') return 'invalid';
   const gameFolder = path.join(directory, components[0]);
   if (entry.folderPath && path.resolve(entry.folderPath) !== gameFolder) return 'invalid';
   let current = directory;
   try {
-    // An inaccessible/missing library root may be a disconnected drive, not
-    // evidence that the user removed every game in it.
     const rootStat = await fs.lstat(directory).catch(() => null);
     if (!rootStat) return 'unavailable';
     if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return 'invalid';

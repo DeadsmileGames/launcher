@@ -1,6 +1,3 @@
-// Attach this monitor immediately after spawn().  A game that exits during
-// asynchronous achievement/save initialization must not leave its session
-// indefinitely marked as running.
 function monitorGameProcess(child) {
   if (!child || typeof child.once !== 'function') {
     throw new TypeError('A child process is required.');
@@ -16,8 +13,6 @@ function monitorGameProcess(child) {
 
   child.once('spawn', () => { spawned = true; });
   child.once('exit', (code, signal) => record({ code, signal, error: null }));
-  // A failed spawn emits error and close, but is not guaranteed to emit exit.
-  // An error on an already spawned process is not necessarily an exit.
   child.on('error', (error) => {
     if (!spawned) record({ code: null, signal: null, error });
   });

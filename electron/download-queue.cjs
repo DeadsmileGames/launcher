@@ -17,7 +17,6 @@ class DownloadQueue {
     enqueue({ id, slug, title, url, itchGameId = null, preferredItchChannel = null, commerceEnabled = false, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
         const previous = this.jobs.get(id);
         if (previous && previous.status !== 'failed') return previous.promise;
-        // An unsuccessful attempt must not prevent the user from retrying.
         if (previous) {
             this.jobs.delete(id);
             this.order = this.order.filter((itemId) => itemId !== id);
@@ -250,8 +249,6 @@ class DownloadQueue {
             this._pump();
             return;
         }
-        // A successfully finished worker has committed its installation.
-        // A late pause/cancel must not discard that result or leave its promise pending.
         job.status = "complete";
         job.percent = 100;
         job.result = result;

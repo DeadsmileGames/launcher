@@ -4,9 +4,6 @@ async function exists(target) {
   try { await fs.lstat(target); return true; }
   catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
 }
-
-// Source and destination must be on the same volume. Do not overwrite an
-// unresolved backup: it may be the player's only recoverable installation.
 async function swapWithBackup({ gameFolder, stagingFolder, validateInstalled, checkInterrupted = () => {} }) {
   const backupFolder = `${gameFolder}.old`;
   if (await exists(backupFolder)) {
@@ -38,8 +35,6 @@ async function swapWithBackup({ gameFolder, stagingFolder, validateInstalled, ch
     }
     throw error;
   }
-  // Point of commitment. A late cancellation cannot invalidate this result.
-  // Backup cleanup is best-effort and must not roll back a valid install.
   if (movedOld) {
     try { await fs.rm(backupFolder, { recursive: true, force: true }); }
     catch (error) { console.warn('[Install] Preserved old installation backup:', error?.message || error); }

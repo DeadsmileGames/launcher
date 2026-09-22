@@ -303,8 +303,6 @@ async function authenticatedUserId() {
 
 async function attemptQueuedAchievementUnlock(gameId, key, userId) {
   if (!UUID_PATTERN.test(String(userId || ""))) return false;
-  // A game may continue running after logout. Never submit its pending events
-  // using a different player's active cookie.
   if ((await authenticatedUserId()) !== userId) return false;
   markQueuedAchievementAttempt(gameId, key, userId);
   try {
@@ -1338,22 +1336,55 @@ function mergePicoAchievementFlags(remoteFileBytes, localFileBytes) {
   return Buffer.from(formatted, "utf8");
 }
 
+
 function validatedCloudSaveBytes(remote) {
   const encoded = String(remote?.payload || "");
-  if (!encoded || encoded.length > 350_000 || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) {
+
+  if (
+    !encoded ||
+    encoded.length > 1368 ||
+    encoded.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)
+  ) {
     throw new Error("CLOUD_SAVE_INVALID_PAYLOAD");
   }
+
   const bytes = Buffer.from(encoded, "base64");
-  if (!bytes.length || bytes.length > 256 * 1024 || bytes.toString("base64").replace(/=+$/, "") !== encoded.replace(/=+$/, "")) {
+
+  if (
+    !bytes.length ||
+    bytes.length > 1024 ||
+    bytes.toString("base64").replace(/=+$/, "") !==
+      encoded.replace(/=+$/, "")
+  ) {
     throw new Error("CLOUD_SAVE_INVALID_PAYLOAD");
   }
-  const expectedHash = String(remote?.sha256 || "").toLowerCase();
-  if (/^[a-f0-9]{64}$/.test(expectedHash)) {
-    const actualHash = crypto.createHash("sha256").update(bytes).digest("hex");
-    if (actualHash !== expectedHash) throw new Error("CLOUD_SAVE_CHECKSUM_MISMATCH");
+
+  const content = bytes
+    .toString("latin1")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n$/, "");
+
+  if (!/^(?:[0-9a-fA-F]{64}\n){7}[0-9a-fA-F]{64}$/.test(content)) {
+    throw new Error("CLOUD_SAVE_INVALID_PAYLOAD");
   }
+
+  const expectedHash = String(remote?.sha256 || "").toLowerCase();
+
+  if (/^[a-f0-9]{64}$/.test(expectedHash)) {
+    const actualHash = crypto
+      .createHash("sha256")
+      .update(bytes)
+      .digest("hex");
+
+    if (actualHash !== expectedHash) {
+      throw new Error("CLOUD_SAVE_CHECKSUM_MISMATCH");
+    }
+  }
+
   return bytes;
 }
+
 
 async function preserveCloudSaveConflict(gameId, state, knownRemote = null) {
   const target = await safePicoSaveTarget(state?.target);
@@ -1425,8 +1456,6 @@ async function restoreCloudSave(gameId, template, title = null) {
       if (localBytes && !localBytes.equals(bytes)) {
         const preserved = await preserveCloudSaveConflict(gameId, { target }, remote);
         if (!preserved?.localBackup) throw new Error('CLOUD_SAVE_BACKUP_FAILED');
-        // Retain the former local version as a recoverable copy while loading
-        // the newer cloud revision, just as the pre-existing restore flow did.
       }
       await fsp.mkdir(path.dirname(target), { recursive: true });
       const temporaryTarget = `${target}.${crypto.randomBytes(8).toString('hex')}.tmp`;
@@ -1441,36 +1470,106 @@ async function restoreCloudSave(gameId, template, title = null) {
   return { target, revision: remote.revision ?? null, conflict: false };
 }
 
+
 async function uploadCloudSave(gameId, state, sessionUserId) {
   if (state?.conflict) {
     return {
       ok: false,
       status: 409,
-      data: { error: { code: "SAVE_CONFLICT", message: "Cloud save conflict requires review." } },
+      data: {
+        error: {
+          code: "SAVE_CONFLICT",
+          message: "Cloud save conflict requires review."
+        }
+      }
     };
   }
+
   const target = await safePicoSaveTarget(state?.target);
+
   if (!target || !(await pathExists(target))) return null;
-  if (!UUID_PATTERN.test(String(sessionUserId || '')) || (await authenticatedUserId()) !== sessionUserId) {
-    return { ok: false, status: 409, data: { error: { code: 'ACCOUNT_CHANGED' } } };
+
+  if (
+    !UUID_PATTERN.test(String(sessionUserId || "")) ||
+    (await authenticatedUserId()) !== sessionUserId
+  ) {
+    return {
+      ok: false,
+      status: 409,
+      data: {
+        error: {
+          code: "ACCOUNT_CHANGED"
+        }
+      }
+    };
+  }
+  const filename = path.basename(target);
+  if (!/^[a-z0-9_-]{1,64}\.p8d\.txt$/i.test(filename)) {
+    return {
+      ok: false,
+      status: 400,
+      data: {
+        error: {
+          code: "SAVE_INVALID",
+          message: "Only valid PICO-8 .p8d.txt files are allowed."
+        }
+      }
+    };
   }
   const bytes = await fsp.readFile(target);
-  if (!bytes.length || bytes.length > 256 * 1024) return null;
-  const result = await protectedApi(`/platform/saves/${gameId}/default`, "PUT", {
-    payload: bytes.toString("base64"),
-    revision: state.revision,
-    expectedUserId: sessionUserId,
-  });
+  if (!bytes.length || bytes.length > 1024) {
+    return {
+      ok: false,
+      status: 400,
+      data: {
+        error: {
+          code: "SAVE_INVALID",
+          message: "The PICO-8 save file has an invalid size."
+        }
+      }
+    };
+  }
+  const content = bytes
+    .toString("latin1")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n$/, "");
+  if (!/^(?:[0-9a-fA-F]{64}\n){7}[0-9a-fA-F]{64}$/.test(content)) {
+    return {
+      ok: false,
+      status: 400,
+      data: {
+        error: {
+          code: "SAVE_INVALID",
+          message: "The file does not have a valid PICO-8 save format."
+        }
+      }
+    };
+  }
+  const result = await protectedApi(
+    `/platform/saves/${gameId}/default`,
+    "PUT",
+    {
+      filename,
+      payload: bytes.toString("base64"),
+      revision: state.revision,
+      expectedUserId: sessionUserId
+    }
+  );
   const saved = result?.data?.data;
   if (result?.ok && saved?.revision != null) {
     state.revision = saved.revision;
     state.conflict = false;
     state.remoteRevision = null;
-  } else if (result?.status === 409 && result?.data?.error?.code === "SAVE_CONFLICT") {
+  } else if (
+    result?.status === 409 &&
+    result?.data?.error?.code === "SAVE_CONFLICT"
+  ) {
     await preserveCloudSaveConflict(gameId, state);
   }
+
   return result;
 }
+
 
 async function readPicoNumber(target, index) {
   try {
@@ -2071,8 +2170,6 @@ async function runDownloadWorker(job, ctx) {
   await fsp.mkdir(GAMES_DIR, { recursive: true });
 
   if (playSessions.has(id)) throw new Error("GAME_RUNNING");
-
-  // Keep the staging folder on the destination volume so rename can commit it.
   const downloadRoot = path.join(GAMES_DIR, ".deadsmile-staging");
   await assertSafeManagedGameDirectory(downloadRoot, { allowMissing: true });
   await fsp.mkdir(downloadRoot, { recursive: true });
@@ -2317,8 +2414,6 @@ async function updateLauncher(sender) {
       "utf8",
     );
   } catch {}
-
-  // A new game/download may have started while the update was being prepared.
   if (updateUnsafe()) throw new Error('A game or download started during update preparation.');
   send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
@@ -3503,8 +3598,6 @@ secureIpcHandle(
               const restored = await restoreCloudSave(id, safeSavePathTemplate, safeTitle);
               if (restored?.target) cloudSave = restored;
             } catch (error) {
-              // An unavailable remote save is not an empty slot: suppress upload
-              // until the remote revision can be checked on a subsequent launch.
               if (cloudSave) cloudSave.conflict = true;
               console.warn("[Achievements] Cloud-save restore failed; local tracking remains active:", error?.message || error);
             }
@@ -3562,9 +3655,6 @@ secureIpcHandle(
               windowsHide: false,
               cwd: path.dirname(resolvedExe),
             });
-            // Must be installed before awaiting the spawn event: Windows can
-            // launch an .exe successfully and terminate it immediately if a
-            // DLL is missing. EventEmitter does not replay an earlier exit.
             gameProcess = monitorGameProcess(child);
             await new Promise((resolve, reject) => {
               const onSpawn = () => {
@@ -3955,9 +4045,6 @@ secureIpcHandle(
                   }
               }
           };
-
-          // Replay an exit that occurred while the async setup above ran.
-          // This is also the only listener that finalizes the game session.
           gameProcess.onEnd((state) => {
             void finish(state).catch((error) => {
               console.error('[Game] Could not complete session cleanup:', error);
@@ -3974,8 +4061,6 @@ secureIpcHandle(
                 message: error?.message || String(error),
               });
             }
-            // Exit may occur while the asynchronous catalog/save request runs.
-            // Never start polling timers again after finish() stopped a game.
             if (!finished) {
               achievementTimer = setInterval(() => {
                 checkGameAchievements().catch(() => {});

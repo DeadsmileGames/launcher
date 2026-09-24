@@ -16,6 +16,7 @@ import {
     ArrowClockwise,
     Bell,
     CaretRight,
+    Eye,
     CheckCircle,
     CurrencyDollarIcon,
     Compass,
@@ -74,6 +75,7 @@ const LANGUAGES = [
 
 const COPY = {
     en: {
+        player: "Player",
         error: "Error",
         unableToUpdateWishlist: "Unable to update wishlist.",
         wasRemovedFromYourLibrary: "was removed from your library.",
@@ -81,6 +83,7 @@ const COPY = {
         viewGame: "View game",
         explore: "Explore",
         library: "Library",
+        privacy: "Privacy",
         wishlist: "Wishlist",
         account: "Account",
         manage: "Manage account",
@@ -180,6 +183,88 @@ const COPY = {
         needHelp: "Need help?",
         browseCatalog: "Browse the Deadsmile Games catalog.",
         yourDownloads: "Your downloaded Deadsmile Games.",
+        emailVerificationRequired:
+            "Your email has not been confirmed. Check your inbox or request another confirmation link.",
+
+        emailVerificationHelp:
+            "Didn't receive your verification email? Check your spam folder or request another link.",
+
+        resendingEmail: "Sending...",
+        resendVerificationEmail: "Resend verification email",
+
+        verificationEmailResent:
+            "If your account is awaiting verification, a new confirmation link has been sent.",
+
+        openLoginWebsite: "Open login on website",
+
+        unableToResendConfirmation:
+            "Unable to resend the confirmation email.",
+
+        emailConfirmationCooldown:
+            "Please wait one minute before requesting another confirmation email.",
+        accountEmailChangeDescription:
+            "Change your account email securely. Your current password and verification of the new address are required.",
+
+        currentEmail: "Current email",
+        newEmail: "New email",
+        currentAccountPassword: "Current account password",
+
+        differentEmailRequired:
+            "Enter a different email address.",
+
+        accountPasswordRequired:
+            "Enter your current account password.",
+
+        emailChangeRequested:
+            "A confirmation link has been sent to {email}. Your current email will remain active until you confirm the new address.",
+
+        unableToRequestEmailChange:
+            "Unable to request the email change.",
+
+        requestEmailChange: "Request email change",
+
+        invalidPasswordError:
+            "Your current account password is incorrect.",
+
+        emailTakenError:
+            "That email is already registered.",
+
+        emailNotVerifiedError:
+            "Confirm your current email before changing it.",
+        privacyDescription:
+            "Manage what other people can see on your public profile.",
+
+        loadingPrivacy:
+            "Loading privacy preferences...",
+
+        shareRecentGames:
+            "Share recently played games",
+
+        shareRecentGamesDescription:
+            "Allow other people to see which games you have played.",
+
+        showPlaytimeSessions:
+            "Show playtime and session count",
+
+        showPlaytimeSessionsDescription:
+            "Allow other people to see how long you have played and your completed sessions.",
+
+        shareAchievementsOption:
+            "Share achievements",
+
+        shareAchievementsDescription:
+            "Allow other people to see your unlocked achievements.",
+
+        privacySaved:
+            "Your privacy preferences have been saved.",
+
+        unableToLoadPrivacy:
+            "Unable to load privacy preferences.",
+
+        unableToSavePrivacy:
+            "Unable to save privacy preferences.",
+
+        savePrivacy: "Save privacy preferences",
         wishlistDesc: "Games you want to keep an eye on.",
         watchVideos:
             "Watch Deadsmile Games videos without leaving the launcher.",
@@ -395,12 +480,14 @@ const COPY = {
         purchased: "Purchased",
     },
     "pt-BR": {
+        player: "Jogador",
         error: "Erro",
         unableToUpdateWishlist: "Não foi possível atualizar a lista.",
         wasRemovedFromYourLibrary: "foi removido da sua biblioteca.",
         unableToDeleteLocalGame: "Não foi possível excluir o jogo local.",
         viewGame: "Ver jogo",
         explore: "Explorar",
+        privacy: "Privacidade",
         library: "Biblioteca",
         wishlist: "Lista de desejos",
         account: "Conta",
@@ -713,14 +800,98 @@ const COPY = {
         libraryUpdated: "Sua biblioteca do itch.io está atualizada.",
         accountDisconnected: "Sua conta itch.io foi desvinculada.",
         purchased: "Comprado",
+        emailVerificationRequired:
+            "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada ou solicite outro link de confirmação.",
+
+        emailVerificationHelp:
+            "Não recebeu o e-mail de confirmação? Verifique sua pasta de spam ou solicite outro link.",
+
+        resendingEmail: "Enviando...",
+        resendVerificationEmail: "Reenviar e-mail de confirmação",
+
+        verificationEmailResent:
+            "Se sua conta estiver aguardando confirmação, um novo link de verificação foi enviado.",
+
+        openLoginWebsite: "Abrir login no site",
+
+        unableToResendConfirmation:
+            "Não foi possível reenviar o e-mail de confirmação.",
+
+        emailConfirmationCooldown:
+            "Aguarde um minuto antes de solicitar outro e-mail de confirmação.",
+        accountEmailChangeDescription:
+            "Altere o e-mail da sua conta com segurança. É necessário informar sua senha atual e confirmar o novo endereço.",
+
+        currentEmail: "E-mail atual",
+        newEmail: "Novo e-mail",
+        currentAccountPassword: "Senha atual da conta",
+
+        differentEmailRequired:
+            "Informe um endereço de e-mail diferente.",
+
+        accountPasswordRequired:
+            "Informe a senha atual da sua conta.",
+
+        emailChangeRequested:
+            "Um link de confirmação foi enviado para {email}. Seu e-mail atual continuará ativo até que você confirme o novo endereço.",
+
+        unableToRequestEmailChange:
+            "Não foi possível solicitar a alteração de e-mail.",
+
+        requestEmailChange: "Solicitar alteração de e-mail",
+
+        invalidPasswordError:
+            "A senha atual da sua conta está incorreta.",
+
+        emailTakenError:
+            "Este e-mail já está cadastrado.",
+
+        emailNotVerifiedError:
+            "Confirme seu e-mail atual antes de alterá-lo.",
+        privacyDescription:
+            "Gerencie o que outras pessoas podem ver no seu perfil público.",
+
+        loadingPrivacy:
+            "Carregando preferências de privacidade...",
+
+        shareRecentGames:
+            "Compartilhar jogos recentes",
+
+        shareRecentGamesDescription:
+            "Permitir que outras pessoas vejam quais jogos você jogou.",
+
+        showPlaytimeSessions:
+            "Mostrar tempo de jogo e número de sessões",
+
+        showPlaytimeSessionsDescription:
+            "Permitir que outras pessoas vejam quanto tempo você jogou e quantas sessões concluiu.",
+
+        shareAchievementsOption:
+            "Compartilhar conquistas",
+
+        shareAchievementsDescription:
+            "Permitir que outras pessoas vejam suas conquistas desbloqueadas.",
+
+        privacySaved:
+            "Suas preferências de privacidade foram salvas.",
+
+        unableToLoadPrivacy:
+            "Não foi possível carregar as preferências de privacidade.",
+
+        unableToSavePrivacy:
+            "Não foi possível salvar as preferências de privacidade.",
+
+        savePrivacy: "Salvar preferências de privacidade",
     },
     es: {
+        player: "Jugador",
         error: "Error",
         unableToUpdateWishlist: "No se pudo actualizar la lista.",
         wasRemovedFromYourLibrary: "se eliminó de tu biblioteca.",
         unableToDeleteLocalGame: "No se pudo eliminar el juego local.",
         viewGame: "Ver juego",
         explore: "Explorar",
+        privacy: "Privacidad",
         library: "Biblioteca",
         wishlist: "Lista de deseos",
         account: "Cuenta",
@@ -1032,6 +1203,88 @@ const COPY = {
         libraryUpdated: "Tu biblioteca de itch.io está actualizada.",
         accountDisconnected: "Tu cuenta de itch.io fue desconectada.",
         purchased: "Comprado",
+        emailVerificationRequired:
+            "Tu correo electrónico aún no ha sido confirmado. Revisa tu bandeja de entrada o solicita otro enlace de confirmación.",
+
+        emailVerificationHelp:
+            "¿No recibiste el correo de confirmación? Revisa tu carpeta de spam o solicita otro enlace.",
+
+        resendingEmail: "Enviando...",
+        resendVerificationEmail: "Reenviar correo de confirmación",
+
+        verificationEmailResent:
+            "Si tu cuenta está pendiente de confirmación, se ha enviado un nuevo enlace de verificación.",
+
+        openLoginWebsite: "Abrir inicio de sesión en el sitio web",
+
+        unableToResendConfirmation:
+            "No se pudo reenviar el correo de confirmación.",
+
+        emailConfirmationCooldown:
+            "Espera un minuto antes de solicitar otro correo de confirmación.",
+        accountEmailChangeDescription:
+            "Cambia el correo electrónico de tu cuenta de forma segura. Debes introducir tu contraseña actual y confirmar la nueva dirección.",
+
+        currentEmail: "Correo electrónico actual",
+        newEmail: "Nuevo correo electrónico",
+        currentAccountPassword: "Contraseña actual de la cuenta",
+
+        differentEmailRequired:
+            "Introduce una dirección de correo electrónico diferente.",
+
+        accountPasswordRequired:
+            "Introduce la contraseña actual de tu cuenta.",
+
+        emailChangeRequested:
+            "Se ha enviado un enlace de confirmación a {email}. Tu correo electrónico actual permanecerá activo hasta que confirmes la nueva dirección.",
+
+        unableToRequestEmailChange:
+            "No se pudo solicitar el cambio de correo electrónico.",
+
+        requestEmailChange: "Solicitar cambio de correo electrónico",
+
+        invalidPasswordError:
+            "La contraseña actual de tu cuenta es incorrecta.",
+
+        emailTakenError:
+            "Este correo electrónico ya está registrado.",
+
+        emailNotVerifiedError:
+            "Confirma tu correo electrónico actual antes de cambiarlo.",
+        privacyDescription:
+            "Gestiona lo que otras personas pueden ver en tu perfil público.",
+
+        loadingPrivacy:
+            "Cargando preferencias de privacidad...",
+
+        shareRecentGames:
+            "Compartir juegos recientes",
+
+        shareRecentGamesDescription:
+            "Permitir que otras personas vean a qué juegos has jugado.",
+
+        showPlaytimeSessions:
+            "Mostrar tiempo de juego y número de sesiones",
+
+        showPlaytimeSessionsDescription:
+            "Permitir que otras personas vean cuánto tiempo has jugado y cuántas sesiones has completado.",
+
+        shareAchievementsOption:
+            "Compartir logros",
+
+        shareAchievementsDescription:
+            "Permitir que otras personas vean tus logros desbloqueados.",
+
+        privacySaved:
+            "Tus preferencias de privacidad se han guardado.",
+
+        unableToLoadPrivacy:
+            "No se pudieron cargar las preferencias de privacidad.",
+
+        unableToSavePrivacy:
+            "No se pudieron guardar las preferencias de privacidad.",
+
+        savePrivacy: "Guardar preferencias de privacidad",
     },
 };
 
@@ -1083,7 +1336,7 @@ function writePublicContentCache({ games, news, videos }) {
             }),
         );
         localStorage.removeItem(LEGACY_CONTENT_CACHE_KEY);
-    } catch {}
+    } catch { }
 }
 
 function userCacheKey(userId) {
@@ -1111,13 +1364,13 @@ function writeUserContentCache(userId, { wishlistIds }) {
                 wishlistIds: Array.isArray(wishlistIds) ? wishlistIds : [],
             }),
         );
-    } catch {}
+    } catch { }
 }
 
 function clearUserContentCache(userId) {
     const key = userCacheKey(userId);
     if (!key) return;
-    try { localStorage.removeItem(key); } catch {}
+    try { localStorage.removeItem(key); } catch { }
 }
 
 function useOnline() {
@@ -1205,9 +1458,9 @@ function imageOf(game) {
 function heroOf(game) {
     return assetUrl(
         game?.heroImage ||
-            game?.hero_image ||
-            game?.coverImage ||
-            game?.cover_image,
+        game?.hero_image ||
+        game?.coverImage ||
+        game?.cover_image,
         FALLBACK_HERO,
     );
 }
@@ -1324,7 +1577,7 @@ function usePlaytime() {
                     setPlaytime(data);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
 
         const off = window.deadsmile.onPlaytimeUpdate?.((data) => {
             if (data && typeof data === "object") setPlaytime(data);
@@ -1351,7 +1604,7 @@ function useDownloadQueue() {
             .then((snap) => {
                 if (alive && Array.isArray(snap)) setQueue(snap);
             })
-            .catch(() => {});
+            .catch(() => { });
 
         const off = window.deadsmile.onDownloadQueue((next) => {
             if (Array.isArray(next)) setQueue(next);
@@ -1399,7 +1652,7 @@ function rememberImage(key, value) {
         imageCache.delete(oldKey);
         try {
             URL.revokeObjectURL(oldUrl);
-        } catch {}
+        } catch { }
     }
 }
 
@@ -1435,25 +1688,25 @@ function SmartImage({ src, fallback, alt = "", className = "", ...props }) {
                 return;
             }
 
-                const isOurOrigin = (() => {
-                    try {
-                        const u = new URL(original);
-                        return (
-                            u.origin === API_ASSET_ROOT ||
-                            u.origin === SITE_URL ||
-                            u.hostname === "deadsmile.vercel.app" ||
-                            u.hostname.endsWith(".deadsmile.vercel.app")
-                        );
-                    } catch {
-                        return false;
-                    }
-                })();
-
-                if (!isOurOrigin) {
-                    setCurrent(original);
-                    setReady(true);
-                    return;
+            const isOurOrigin = (() => {
+                try {
+                    const u = new URL(original);
+                    return (
+                        u.origin === API_ASSET_ROOT ||
+                        u.origin === SITE_URL ||
+                        u.hostname === "deadsmile.vercel.app" ||
+                        u.hostname.endsWith(".deadsmile.vercel.app")
+                    );
+                } catch {
+                    return false;
                 }
+            })();
+
+            if (!isOurOrigin) {
+                setCurrent(original);
+                setReady(true);
+                return;
+            }
 
             try {
                 const response = await fetch(original, {
@@ -1600,8 +1853,8 @@ function LoadingBar({ label, percent, indeterminate = false }) {
                         indeterminate
                             ? undefined
                             : {
-                                  width: `${Math.max(0, Math.min(100, percent || 0))}%`,
-                              }
+                                width: `${Math.max(0, Math.min(100, percent || 0))}%`,
+                            }
                     }
                 />
             </div>
@@ -1731,9 +1984,9 @@ function DownloadPanel({
                         } else if (item.status === "queued") {
                             subtitle = `${t("downloadQueuePosition")} (#${item.queuePosition + 1})`
                         } else if (item.status === "paused") {
-                            subtitle = 	t("downloadPaused");
+                            subtitle = t("downloadPaused");
                         } else if (item.status === "complete") {
-                            subtitle = 	t("downloadCompleted");
+                            subtitle = t("downloadCompleted");
                         } else if (item.status === "failed") {
                             subtitle = `${t("downloadFailedLabel")}: ${item.error || t("error")}`;
                         }
@@ -1823,12 +2076,12 @@ function Boot() {
     return (
         <div className="boot-screen">
             <div className="boot-status">
-                
+
                 <div className="boot-loading-bar">
-                <svg viewBox="0 0 48 48">
-                    <circle className="boot-loading-track" cx="24" cy="24" r="19" />
-                    <circle className="boot-loading-arc" cx="24" cy="24" r="19" />
-                </svg>
+                    <svg viewBox="0 0 48 48">
+                        <circle className="boot-loading-track" cx="24" cy="24" r="19" />
+                        <circle className="boot-loading-arc" cx="24" cy="24" r="19" />
+                    </svg>
                 </div>
 
             </div>
@@ -1842,7 +2095,7 @@ function useLauncherVersion() {
         let alive = true;
         window.deadsmile?.version?.().then?.((value) => {
             if (alive) setVersion(String(value || ""));
-        }).catch?.(() => {});
+        }).catch?.(() => { });
         return () => { alive = false; };
     }, []);
     return version;
@@ -1857,26 +2110,76 @@ function Login({ onAuthenticated }) {
     const [twoFactor, setTwoFactor] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [
+        needsEmailVerification,
+        setNeedsEmailVerification,
+    ] = useState(false);
+
+    const [resendingEmail, setResendingEmail] =
+        useState(false);
+
+    const [emailResent, setEmailResent] =
+        useState(false);
     async function submit(e) {
         e.preventDefault();
+
         setError("");
+        setNeedsEmailVerification(false);
+        setEmailResent(false);
+
         setLoading(true);
         try {
             const result = twoFactor
                 ? await api.post("/auth/verify-2fa", {
-                      token: token.replace(/\D/g, "").slice(0, 6),
-                  })
+                    token: token.replace(/\D/g, "").slice(0, 6),
+                })
                 : await api.post("/auth/mobile-login", { email, password });
             if (!twoFactor && result?.requiresTwoFactor) {
                 setTwoFactor(true);
                 setToken("");
             } else onAuthenticated(result);
         } catch (err) {
-            setError(err?.message || t("unableToSignIn"));
+            if (err?.code === "EMAIL_NOT_VERIFIED") {
+                setNeedsEmailVerification(true);
+
+                setError(t("emailVerificationRequired"));
+            } else {
+                setNeedsEmailVerification(false);
+
+                setError(t("unableToSignIn"));
+            }
         } finally {
             setLoading(false);
         }
     }
+
+    async function resendConfirmationEmail() {
+        if (resendingEmail || !email || !password) {
+            return;
+        }
+
+        setResendingEmail(true);
+        setEmailResent(false);
+        setError("");
+
+        try {
+            await api.post("/auth/resend-email", {
+                email: email.trim().toLowerCase(),
+                password,
+            });
+
+            setEmailResent(true);
+        } catch (err) {
+            setError(
+                err?.code === "EMAIL_CONFIRMATION_COOLDOWN"
+                    ? t("emailConfirmationCooldown")
+                    : t("unableToResendConfirmation")
+            );
+        } finally {
+            setResendingEmail(false);
+        }
+    }
+
     return (
         <main className="login-screen">
             <div className="login-art" />
@@ -1896,6 +2199,46 @@ function Login({ onAuthenticated }) {
                         {error}
                     </div>
                 )}
+
+                {needsEmailVerification && !twoFactor && (
+                    <div
+                        className="email-verification-notice"
+                        role="status"
+                    >
+                        <p>
+                            {t("emailVerificationHelp")}
+                        </p>
+
+                        <button
+                            type="button"
+                            className="soft-button"
+                            disabled={resendingEmail}
+                            onClick={resendConfirmationEmail}
+                        >
+                            {resendingEmail
+                                ? t("resendingEmail")
+                                : t("resendVerificationEmail")}
+                        </button>
+
+                        {emailResent && (
+                            <p className="success-text">
+                                {t("verificationEmailResent")}
+                            </p>
+                        )}
+
+                        <button
+                            type="button"
+                            className="soft-button"
+                            onClick={() =>
+                                openExternal(`${SITE_URL}/login`)
+                            }
+                        >
+                            {t("openLoginWebsite")}
+                            <ArrowUpRight size={16} />
+                        </button>
+                    </div>
+                )}
+
                 <form onSubmit={submit}>
                     {!twoFactor ? (
                         <>
@@ -1950,8 +2293,8 @@ function Login({ onAuthenticated }) {
                         {loading
                             ? t("signingIn")
                             : twoFactor
-                              ? t("verifySignIn")
-                              : t("signIn")}
+                                ? t("verifySignIn")
+                                : t("signIn")}
                     </button>
                 </form>
                 <div className="login-links">
@@ -2006,13 +2349,13 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language, openLin
                         <span>{text(language, "manage")}</span>
                     </button>
                 )}
-                    <button
-                        className="nav-item social-nav"
-                        onClick={openLinks}
-                    >
-                        <LinkSimple size={21} />
-                        <span>{text(language, "linksSocials")}</span>
-                    </button>
+                <button
+                    className="nav-item social-nav"
+                    onClick={openLinks}
+                >
+                    <LinkSimple size={21} />
+                    <span>{text(language, "linksSocials")}</span>
+                </button>
                 <button
                     className={
                         active === "account"
@@ -2033,7 +2376,7 @@ function Sidebar({ active, setActive, user, logout, openAdmin, language, openLin
                         )}
                     </div>
                     <div className="profile-copy">
-                        <strong>{user?.username || "Player"}</strong>
+                        <strong>{user?.username || t("player")}</strong>
                         <span>{text(language, "account")}</span>
                     </div>
                     <CaretRight size={16} />
@@ -2195,8 +2538,8 @@ function SearchBar({ query, setQuery, results, openGame }) {
                                         {item.type === "game"
                                             ? t("game")
                                             : item.type === "video"
-                                              ? t("video")
-                                              : t("newswire")}
+                                                ? t("video")
+                                                : t("newswire")}
                                     </small>
                                 </span>
                                 <CaretRight size={15} />
@@ -2263,18 +2606,18 @@ function invalidateGameUpdateCache(gameId = null) {
 }
 
 function versionFromLocalFilename(filename) {
-  const base = String(filename || "").trim();
+    const base = String(filename || "").trim();
 
-  const matches = [...base.matchAll(/v(\d{3})(?!\d)/gi)];
+    const matches = [...base.matchAll(/v(\d{3})(?!\d)/gi)];
 
-  if (!matches.length) {
-    return null;
-  }
+    if (!matches.length) {
+        return null;
+    }
 
-  return String(Number.parseInt(
-    matches[matches.length - 1][1],
-    10
-  ));
+    return String(Number.parseInt(
+        matches[matches.length - 1][1],
+        10
+    ));
 }
 function useGameUpdateStatus(game, installedEntry) {
     const [state, setState] = useState({ available: false, checking: false });
@@ -3230,7 +3573,7 @@ function CloudSaveMenu({ game, compact = false }) {
             aria-expanded={open}
             title={compact ? t("cloudSaves") : undefined}
         >
-            <FloppyDisk size={16} weight="bold"/>
+            <FloppyDisk size={16} weight="bold" />
             {!compact && <span>{t("cloudSaves")}</span>}
         </button>
         {open && <Portal>
@@ -3248,7 +3591,7 @@ function CloudSaveMenu({ game, compact = false }) {
                     <header className="cloud-save-dialog__head">
                         <div>
                             <small>{game.title}</small>
-                            <h3><FloppyDisk size={19}/>{t("cloudSaves")}</h3>
+                            <h3><FloppyDisk size={19} />{t("cloudSaves")}</h3>
                         </div>
                         <button
                             type="button"
@@ -3256,7 +3599,7 @@ function CloudSaveMenu({ game, compact = false }) {
                             onClick={() => setOpen(false)}
                             aria-label={t("close")}
                         >
-                            <X size={18}/>
+                            <X size={18} />
                         </button>
                     </header>
                     <div className="cloud-save-dialog__body">
@@ -3276,7 +3619,7 @@ function CloudSaveMenu({ game, compact = false }) {
                                     aria-label={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")}
                                     title={pendingDeleteSlot === String(save.slot) ? t("deleteCloudSaveConfirm") : t("deleteCloudSave")}
                                 >
-                                    {deletingSlot === String(save.slot) ? <span className="cloud-save-spinner" aria-hidden="true"/> : <Trash size={15}/>}
+                                    {deletingSlot === String(save.slot) ? <span className="cloud-save-spinner" aria-hidden="true" /> : <Trash size={15} />}
                                 </button>
                             </div>
                         )) : (
@@ -3319,7 +3662,7 @@ function GameDetails({
         let alive = true;
         api.get(`/games/${encodeURIComponent(slugOf(game))}`)
             .then((data) => alive && setDetail(data))
-            .catch(() => {});
+            .catch(() => { });
         return () => {
             alive = false;
         };
@@ -3356,16 +3699,16 @@ function GameDetails({
 
         try {
             const result = await window.deadsmile.checkGameUpdate({
-            id: game.id,
-            slug: game.slug,
-            url: game.downloadUrl,
-            currentVersion:
-                installedEntry?.version ||
-                versionFromLocalFilename(installedEntry?.filename),
-            filename: installedEntry?.filename,
-            path: installedEntry?.path,
-            commerceEnabled: Boolean(game.commerceEnabled),
-            itchGameId: game.itchGameId || null,
+                id: game.id,
+                slug: game.slug,
+                url: game.downloadUrl,
+                currentVersion:
+                    installedEntry?.version ||
+                    versionFromLocalFilename(installedEntry?.filename),
+                filename: installedEntry?.filename,
+                path: installedEntry?.path,
+                commerceEnabled: Boolean(game.commerceEnabled),
+                itchGameId: game.itchGameId || null,
             });
 
             setManualUpdateCheck(result?.reason
@@ -3375,19 +3718,19 @@ function GameDetails({
                     : { error: t("updateCheckFailed") });
         } catch {
             setManualUpdateCheck({
-            error: t("updateCheckFailed"),
+                error: t("updateCheckFailed"),
             });
         } finally {
             setCheckingUpdate(false);
         }
-        }
+    }
     const screenshots = detail?.screenshots?.length
         ? detail.screenshots
         : Array.from(
-              { length: 6 },
-              (_, i) =>
-                  `${SITE_URL}/assets/games/screenshots/${detail?.slug || slugOf(detail)}/${i + 1}.png`,
-          );
+            { length: 6 },
+            (_, i) =>
+                `${SITE_URL}/assets/games/screenshots/${detail?.slug || slugOf(detail)}/${i + 1}.png`,
+        );
     const unlockedAchievements = achievements.filter(
         (item) => item.unlocked_at || item.unlockedAt,
     ).length;
@@ -3506,36 +3849,36 @@ function GameDetails({
                             </button>
                         )}
                         {installed?.path && (
-                        <button
-                            type="button"
-                            onClick={checkForGameUpdates}
-                            className="soft-button"
-                            disabled={checkingUpdate}
-                        >
-                            <ArrowClockwise size={16} />
-                            {checkingUpdate ? t("checkingUpdate") : t("checkForUpdates")}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={checkForGameUpdates}
+                                className="soft-button"
+                                disabled={checkingUpdate}
+                            >
+                                <ArrowClockwise size={16} />
+                                {checkingUpdate ? t("checkingUpdate") : t("checkForUpdates")}
+                            </button>
                         )}
                         {manualUpdateCheck?.error && (
                             <div>
                                 {manualUpdateCheck.error}
                             </div>
-                            )}
+                        )}
 
-                            {manualUpdateCheck && !manualUpdateCheck.error && (
+                        {manualUpdateCheck && !manualUpdateCheck.error && (
                             <div
                                 className="soft-button-2"
                                 style={{
                                     color: manualUpdateCheck.available
-                                    ? "#f4f4f5"
-                                    : "#858894",
+                                        ? "#f4f4f5"
+                                        : "#858894",
                                 }}
                             >
                                 {manualUpdateCheck.available
-                                ? `${t("updateAvailable")}: v${manualUpdateCheck.latestVersion}`
-                                : t("youAreUpToDate")}
+                                    ? `${t("updateAvailable")}: v${manualUpdateCheck.latestVersion}`
+                                    : t("youAreUpToDate")}
                             </div>
-                            )}
+                        )}
                     </div>
                 </div>
             </section>
@@ -3910,7 +4253,7 @@ function NewsDetail({ item, setView, goBack }) {
         if (!item?.slug) return;
         api.get(`/news/${encodeURIComponent(item.slug)}`)
             .then(setDetail)
-            .catch(() => {});
+            .catch(() => { });
     }, [item]);
     return (
         <div className="page">
@@ -3929,14 +4272,14 @@ function NewsDetail({ item, setView, goBack }) {
                     <p className="news-date">
                         {detail?.published_at
                             ? new Date(detail.published_at).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                      timeZone: "UTC",
-                                  }
-                              )
+                                "en-US",
+                                {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    timeZone: "UTC",
+                                }
+                            )
                             : ""}
                     </p>
                     <div className="rich-copy">
@@ -4140,9 +4483,40 @@ function Account({
     const [totp, setTotp] = useState({ enabled: false });
     const [totpLoading, setTotpLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [emailPassword, setEmailPassword] =
+        useState("");
+
+    const [emailSaving, setEmailSaving] =
+        useState(false);
+
+    const [emailMessage, setEmailMessage] =
+        useState("");
+
+    const [emailError, setEmailError] =
+        useState("");
     const [telemetryEnabled, setTelemetryEnabled] = useState(() => {
         try { return localStorage.getItem("deadsmile.telemetry") === "true"; } catch { return false; }
     });
+    const [privacy, setPrivacy] = useState({
+        shareGameActivity: false,
+        sharePlaytime: false,
+        shareAchievements: false,
+    });
+
+    const [privacyLoading, setPrivacyLoading] =
+        useState(false);
+
+    const [privacyLoaded, setPrivacyLoaded] =
+        useState(false);
+
+    const [privacySaving, setPrivacySaving] =
+        useState(false);
+
+    const [privacyError, setPrivacyError] =
+        useState("");
+
+    const [privacyMessage, setPrivacyMessage] =
+        useState("");
     const [gameViewSettings, setGameViewSettingsState] = useState({
         enabled: true,
         shortcut: "Control+D",
@@ -4163,8 +4537,60 @@ function Account({
     useEffect(() => {
         api.get("/account/totp/status")
             .then((d) => setTotp({ enabled: Boolean(d?.enabled) }))
-            .catch(() => {});
+            .catch(() => { });
     }, []);
+
+    useEffect(() => {
+        if (tab !== "privacy") {
+            return;
+        }
+
+        let active = true;
+
+        async function loadPrivacy() {
+            setPrivacyLoading(true);
+            setPrivacyLoaded(false);
+            setPrivacyError("");
+            setPrivacyMessage("");
+
+            try {
+                const result = await api.get(
+                    "/account/privacy"
+                );
+
+                if (!active) {
+                    return;
+                }
+
+                setPrivacy({
+                    shareGameActivity:
+                        Boolean(result.shareGameActivity),
+
+                    sharePlaytime:
+                        Boolean(result.sharePlaytime),
+
+                    shareAchievements:
+                        Boolean(result.shareAchievements),
+                });
+
+                setPrivacyLoaded(true);
+            } catch (err) {
+                if (active) {
+                    setPrivacyError(t("unableToLoadPrivacy"));
+                }
+            } finally {
+                if (active) {
+                    setPrivacyLoading(false);
+                }
+            }
+        }
+
+        loadPrivacy();
+
+        return () => {
+            active = false;
+        };
+    }, [tab]);
 
     useEffect(() => {
         let alive = true;
@@ -4174,21 +4600,21 @@ function Account({
                     setGameViewSettingsState(result.settings);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
         const off = window.deadsmile?.onGameViewSettingsChanged?.((settings) => {
             if (alive && settings) setGameViewSettingsState(settings);
         });
         return () => {
             alive = false;
             off?.();
-            window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => {});
+            window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => { });
         };
     }, []);
 
     useEffect(() => {
         if (tab === "launcher" || !recordingGameViewShortcut) return;
         setRecordingGameViewShortcut(false);
-        window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => {});
+        window.deadsmile?.cancelGameViewShortcutCapture?.().catch?.(() => { });
     }, [tab, recordingGameViewShortcut]);
 
     const CROP_VIEWPORT = 260;
@@ -4364,6 +4790,123 @@ function Account({
             setSaving(false);
         }
     }
+
+    async function changeAccountEmail(e) {
+        e.preventDefault();
+
+        if (emailSaving) {
+            return;
+        }
+
+        setEmailError("");
+        setEmailMessage("");
+
+        const newEmail = form.email
+            .trim()
+            .toLowerCase();
+
+        const currentEmail = String(user?.email || "")
+            .trim()
+            .toLowerCase();
+
+        if (newEmail === currentEmail) {
+            setEmailError(t("differentEmailRequired"));
+
+            return;
+        }
+
+        if (!emailPassword) {
+            setEmailError(t("accountPasswordRequired"));
+
+            return;
+        }
+
+        setEmailSaving(true);
+
+        try {
+            await api.post(
+                "/account/email/change",
+                {
+                    email: newEmail,
+                    password: emailPassword,
+                }
+            );
+
+            setEmailPassword("");
+
+            setEmailMessage(
+                t("emailChangeRequested", {
+                    email: newEmail,
+                })
+            );
+        } catch (err) {
+            const errorMessages = {
+                INVALID_PASSWORD: "invalidPasswordError",
+                EMAIL_TAKEN: "emailTakenError",
+                EMAIL_UNCHANGED: "differentEmailRequired",
+                EMAIL_NOT_VERIFIED: "emailNotVerifiedError",
+            };
+
+            const messageKey =
+                errorMessages[err?.code] ||
+                "unableToRequestEmailChange";
+
+            setEmailError(t(messageKey));
+        } finally {
+            setEmailSaving(false);
+        }
+    }
+
+    async function savePrivacy(e) {
+        e.preventDefault();
+
+        if (
+            privacySaving ||
+            privacyLoading ||
+            !privacyLoaded
+        ) {
+            return;
+        }
+
+        setPrivacySaving(true);
+        setPrivacyError("");
+        setPrivacyMessage("");
+
+        try {
+            const result = await api.put(
+                "/account/privacy",
+                {
+                    shareGameActivity:
+                        privacy.shareGameActivity,
+
+                    sharePlaytime:
+                        privacy.shareGameActivity &&
+                        privacy.sharePlaytime,
+
+                    shareAchievements:
+                        privacy.shareAchievements,
+                }
+            );
+
+            setPrivacy({
+                shareGameActivity:
+                    Boolean(result.shareGameActivity),
+
+                sharePlaytime:
+                    Boolean(result.sharePlaytime),
+
+                shareAchievements:
+                    Boolean(result.shareAchievements),
+            });
+
+            setPrivacyMessage(t("privacySaved"));
+        } catch (err) {
+            setPrivacyError(t("unableToSavePrivacy"));
+        } finally {
+            setPrivacySaving(false);
+        }
+    }
+
     async function setup2fa() {
         setTotpLoading(true);
         try {
@@ -4439,7 +4982,7 @@ function Account({
         setRecordingGameViewShortcut(false);
         try {
             await window.deadsmile?.cancelGameViewShortcutCapture?.();
-        } catch {}
+        } catch { }
     }
 
     async function handleShortcutKeyDown(event) {
@@ -4474,6 +5017,11 @@ function Account({
     const tabs = [
         { id: "profile", label: text(language, "profile"), icon: User },
         { id: "account", label: text(language, "account"), icon: GearSix },
+        {
+            id: "privacy",
+            label: text(language, "privacy"),
+            icon: Eye,
+        },
         {
             id: "security",
             label: text(language, "security"),
@@ -4528,7 +5076,7 @@ function Account({
                             </label>
                         </div>
                         <div>
-                            <h1>{user?.username || "Player"}</h1>
+                            <h1>{user?.username || t("player")}</h1>
                             <span>
                                 {user?.createdAt
                                     ? `${t("created")} ${new Date(user.createdAt).toLocaleDateString()}`
@@ -4631,42 +5179,258 @@ function Account({
                     )}
                     {tab === "account" && (
                         <section className="account-block">
+
                             <div className="account-block-head">
                                 <h2>{t("account")}</h2>
-                                <p>{t("accountDescription")}</p>
+
+                                <p>
+                                    {t("accountEmailChangeDescription")}
+                                </p>
                             </div>
+
                             <form
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    save({ email: form.email.toLowerCase() });
-                                }}
                                 className="account-form"
+                                onSubmit={changeAccountEmail}
                             >
                                 <Field
-                                    label={t("email")}
+                                    label={t("currentEmail")}
+                                    type="email"
+                                    value={user?.email || ""}
+                                    readOnly
+                                />
+
+                                <Field
+                                    label={t("newEmail")}
                                     type="email"
                                     value={form.email}
                                     onChange={(e) =>
-                                        setForm({
-                                            ...form,
+                                        setForm((current) => ({
+                                            ...current,
                                             email: e.target.value,
-                                        })
+                                        }))
                                     }
+                                    autoComplete="email"
+                                    maxLength={254}
+                                    required
                                 />
+
+                                <Field
+                                    label={t("currentAccountPassword")}
+                                    type="password"
+                                    value={emailPassword}
+                                    onChange={(e) =>
+                                        setEmailPassword(e.target.value)
+                                    }
+                                    autoComplete="current-password"
+                                    maxLength={128}
+                                    required
+                                />
+
                                 <div className="account-form-foot">
-                                    {message && (
-                                        <span className="success-text">
-                                            {message}
+
+                                    {emailError && (
+                                        <span
+                                            className="error-text"
+                                            role="alert"
+                                        >
+                                            {emailError}
                                         </span>
                                     )}
+
+                                    {emailMessage && (
+                                        <span
+                                            className="success-text"
+                                            role="status"
+                                        >
+                                            {emailMessage}
+                                        </span>
+                                    )}
+
                                     <button
+                                        type="submit"
                                         className="primary-button"
-                                        disabled={saving}
+                                        disabled={emailSaving}
                                     >
-                                        {t("save")} <FloppyDisk size={16} />
+                                        {emailSaving
+                                            ? t("resendingEmail")
+                                            : t("requestEmailChange")}
+
+                                        <FloppyDisk size={16} />
                                     </button>
+
                                 </div>
                             </form>
+
+                        </section>
+                    )}
+                    {tab === "privacy" && (
+                        <section className="account-block">
+
+                            <div className="account-block-head">
+                                <h2>{t("privacy")}</h2>
+
+                                <p>{t("privacyDescription")}</p>
+                            </div>
+
+                            <form
+                                className="account-form"
+                                onSubmit={savePrivacy}
+                            >
+                                {privacyLoading ? (
+                                    <p className="privacy-loading">
+                                        {t("loadingPrivacy")}
+                                    </p>
+                                ) : (
+                                    <>
+
+                                        <label className="privacy-option">
+                                            <input
+                                                type="checkbox"
+
+                                                checked={
+                                                    privacy.shareGameActivity
+                                                }
+
+                                                disabled={!privacyLoaded}
+
+                                                onChange={(e) => {
+                                                    const checked =
+                                                        e.target.checked;
+
+                                                    setPrivacy((current) => ({
+                                                        ...current,
+
+                                                        shareGameActivity:
+                                                            checked,
+
+                                                        sharePlaytime:
+                                                            checked
+                                                                ? current.sharePlaytime
+                                                                : false,
+                                                    }));
+                                                }}
+                                            />
+
+                                            <span>
+                                                <strong>
+                                                    {t("shareRecentGames")}
+                                                </strong>
+
+                                                <small>
+                                                    {t("shareRecentGamesDescription")}
+                                                </small>
+                                            </span>
+                                        </label>
+
+                                        <label className="privacy-option">
+                                            <input
+                                                type="checkbox"
+
+                                                checked={
+                                                    privacy.sharePlaytime
+                                                }
+
+                                                disabled={
+                                                    !privacyLoaded ||
+                                                    !privacy.shareGameActivity
+                                                }
+
+                                                onChange={(e) => {
+                                                    setPrivacy((current) => ({
+                                                        ...current,
+
+                                                        sharePlaytime:
+                                                            e.target.checked,
+                                                    }));
+                                                }}
+                                            />
+
+                                            <span>
+                                                <strong>
+                                                    {t("showPlaytimeSessions")}
+                                                </strong>
+
+                                                <small>
+                                                    {t("showPlaytimeSessionsDescription")}
+                                                </small>
+                                            </span>
+                                        </label>
+
+                                        <label className="privacy-option">
+                                            <input
+                                                type="checkbox"
+
+                                                checked={
+                                                    privacy.shareAchievements
+                                                }
+
+                                                disabled={!privacyLoaded}
+
+                                                onChange={(e) => {
+                                                    setPrivacy((current) => ({
+                                                        ...current,
+
+                                                        shareAchievements:
+                                                            e.target.checked,
+                                                    }));
+                                                }}
+                                            />
+
+                                            <span>
+                                                <strong>
+                                                    {t("shareAchievementsOption")}
+                                                </strong>
+
+                                                <small>
+                                                    {t("shareAchievementsDescription")}
+                                                </small>
+                                            </span>
+                                        </label>
+
+                                        <div className="account-form-foot">
+
+                                            {privacyError && (
+                                                <span
+                                                    className="error-text"
+                                                    role="alert"
+                                                >
+                                                    {privacyError}
+                                                </span>
+                                            )}
+
+                                            {privacyMessage && (
+                                                <span
+                                                    className="success-text"
+                                                    role="status"
+                                                >
+                                                    {privacyMessage}
+                                                </span>
+                                            )}
+
+                                            <button
+                                                type="submit"
+                                                className="primary-button"
+
+                                                disabled={
+                                                    privacySaving ||
+                                                    privacyLoading ||
+                                                    !privacyLoaded
+                                                }
+                                            >
+                                                {privacySaving
+                                                    ? t("saving")
+                                                    : t("savePrivacy")}
+
+                                                <FloppyDisk size={16} />
+                                            </button>
+
+                                        </div>
+
+                                    </>
+                                )}
+
+                            </form>
+
                         </section>
                     )}
                     {tab === "security" && (
@@ -4777,9 +5541,8 @@ function Account({
                                 </button>
                             </div>
                             <div
-                                className={`launcher-settings${
-                                    !gameViewSettings.enabled ? " gameview-setting-disabled" : ""
-                                }`}
+                                className={`launcher-settings${!gameViewSettings.enabled ? " gameview-setting-disabled" : ""
+                                    }`}
                             >
                                 <div className="launcher-setting-copy">
                                     <strong>{t("gameViewShortcut")}</strong>
@@ -4789,9 +5552,8 @@ function Account({
                                     ref={gameViewShortcutRef}
                                     type="button"
                                     disabled={!gameViewSettings.enabled}
-                                    className={`gameview-shortcut-button${
-                                        recordingGameViewShortcut ? " recording" : ""
-                                    }`}
+                                    className={`gameview-shortcut-button${recordingGameViewShortcut ? " recording" : ""
+                                        }`}
                                     onClick={startShortcutCapture}
                                     onKeyDown={handleShortcutKeyDown}
                                     onBlur={cancelShortcutCapture}
@@ -4841,7 +5603,6 @@ function Account({
                                     {itchAccount?.connected ? (
                                         <>
                                             <button className="soft-button" onClick={onSyncItch}>{t("refreshLibrary")}</button>
-                                            <button className="soft-button" onClick={onConnectItch} disabled={itchAccount?.connecting}>{t("connectItchAction")}</button>
                                             <button className="soft-button danger-button" onClick={onDisconnectItch}>{t("disconnect")}</button>
                                         </>
                                     ) : (
@@ -4877,7 +5638,7 @@ function Account({
                     />
                 </Portal>
             )}
-        {launcherVersion && <span className="launcher-version account-version">v{launcherVersion}</span>}
+            {launcherVersion && <span className="launcher-version account-version">v{launcherVersion}</span>}
         </div>
 
     );
@@ -4990,8 +5751,8 @@ function Admin({ onPublished, setView }) {
             kind === "games"
                 ? "game"
                 : kind === "news"
-                  ? "newsletter"
-                  : "video";
+                    ? "newsletter"
+                    : "video";
         try {
             await api.delete(`/admin/${encodeURIComponent(endpoint)}/${encodeURIComponent(id)}`);
             setItems((x) => ({
@@ -5032,8 +5793,8 @@ function Admin({ onPublished, setView }) {
                                     {kind === "games"
                                         ? t("games")
                                         : kind === "news"
-                                        ? t("newswire")
-                                        : t("videos")}
+                                            ? t("newswire")
+                                            : t("videos")}
                                 </span>
                                 <strong>{items[kind].length}</strong>
                             </div>
@@ -5184,8 +5945,8 @@ function AdminForm({ form, setForm, set, publish, saving, message, onClose }) {
                             {form.type === "game"
                                 ? t("publishGame")
                                 : form.type === "news"
-                                  ? t("publishNews")
-                                  : t("publishVideo")}
+                                    ? t("publishNews")
+                                    : t("publishVideo")}
                         </h3>
                     </div>
                     <button className="modal-close" onClick={onClose}>
@@ -5414,7 +6175,7 @@ function GameOverlay({ user, games, shortcutLabel = "Ctrl + D" }) {
     }, []);
 
     useEffect(() => {
-        window.deadsmile?.getRunningGames?.().then((items) => setRunning(Array.isArray(items) ? items : [])).catch(() => {});
+        window.deadsmile?.getRunningGames?.().then((items) => setRunning(Array.isArray(items) ? items : [])).catch(() => { });
         return window.deadsmile?.onGameState?.((state) => setRunning((current) =>
             state.running
                 ? [...current.filter((item) => String(item.id) !== String(state.id)), state]
@@ -5482,7 +6243,7 @@ function GameOverlay({ user, games, shortcutLabel = "Ctrl + D" }) {
     }, []);
 
     function dismissTutorial() {
-        try { localStorage.setItem("deadsmile.gameView.tutorial.v1", "seen"); } catch {}
+        try { localStorage.setItem("deadsmile.gameView.tutorial.v1", "seen"); } catch { }
         setTutorialOpen(false);
     }
 
@@ -5558,7 +6319,7 @@ function GameOverlay({ user, games, shortcutLabel = "Ctrl + D" }) {
                             {user?.avatarUrl ? <SmartImage src={user.avatarUrl} fallback="" alt="" /> : initials(user)}
                         </div>
                         <div>
-                            <strong>{user?.username || "Player"}</strong>
+                            <strong>{user?.username || t("player")}</strong>
                             <span>{currentGame?.title ? `${t("playing")}: ${currentGame.title}` : t("gameViewSubtitle")}</span>
                         </div>
                     </div>
@@ -5673,7 +6434,7 @@ function GameOverlay({ user, games, shortcutLabel = "Ctrl + D" }) {
 function AchievementToast({ item, game }) {
     const { t } = useT();
     if (!item) return null;
-    return <div className="achievement-toast"><CheckCircle size={28} weight="fill"/><div><small>{t("achievementUnlocked")}</small><strong>{item.title || item.key}</strong>{game?.title && <span>{game.title}</span>}</div></div>;
+    return <div className="achievement-toast"><CheckCircle size={28} weight="fill" /><div><small>{t("achievementUnlocked")}</small><strong>{item.title || item.key}</strong>{game?.title && <span>{game.title}</span>}</div></div>;
 }
 
 function AchievementToastWindow() {
@@ -5734,34 +6495,34 @@ export default function App() {
     const [updating, setUpdating] = useState(false);
     const [linksOpen, setLinksOpen] = useState(false);
     const {
-            queue: downloadQueue,
-            byId: downloadsById,
-            pause: pauseDownload,
-            resume: resumeDownload,
-            cancel: cancelDownload,
-            reorder: reorderDownloads,
-            setConcurrent: setDownloadConcurrency,
-        } = useDownloadQueue();
-        const playtime = usePlaytime();
-        const online = useOnline();
+        queue: downloadQueue,
+        byId: downloadsById,
+        pause: pauseDownload,
+        resume: resumeDownload,
+        cancel: cancelDownload,
+        reorder: reorderDownloads,
+        setConcurrent: setDownloadConcurrency,
+    } = useDownloadQueue();
+    const playtime = usePlaytime();
+    const online = useOnline();
 
-        const t = useMemo(
-            () => (key, params, fallback) => {
-                const dict = COPY[language] || COPY.en;
-                const raw = dict[key] || COPY.en[key] || fallback || key;
-                return interpolate(raw, params);
-            },
-            [language],
-        );
-        const languageCtx = useMemo(() => ({ language, t }), [language, t]);
-        useEffect(() => {
-            window.deadsmile
-                ?.syncGameViewLanguage?.({
-                    language,
-                    strings: COPY[language] || COPY.en,
-                })
-                ?.catch?.(() => {});
-        }, [language]);
+    const t = useMemo(
+        () => (key, params, fallback) => {
+            const dict = COPY[language] || COPY.en;
+            const raw = dict[key] || COPY.en[key] || fallback || key;
+            return interpolate(raw, params);
+        },
+        [language],
+    );
+    const languageCtx = useMemo(() => ({ language, t }), [language, t]);
+    useEffect(() => {
+        window.deadsmile
+            ?.syncGameViewLanguage?.({
+                language,
+                strings: COPY[language] || COPY.en,
+            })
+            ?.catch?.(() => { });
+    }, [language]);
 
     useEffect(() => {
         const off = window.deadsmile?.onAppFocus?.(() => setLibraryRefreshSeq((n) => n + 1));
@@ -5776,7 +6537,7 @@ export default function App() {
                     setGameViewShortcutLabel(result.settings.label);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
         const off = window.deadsmile?.onGameViewSettingsChanged?.((settings) => {
             if (alive && settings?.label) setGameViewShortcutLabel(settings.label);
         });
@@ -5787,7 +6548,7 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        window.deadsmile?.getRunningGames?.().then(items => setRunningGames(new Set((items || []).map(x => x.id)))).catch(() => {});
+        window.deadsmile?.getRunningGames?.().then(items => setRunningGames(new Set((items || []).map(x => x.id)))).catch(() => { });
         const offState = window.deadsmile?.onGameState?.((state) => {
             setRunningGames(current => { const next = new Set(current); state.running ? next.add(state.id) : next.delete(state.id); return next; });
             if (state?.launchFailed) setNotice(t('unableToPlayGame'));
@@ -5828,9 +6589,9 @@ export default function App() {
                         "deadsmile.library",
                         JSON.stringify(next),
                     );
-                } catch {}
+                } catch { }
             })
-            .catch?.(() => {});
+            .catch?.(() => { });
         return () => {
             alive = false;
         };
@@ -5838,7 +6599,7 @@ export default function App() {
 
     useEffect(() => {
         const ids = Object.keys(installed || {});
-        window.deadsmile?.syncGameViewLibrary?.(ids)?.catch?.(() => {});
+        window.deadsmile?.syncGameViewLibrary?.(ids)?.catch?.(() => { });
     }, [installed]);
 
     useEffect(() => {
@@ -5871,7 +6632,7 @@ export default function App() {
             .then((data) => {
                 if (alive && data) setPendingUpdate(data);
             })
-            .catch(() => {});
+            .catch(() => { });
         return () => {
             alive = false;
         };
@@ -5887,7 +6648,7 @@ export default function App() {
         setLanguageState(value);
         try {
             localStorage.setItem("deadsmile.language", value);
-        } catch {}
+        } catch { }
     }
     function currentRoute() {
         return { active, view, selectedGame, selectedVideo };
@@ -5933,7 +6694,7 @@ export default function App() {
             let me = null;
             try {
                 me = await api.get("/auth/me");
-            } catch {}
+            } catch { }
             await minBoot;
             if (!alive) return;
             if (me) {
@@ -5946,96 +6707,96 @@ export default function App() {
             alive = false;
         };
     }, []);
-useEffect(() => {
-    if (status !== "ready") return;
-    let alive = true;
-    const userId = validUserId(user?.id) ? String(user.id) : null;
-    setLoading(true);
-    const publicCached = readPublicContentCache();
-    const userCached = readUserContentCache(userId);
+    useEffect(() => {
+        if (status !== "ready") return;
+        let alive = true;
+        const userId = validUserId(user?.id) ? String(user.id) : null;
+        setLoading(true);
+        const publicCached = readPublicContentCache();
+        const userCached = readUserContentCache(userId);
 
-    if (publicCached) {
-        setGames(publicCached.games || []);
-        setNews(publicCached.news || []);
-        setVideos(publicCached.videos || []);
-    }
-    setWishlist(new Set(Array.isArray(userCached?.wishlistIds) ? userCached.wishlistIds : []));
-    setEntitlements(new Set());
-    setItchAccount({ connected: false, loading: true });
+        if (publicCached) {
+            setGames(publicCached.games || []);
+            setNews(publicCached.news || []);
+            setVideos(publicCached.videos || []);
+        }
+        setWishlist(new Set(Array.isArray(userCached?.wishlistIds) ? userCached.wishlistIds : []));
+        setEntitlements(new Set());
+        setItchAccount({ connected: false, loading: true });
 
-    Promise.allSettled([
-        api.get("/games?page=1&limit=48"),
-        api.get("/news?limit=48"),
-        api.get("/videos?limit=48"),
-        api.get("/wishlist"),
-        api.get("/library"),
-        api.get("/integrations/itch"),
-    ]).then((results) => {
-        if (!alive) return;
-        const [gamesResult, newsResult, videosResult, wishlistResult, libraryResult, itchResult] = results;
-        let gs = publicCached?.games || [];
-        let ns = publicCached?.news || [];
-        let vs = publicCached?.videos || [];
+        Promise.allSettled([
+            api.get("/games?page=1&limit=48"),
+            api.get("/news?limit=48"),
+            api.get("/videos?limit=48"),
+            api.get("/wishlist"),
+            api.get("/library"),
+            api.get("/integrations/itch"),
+        ]).then((results) => {
+            if (!alive) return;
+            const [gamesResult, newsResult, videosResult, wishlistResult, libraryResult, itchResult] = results;
+            let gs = publicCached?.games || [];
+            let ns = publicCached?.news || [];
+            let vs = publicCached?.videos || [];
 
-        if (gamesResult.status === "fulfilled") {
-            gs = listFrom(gamesResult.value, "games");
-            setGames(gs);
-        }
-        if (newsResult.status === "fulfilled") {
-            ns = listFrom(newsResult.value, "news");
-            setNews(ns);
-        }
-        if (videosResult.status === "fulfilled") {
-            vs = listFrom(videosResult.value, "videos");
-            setVideos(vs);
-        }
-        if (gamesResult.status === "fulfilled" || newsResult.status === "fulfilled" || videosResult.status === "fulfilled") {
-            writePublicContentCache({ games: gs, news: ns, videos: vs });
-        }
+            if (gamesResult.status === "fulfilled") {
+                gs = listFrom(gamesResult.value, "games");
+                setGames(gs);
+            }
+            if (newsResult.status === "fulfilled") {
+                ns = listFrom(newsResult.value, "news");
+                setNews(ns);
+            }
+            if (videosResult.status === "fulfilled") {
+                vs = listFrom(videosResult.value, "videos");
+                setVideos(vs);
+            }
+            if (gamesResult.status === "fulfilled" || newsResult.status === "fulfilled" || videosResult.status === "fulfilled") {
+                writePublicContentCache({ games: gs, news: ns, videos: vs });
+            }
 
-        if (wishlistResult.status === "fulfilled") {
-            const ids = listFrom(wishlistResult.value, "games").map((item) => item.id).filter(Boolean);
-            setWishlist(new Set(ids));
-            writeUserContentCache(userId, { wishlistIds: ids });
-        }
-        if (libraryResult.status === "fulfilled") {
-            const ownedGames = listFrom(libraryResult.value, "items").filter((item) => item?.id);
-            setEntitlements(new Set(ownedGames.map((item) => item.id)));
-            setGames((current) => {
-                const byId = new Map(current.map((item) => [String(item.id), item]));
-                for (const item of ownedGames) {
-                    if (!byId.has(String(item.id))) {
-                        byId.set(String(item.id), {
-                            ...item,
-                            commerceEnabled: Boolean(item.purchaseUrl && item.itchGameId),
-                        });
+            if (wishlistResult.status === "fulfilled") {
+                const ids = listFrom(wishlistResult.value, "games").map((item) => item.id).filter(Boolean);
+                setWishlist(new Set(ids));
+                writeUserContentCache(userId, { wishlistIds: ids });
+            }
+            if (libraryResult.status === "fulfilled") {
+                const ownedGames = listFrom(libraryResult.value, "items").filter((item) => item?.id);
+                setEntitlements(new Set(ownedGames.map((item) => item.id)));
+                setGames((current) => {
+                    const byId = new Map(current.map((item) => [String(item.id), item]));
+                    for (const item of ownedGames) {
+                        if (!byId.has(String(item.id))) {
+                            byId.set(String(item.id), {
+                                ...item,
+                                commerceEnabled: Boolean(item.purchaseUrl && item.itchGameId),
+                            });
+                        }
                     }
-                }
-                return Array.from(byId.values());
-            });
-        }
-        if (itchResult.status === "fulfilled") {
-            setItchAccount({ ...itchResult.value, loading: false });
-        } else {
-            setItchAccount({ connected: false, loading: false });
-        }
+                    return Array.from(byId.values());
+                });
+            }
+            if (itchResult.status === "fulfilled") {
+                setItchAccount({ ...itchResult.value, loading: false });
+            } else {
+                setItchAccount({ connected: false, loading: false });
+            }
 
-        const publicFailures = [gamesResult, newsResult, videosResult].filter((result) => result.status === "rejected").length;
-        if (publicFailures === 3) {
-            setNotice(
-                publicCached
-                    ? COPY[language]?.offlineCacheNotice || "Sem conexão — mostrando conteúdo em cache."
-                    : t("unableToLoadContent"),
-            );
-        }
-    }).finally(() => {
-        if (alive) setLoading(false);
-    });
+            const publicFailures = [gamesResult, newsResult, videosResult].filter((result) => result.status === "rejected").length;
+            if (publicFailures === 3) {
+                setNotice(
+                    publicCached
+                        ? COPY[language]?.offlineCacheNotice || "Sem conexão — mostrando conteúdo em cache."
+                        : t("unableToLoadContent"),
+                );
+            }
+        }).finally(() => {
+            if (alive) setLoading(false);
+        });
 
-    return () => {
-        alive = false;
-    };
-}, [status, user?.id]);
+        return () => {
+            alive = false;
+        };
+    }, [status, user?.id]);
     useEffect(() => {
         if (status !== "ready") return undefined;
         const userId = validUserId(user?.id) ? String(user.id) : null;
@@ -6058,7 +6819,7 @@ useEffect(() => {
             const id = Number(event?.id || 0);
             if (!Number.isSafeInteger(id) || id <= after) return false;
             after = id;
-            try { localStorage.setItem(checkpointKey, String(after)); } catch {}
+            try { localStorage.setItem(checkpointKey, String(after)); } catch { }
             return true;
         };
 
@@ -6141,7 +6902,7 @@ useEffect(() => {
 
         const queueEvents = (events, options = {}) => {
             const task = processingChain.then(() => processEvents(events, options));
-            processingChain = task.catch(() => {});
+            processingChain = task.catch(() => { });
             return task;
         };
 
@@ -6159,7 +6920,7 @@ useEffect(() => {
                         await queueEvents(events, { recovery: true });
                         if (baseline || events.length < 100) break;
                     }
-                } catch {}
+                } catch { }
             })().finally(() => {
                 pollInFlight = null;
                 if (pollAgain && active) {
@@ -6227,7 +6988,7 @@ useEffect(() => {
                         return;
                     }
                     poll();
-                } catch {}
+                } catch { }
             };
             socket.onclose = () => {
                 clearTimeout(handshakeTimer);
@@ -6267,7 +7028,7 @@ useEffect(() => {
                     ...n,
                 ]);
             })
-            .catch(() => {});
+            .catch(() => { });
         return () => {
             alive = false;
         };
@@ -6326,7 +7087,7 @@ useEffect(() => {
         if (status !== "ready" || !userId || notificationsForUser !== userId) return;
         try {
             localStorage.setItem(`deadsmile.notifications:${userId}`, JSON.stringify(notifications.slice(0, 40)));
-        } catch {}
+        } catch { }
     }, [notifications, notificationsForUser, status, user?.id]);
     async function toggleWishlist(game) {
         try {
@@ -6475,14 +7236,16 @@ useEffect(() => {
                 return;
             }
             let result;
-            try { result = await window.deadsmile.playGame({
-                id: game.id,
-                slug: game.slug || null,
-                title: game.title || null,
-                coverImage: game.coverImage || game.cover_image || null,
-                exePath: installed[game.id].path,
-                gameVersion: installed[game.id].version || null,
-            }); } catch {
+            try {
+                result = await window.deadsmile.playGame({
+                    id: game.id,
+                    slug: game.slug || null,
+                    title: game.title || null,
+                    coverImage: game.coverImage || game.cover_image || null,
+                    exePath: installed[game.id].path,
+                    gameVersion: installed[game.id].version || null,
+                });
+            } catch {
                 setNotice(t("unableToPlayGame"));
                 return;
             }
@@ -6516,89 +7279,89 @@ useEffect(() => {
             return;
         }
 
-    if (!game.downloadUrl && !game.commerceEnabled) {
-        setNotice(t("downloadUnavailable"));
-        return;
-    }
-
-    try {
-        const currentEntry = installed[game.id];
-        const mode = forceUpdate && currentEntry?.path ? "update" : "download";
-        const result = await window.deadsmile.downloadGame({
-            id: game.id,
-            slug: game.slug,
-            title: game.title,
-            url: game.downloadUrl,
-            mode,
-            currentVersion: currentEntry?.version,
-            filename: currentEntry?.filename,
-            path: currentEntry?.path,
-            commerceEnabled: Boolean(game.commerceEnabled),
-            itchGameId: game.itchGameId || null,
-        });
-
-        invalidateGameUpdateCache(game.id);
-        setInstalled((x) => {
-            const n = {
-                ...x,
-                [game.id]: {
-                    path: result.path,
-                    folderPath: result.folderPath,
-                    filename: result.filename,
-                    downloadedAt: Date.now(),
-                    version: result.version || versionFromLocalFilename(result.filename),
-                },
-            };
-            localStorage.setItem("deadsmile.library", JSON.stringify(n));
-            return n;
-        });
-
-        setNotifications((n) => [
-            {
-                id: `game-${game.id}-${Date.now()}`,
-                title: t("downloadComplete"),
-                message: `${game.title} ${t("gameReady")}`,
-                time: Date.now(),
-                unread: true,
-            },
-            ...n,
-        ]);
-        setNotice(`${game.title} ${t("gameReady")}`);
-    } catch (e) {
-        const msg = e?.message || "";
-        if (msg === "Cancelled") {
-            setNotice(`${game.title}: ${t("downloadCancelled")}`);
+        if (!game.downloadUrl && !game.commerceEnabled) {
+            setNotice(t("downloadUnavailable"));
             return;
         }
+
         try {
-            if (localStorage.getItem("deadsmile.telemetry") === "true") {
-                await api.post("/platform/telemetry", {
-                    gameId: game.id,
-                    eventType: forceUpdate ? "update_failed" : "install_failed",
-                    appVersion: null,
-                    payload: { stage: forceUpdate ? "update" : "install" },
-                });
+            const currentEntry = installed[game.id];
+            const mode = forceUpdate && currentEntry?.path ? "update" : "download";
+            const result = await window.deadsmile.downloadGame({
+                id: game.id,
+                slug: game.slug,
+                title: game.title,
+                url: game.downloadUrl,
+                mode,
+                currentVersion: currentEntry?.version,
+                filename: currentEntry?.filename,
+                path: currentEntry?.path,
+                commerceEnabled: Boolean(game.commerceEnabled),
+                itchGameId: game.itchGameId || null,
+            });
+
+            invalidateGameUpdateCache(game.id);
+            setInstalled((x) => {
+                const n = {
+                    ...x,
+                    [game.id]: {
+                        path: result.path,
+                        folderPath: result.folderPath,
+                        filename: result.filename,
+                        downloadedAt: Date.now(),
+                        version: result.version || versionFromLocalFilename(result.filename),
+                    },
+                };
+                localStorage.setItem("deadsmile.library", JSON.stringify(n));
+                return n;
+            });
+
+            setNotifications((n) => [
+                {
+                    id: `game-${game.id}-${Date.now()}`,
+                    title: t("downloadComplete"),
+                    message: `${game.title} ${t("gameReady")}`,
+                    time: Date.now(),
+                    unread: true,
+                },
+                ...n,
+            ]);
+            setNotice(`${game.title} ${t("gameReady")}`);
+        } catch (e) {
+            const msg = e?.message || "";
+            if (msg === "Cancelled") {
+                setNotice(`${game.title}: ${t("downloadCancelled")}`);
+                return;
             }
-        } catch {}
-        setNotifications((n) => [
-            {
-                id: `error-${Date.now()}`,
-                title: t("downloadFailed"),
-                message: t("downloadFailed"),
-                time: Date.now(),
-                unread: true,
-            },
-            ...n,
-        ]);
-        setNotice(t("downloadFailed"));
+            try {
+                if (localStorage.getItem("deadsmile.telemetry") === "true") {
+                    await api.post("/platform/telemetry", {
+                        gameId: game.id,
+                        eventType: forceUpdate ? "update_failed" : "install_failed",
+                        appVersion: null,
+                        payload: { stage: forceUpdate ? "update" : "install" },
+                    });
+                }
+            } catch { }
+            setNotifications((n) => [
+                {
+                    id: `error-${Date.now()}`,
+                    title: t("downloadFailed"),
+                    message: t("downloadFailed"),
+                    time: Date.now(),
+                    unread: true,
+                },
+                ...n,
+            ]);
+            setNotice(t("downloadFailed"));
+        }
     }
-}
     useEffect(() => {
         if (!window.deadsmile?.onLaunchGame) return undefined;
         const off = window.deadsmile.onLaunchGame((gameId) => {
             setPendingExternalLaunchId(String(gameId || ""));
         });
-        window.deadsmile.readyForLaunchRequests?.().catch(() => {});
+        window.deadsmile.readyForLaunchRequests?.().catch(() => { });
         return off;
     }, []);
 
@@ -6667,10 +7430,10 @@ useEffect(() => {
         const userId = validUserId(user?.id) ? String(user.id) : null;
         try {
             await api.post("/auth/logout");
-        } catch {}
+        } catch { }
         try {
             await window.deadsmile?.clearAuthSession?.();
-        } catch {}
+        } catch { }
         api.resetSecurity?.();
         clearUserContentCache(userId);
         gameUpdateCache.clear();
@@ -6698,7 +7461,7 @@ useEffect(() => {
             setNews(nextNews);
             setVideos(nextVideos);
             writePublicContentCache({ games: nextGames, news: nextNews, videos: nextVideos });
-        } catch {}
+        } catch { }
     }
     function goBack() {
         const previous = history[history.length - 1];
@@ -6728,12 +7491,12 @@ useEffect(() => {
         if (status === "login") return (
             <LanguageContext.Provider value={languageCtx}>
                 <div className="game-view-shell game-view-auth-message">
-                    <div className="game-view-auth-card"><GameController size={22} weight="fill"/><strong>{t("gameView")}</strong><span>{t("signIn")}</span><kbd>{gameViewShortcutLabel}</kbd></div>
+                    <div className="game-view-auth-card"><GameController size={22} weight="fill" /><strong>{t("gameView")}</strong><span>{t("signIn")}</span><kbd>{gameViewShortcutLabel}</kbd></div>
                 </div>
             </LanguageContext.Provider>
         );
         return (
-            <LanguageContext.Provider value={languageCtx}><RunningGamesContext.Provider value={runningGames}><GameOverlay user={user} games={games.filter(g => g.commerceEnabled ? entitlements.has(g.id) : installed[g.id] || entitlements.has(g.id))} shortcutLabel={gameViewShortcutLabel}/></RunningGamesContext.Provider></LanguageContext.Provider>
+            <LanguageContext.Provider value={languageCtx}><RunningGamesContext.Provider value={runningGames}><GameOverlay user={user} games={games.filter(g => g.commerceEnabled ? entitlements.has(g.id) : installed[g.id] || entitlements.has(g.id))} shortcutLabel={gameViewShortcutLabel} /></RunningGamesContext.Provider></LanguageContext.Provider>
         );
     }
     if (status === "booting")
@@ -6743,19 +7506,19 @@ useEffect(() => {
                 <Boot />
             </LanguageContext.Provider>
         );
-        if (status === "login")
-            return (
-                <LanguageContext.Provider value={languageCtx}>
-                    <WindowChrome />
-                    <Login
-                        onAuthenticated={(u) => {
-                            setUser(u);
-                            setStatus("ready");
-                            setActive("explore");
-                        }}
-                    />
-                </LanguageContext.Provider>
-            );
+    if (status === "login")
+        return (
+            <LanguageContext.Provider value={languageCtx}>
+                <WindowChrome />
+                <Login
+                    onAuthenticated={(u) => {
+                        setUser(u);
+                        setStatus("ready");
+                        setActive("explore");
+                    }}
+                />
+            </LanguageContext.Provider>
+        );
     let current;
     if (selectedGame)
         current = (
@@ -6902,115 +7665,115 @@ useEffect(() => {
     return (
         <>
             <LanguageContext.Provider value={languageCtx}>
-            <RunningGamesContext.Provider value={runningGames}>
-            <WindowChrome locked={updating} />
-            <div className="launcher">
-                <Sidebar
-                    active={active}
-                    setActive={nav}
-                    user={user}
-                    logout={logout}
-                    openAdmin={() => nav("admin")}
-                    openLinks={() => setLinksOpen(true)}
-                    language={language}
-                />
-                <main className="content">
-                        {!online && (
-                            <div className="offline-banner">
-                                <WarningCircle size={16} weight="bold" />
-                                <span>{t("offlineBanner")}</span>
+                <RunningGamesContext.Provider value={runningGames}>
+                    <WindowChrome locked={updating} />
+                    <div className="launcher">
+                        <Sidebar
+                            active={active}
+                            setActive={nav}
+                            user={user}
+                            logout={logout}
+                            openAdmin={() => nav("admin")}
+                            openLinks={() => setLinksOpen(true)}
+                            language={language}
+                        />
+                        <main className="content">
+                            {!online && (
+                                <div className="offline-banner">
+                                    <WarningCircle size={16} weight="bold" />
+                                    <span>{t("offlineBanner")}</span>
+                                </div>
+                            )}
+                            <TopActions
+                                query={query}
+                                setQuery={setQuery}
+                                searchResults={searchResults}
+                                openGame={openGame}
+                                onBack={goBack}
+                                onForward={goForward}
+                                onNotifications={() => setNotificationOpen((x) => !x)}
+                                notificationsUnread={
+                                    notifications.filter((n) => n.unread).length
+                                }
+                            />
+                            {notificationOpen && (
+                                <NotificationsPanel
+                                    notifications={notifications}
+                                    onClose={() => setNotificationOpen(false)}
+                                    onClear={clearNotifications}
+                                />
+                            )}
+                            <UpdateOverlay
+                                info={updateInfo}
+                                progress={updateProgress}
+                                updating={updating}
+                                onUpdate={startUpdate}
+                                onLater={() => setUpdateInfo(null)}
+                            />
+                            {notice && (
+                                <button
+                                    className="notice"
+                                    onClick={() => setNotice("")}
+                                >
+                                    <CheckCircle size={17} />
+                                    {notice}
+                                    <X size={15} />
+                                </button>
+                            )}
+                            {downloadQueue.length > 0 && (
+                                <DownloadPanel
+                                    queue={downloadQueue}
+                                    onPause={pauseDownload}
+                                    onResume={resumeDownload}
+                                    onCancel={cancelDownload}
+                                    onReorder={reorderDownloads}
+                                    onConcurrencyChange={setDownloadConcurrency}
+                                />
+                            )}
+                            <div
+                                className="route-view"
+                                key={`${active}-${view?.type || ""}-${view?.item?.id || ""}-${selectedGame?.id || ""}`}
+                            >
+                                {current}
                             </div>
-                        )}
-                    <TopActions
-                        query={query}
-                        setQuery={setQuery}
-                        searchResults={searchResults}
-                        openGame={openGame}
-                        onBack={goBack}
-                        onForward={goForward}
-                        onNotifications={() => setNotificationOpen((x) => !x)}
-                        notificationsUnread={
-                            notifications.filter((n) => n.unread).length
-                        }
-                    />
-                    {notificationOpen && (
-                        <NotificationsPanel
-                            notifications={notifications}
-                            onClose={() => setNotificationOpen(false)}
-                            onClear={clearNotifications}
+                        </main>
+                    </div>
+                    {linksOpen && (
+                        <SocialLinks
+                            onClose={() => setLinksOpen(false)}
+                            language={language}
+                        />
+                    )}{" "}
+                    {commerceModal && (
+                        <CommerceModal
+                            state={commerceModal}
+                            onClose={() => setCommerceModal(null)}
+                            onConnect={connectItchFromLauncher}
+                            onCheckout={() => commerceModal.game.purchaseUrl && openExternal(commerceModal.game.purchaseUrl)}
+                            onVerify={() => verifyCommerce(commerceModal.game, false)}
+                            onDownload={() => {
+                                const game = commerceModal.game;
+                                setCommerceModal(null);
+                                installGame(game);
+                            }}
                         />
                     )}
-                    <UpdateOverlay
-                        info={updateInfo}
-                        progress={updateProgress}
-                        updating={updating}
-                        onUpdate={startUpdate}
-                        onLater={() => setUpdateInfo(null)}
-                    />
-                    {notice && (
-                        <button
-                            className="notice"
-                            onClick={() => setNotice("")}
-                        >
-                            <CheckCircle size={17} />
-                            {notice}
-                            <X size={15} />
-                        </button>
+                    {selectedVideo && (
+                        <Portal>
+                            <VideoPlayer video={selectedVideo} onClose={goBack} />
+                        </Portal>
                     )}
-                        {downloadQueue.length > 0 && (
-                            <DownloadPanel
-                                queue={downloadQueue}
-                                onPause={pauseDownload}
-                                onResume={resumeDownload}
-                                onCancel={cancelDownload}
-                                onReorder={reorderDownloads}
-                                onConcurrencyChange={setDownloadConcurrency}
+                    {pendingUpdate && (
+                        <Portal>
+                            <UpdateWelcomeModal
+                                info={pendingUpdate}
+                                onClose={() => setPendingUpdate(null)}
                             />
-                        )}
-                    <div
-                        className="route-view"
-                        key={`${active}-${view?.type || ""}-${view?.item?.id || ""}-${selectedGame?.id || ""}`}
-                    >
-                        {current}
-                    </div>
-                </main>
-            </div>
-            {linksOpen && (
-                <SocialLinks
-                    onClose={() => setLinksOpen(false)}
-                    language={language}
-                />
-            )}{" "}
-            {commerceModal && (
-                <CommerceModal
-                    state={commerceModal}
-                    onClose={() => setCommerceModal(null)}
-                    onConnect={connectItchFromLauncher}
-                    onCheckout={() => commerceModal.game.purchaseUrl && openExternal(commerceModal.game.purchaseUrl)}
-                    onVerify={() => verifyCommerce(commerceModal.game, false)}
-                    onDownload={() => {
-                        const game = commerceModal.game;
-                        setCommerceModal(null);
-                        installGame(game);
-                    }}
-                />
-            )}
-            {selectedVideo && (
-                <Portal>
-                    <VideoPlayer video={selectedVideo} onClose={goBack} />
-                </Portal>
-            )}
-            {pendingUpdate && (
-                <Portal>
-                    <UpdateWelcomeModal
-                        info={pendingUpdate}
-                        onClose={() => setPendingUpdate(null)}
-                    />
-                </Portal>
-            )}
-                <AchievementToast item={achievementToast?.achievement} game={games.find(g => g.id === achievementToast?.gameId)} />
+                        </Portal>
+                    )}
+                    <AchievementToast item={achievementToast?.achievement} game={games.find(g => g.id === achievementToast?.gameId)} />
                 </RunningGamesContext.Provider>
-                </LanguageContext.Provider>
+            </LanguageContext.Provider>
         </>
     );
 }

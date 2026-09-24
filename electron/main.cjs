@@ -125,6 +125,10 @@ const API_ALLOWED_REQUESTS = [
   ["POST", /^\/platform\/telemetry$/],
   ["POST", /^\/admin\/(?:game|newsletter|video)$/],
   ["DELETE", /^\/admin\/(?:game|newsletter|video)\/[0-9a-f-]{36}$/i],
+  ["POST", /^\/auth\/resend-email$/],
+  ["POST", /^\/account\/email\/change$/],
+  ["GET", /^\/account\/privacy$/],
+  ["PUT", /^\/account\/privacy$/],
 ];
 const GAME_VIEW_API_ALLOWED_REQUESTS = [
   ["GET", /^\/csrf$/],
@@ -3210,7 +3214,12 @@ function handlePackagedAssetRequest(request) {
 function sanitizeRendererApiRequest(request, kind) {
   const reqPath = canonicalRendererApiPath(request?.path);
   const method = String(request?.method || "GET").toUpperCase();
-  if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) return null;
+  if (
+  !["GET", "POST", "PUT", "PATCH", "DELETE"]
+    .includes(method)
+) {
+  return null;
+}
   const allowlist = kind === "overlay" ? GAME_VIEW_API_ALLOWED_REQUESTS : API_ALLOWED_REQUESTS;
   if (!reqPath || !allowlist.some(([allowedMethod, re]) => allowedMethod === method && re.test(reqPath))) return null;
   const headers = {};

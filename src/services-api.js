@@ -102,11 +102,24 @@ async function request(path, { method = 'GET', body, retryCsrf = true } = {}) {
 }
 
 export const api = {
-  get: (path) => request(path, { method: 'GET' }),
-  post: (path, body) => request(path, { method: 'POST', body }),
-  patch: (path, body) => request(path, { method: 'PATCH', body }),
-  delete: (path, body) => request(path, { method: 'DELETE', body }),
-  resetSecurity: () => { csrfToken = null; },
+  get: (path) =>
+    request(path, { method: "GET" }),
+
+  post: (path, body) =>
+    request(path, { method: "POST", body }),
+
+  put: (path, body) =>
+    request(path, { method: "PUT", body }),
+
+  patch: (path, body) =>
+    request(path, { method: "PATCH", body }),
+
+  delete: (path, body) =>
+    request(path, { method: "DELETE", body }),
+
+  resetSecurity: () => {
+    csrfToken = null;
+  },
 };
 
 export { ApiError, API_FALLBACK, friendlyErrorMessage };

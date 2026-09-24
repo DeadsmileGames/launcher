@@ -3643,6 +3643,113 @@ html.game-view-document body.game-view-document-body #root {
   font-weight: 800;
 }
 
+.email-verification-notice {
+    display: grid;
+    gap: 12px;
+
+    margin-bottom: 18px;
+    padding: 16px;
+
+    background: #20242e;
+    border: 1px solid #343947;
+    border-radius: 14px;
+}
+
+.email-verification-notice p {
+    margin: 0;
+
+    color: #c8cbd4;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.email-verification-notice button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+
+/* Privacy settings */
+
+.privacy-loading {
+    padding: 24px;
+
+    color: #aeb1ba;
+    font-size: 12px;
+}
+
+.privacy-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    padding: 20px 24px;
+
+    border-bottom: 1px solid
+        rgba(255, 255, 255, 0.06);
+
+    cursor: pointer;
+}
+
+.privacy-option:hover {
+    background: rgba(
+        255,
+        255,
+        255,
+        0.025
+    );
+}
+
+.privacy-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+
+    margin: 2px 0 0;
+
+    flex-shrink: 0;
+
+    accent-color: #ffffff;
+    cursor: pointer;
+}
+
+.privacy-option input:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.privacy-option span {
+    display: grid;
+    gap: 5px;
+}
+
+.privacy-option strong {
+    color: #f5f5f6;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.privacy-option small {
+    color: #92959e;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.privacy-option:has(input:disabled) {
+    opacity: 0.65;
+}
+
+@media (max-width: 600px) {
+    .privacy-option {
+        padding: 16px;
+    }
+
+    .account-form-foot {
+        flex-wrap: wrap;
+    }
+}
+
 .detail-empty-state {
   padding: 18px;
   border-radius: 14px;

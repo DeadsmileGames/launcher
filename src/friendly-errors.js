@@ -25,6 +25,20 @@ const CODE_MESSAGES = {
 
   USERNAME_TAKEN: "That username is already taken.",
   EMAIL_TAKEN: "That email is already registered.",
+  EMAIL_NOT_VERIFIED:
+  "Confirm your email address before signing in.",
+
+  EMAIL_CONFIRMATION_INVALID:
+    "This email confirmation link is invalid or has expired.",
+
+  EMAIL_CONFIRMATION_COOLDOWN:
+    "Please wait one minute before requesting another confirmation email.",
+
+  EMAIL_CHANGE_REQUIRES_VERIFICATION:
+    "Use the email verification process to change your email address.",
+
+  EMAIL_UNCHANGED:
+    "Enter a different email address.",
   INVALID_PASSWORD: "Current password is incorrect.",
   SECRET_DECRYPT_FAILED: "Reconnect your itch.io account.",
 

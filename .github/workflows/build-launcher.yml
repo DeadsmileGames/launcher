@@ -1,0 +1,113 @@
+name: Build Deadsmile Games Launcher
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Pacote a gerar
+        required: true
+        default: installer
+        type: choice
+        options:
+          - installer
+          - store
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: launcher-build-${{ github.ref }}-${{ inputs.package || 'installer' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TARGET: ${{ inputs.package || 'installer' }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      MICROSOFT_STORE_IDENTITY_NAME: ${{ vars.MICROSOFT_STORE_IDENTITY_NAME }}
+      MICROSOFT_STORE_PUBLISHER: ${{ vars.MICROSOFT_STORE_PUBLISHER }}
+      MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME }}
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Validar configuração da Microsoft Store
+        if: env.TARGET == 'store'
+        run: |
+          foreach ($name in @(
+            "MICROSOFT_STORE_IDENTITY_NAME",
+            "MICROSOFT_STORE_PUBLISHER",
+            "MICROSOFT_STORE_PUBLISHER_DISPLAY_NAME"
+          )) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Configure a variável $name nas variáveis do repositório."
+            }
+          }
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes
+        run: npm test
+
+      - name: Validar autenticação
+        run: node scripts/validate-auth-bridge.cjs
+
+      - name: Validar atalhos
+        run: node scripts/validate-game-shortcuts.cjs
+
+      - name: Gerar instalador Windows x64
+        if: env.TARGET == 'installer'
+        run: npm run build:windows -- --x64
+
+      - name: Gerar pacote Microsoft Store x64
+        if: env.TARGET == 'store'
+        run: npm run build:store
+
+      - name: Validar pacote Microsoft Store
+        if: env.TARGET == 'store'
+        run: |
+          $packages = @(Get-ChildItem -Path release-store -Filter *.msix -File)
+          if ($packages.Count -ne 1) {
+            throw "Era esperado exatamente um pacote MSIX."
+          }
+          & ./scripts/validate-store-package.ps1 -PackagePath $packages[0].FullName
+
+      - name: Disponibilizar instalador
+        if: env.TARGET == 'installer'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Deadsmile-Games-Launcher-Windows-x64
+          path: release/Deadsmile-Games-Launcher-Setup-*.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Disponibilizar pacote Microsoft Store
+        if: env.TARGET == 'store'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Deadsmile-Games-Launcher-Microsoft-Store-x64
+          path: release-store/Deadsmile-Games-Launcher-Store-*-x64.msix
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

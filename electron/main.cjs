@@ -7,12 +7,19 @@ const {
   Menu,
   globalShortcut,
   screen,
-  desktopCapturer,
-  clipboard,
-  ClipboardItem,
   net,
   protocol,
 } = require("electron");
+const errorCatalog = require('./generated/errors.json');
+function errorLocale(value) {
+  if (/^pt(?:-|$)/i.test(value || '')) return 'pt-BR';
+  if (/^es(?:-|$)/i.test(value || '')) return 'es';
+  return 'en';
+}
+function publicMessage(error) {
+  const code = String(error?.code || error?.message || error || '').match(/\b[A-Z][A-Z_]{2,}\b/)?.[0] || 'INTERNAL_ERROR';
+  return errorCatalog[errorLocale(gameViewLanguageState.language)][code] || errorCatalog[errorLocale(gameViewLanguageState.language)].INTERNAL_ERROR;
+}
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const fs = require("node:fs");
@@ -21,8 +28,7 @@ const { spawn } = require("node:child_process");
 const { pipeline } = require("node:stream/promises");
 const { Readable, Transform } = require("node:stream");
 const crypto = require("node:crypto");
-const { Client, Instance } = require("@itchio/butlerd");
-const butlerMessages = require("./butlerd-messages.cjs");
+const { downloadResponse } = require('./download-security.cjs');
 const { DownloadQueue } = require("./download-queue.cjs");
 const APP_SCHEME = "deadsmile-app";
 const APP_HOST = "launcher";
@@ -38,10 +44,9 @@ const STORAGE_ROOT = path.join(
 );
 const SETTINGS_DIR = path.join(STORAGE_ROOT, "settings");
 const GAMES_DIR = path.join(STORAGE_ROOT, "Games");
-const { verifyGameInstallation, reconcileLibrary } = require('./install-state.cjs');
+const { verifyGameInstallation, writeInstallRecord, recoverGameInstallation, reconcileLibrary, migrateLibraryIdentity } = require('./install-state.cjs');
 const { swapWithBackup } = require('./install-transaction.cjs');
-const { monitorGameProcess } = require('./game-process-lifecycle.cjs');
-const SCREENSHOTS_DIR = path.join(app.getPath("pictures"), "Deadsmile Games", "Screenshots");
+const { monitorGameProcess, waitForProcessSpawn } = require('./game-process-lifecycle.cjs');
 const GAME_VIEW_SETTINGS_FILE = path.join(
   SETTINGS_DIR,
   "game-view.json"
@@ -55,14 +60,15 @@ const PLAYTIME_FILE = path.join(SETTINGS_DIR, "playtime.json");
 const ACHIEVEMENT_SYNC_FILE = path.join(SETTINGS_DIR, "achievement-sync.json");
 const ACHIEVEMENT_LOG_FILE = path.join(SETTINGS_DIR, "achievement-sync.log");
 const CLOUD_SAVE_CONFLICTS_DIR = path.join(SETTINGS_DIR, "cloud-save-conflicts");
-const BUTLER_ROOT = path.join(SETTINGS_DIR, "butler");
-const BUTLER_EXE = path.join(BUTLER_ROOT, "butler.exe");
-const BUTLER_VERSION_FILE = path.join(BUTLER_ROOT, "version.txt");
-const BUTLER_PATH_FILE = path.join(BUTLER_ROOT, "executable.txt");
-const BUTLER_DB = path.join(SETTINGS_DIR, "butler.db");
-const BUTLER_BROTH = "https://broth.itch.zone/butler/windows-amd64";
 const IS_MICROSOFT_STORE = Boolean(process.windowsStore);
 const playSessions = new Map();
+const launchRequests = new Set();
+const { createGameOperations } = require('./game-operations.cjs');
+const gameOperations = createGameOperations();
+function gameBusy(id) {
+  const job = downloadQueue.jobs.get(id);
+  return playSessions.has(id) || launchRequests.has(id) || Boolean(job && (job._workerActive || !['complete', 'failed'].includes(job.status)));
+}
 let mainWindow = null;
 let overlayWindow = null;
 let gameViewSettings = {
@@ -70,7 +76,6 @@ let gameViewSettings = {
 };
 
 let registeredGameViewShortcut = null;
-let gameViewShortcutCaptureTimer = null;
 let overlayShowPending = false;
 let overlayHideTimer = null;
 const minimizedGameIds = new Set();
@@ -89,62 +94,31 @@ const gameUpdateChecksInFlight = new Map();
 const GAME_UPDATE_AUTH_INTERVAL_MS = 10_000;
 let pendingLaunchGameId = null;
 let rendererReadyForLaunch = false;
-let butlerInstance = null;
-let butlerClient = null;
-let butlerClientStarting = null;
-let pendingButlerOAuth = null;
-const BUTLER_OAUTH_REDIRECT = "deadsmile://itch-oauth";
 const API_ALLOWED_REQUESTS = [
-  ["GET", /^\/csrf$/],
-  ["GET", /^\/auth\/me$/],
-  ["POST", /^\/auth\/mobile-login$/],
-  ["POST", /^\/auth\/verify-2fa$/],
-  ["POST", /^\/auth\/logout$/],
-  ["GET", /^\/games(?:\?|\/|$)/],
-  ["GET", /^\/news(?:\?|\/|$)/],
-  ["GET", /^\/videos(?:\?|\/|$)/],
-  ["GET", /^\/search(?:\?|$)/],
-  ["GET", /^\/wishlist(?:\?|$)/],
-  ["POST", /^\/wishlist$/],
-  ["DELETE", /^\/wishlist\/[0-9a-f-]{36}$/i],
-  ["GET", /^\/account\/totp\/status$/],
-  ["PATCH", /^\/account$/],
-  ["GET", /^\/integrations\/itch$/],
-  ["POST", /^\/integrations\/itch\/connect$/],
-  ["DELETE", /^\/integrations\/itch$/],
-  ["GET", /^\/library(?:\?|$)/],
-  ["POST", /^\/library\/sync$/],
-  ["POST", /^\/library\/[0-9a-f-]{36}\/install-metadata$/i],
-  ["POST", /^\/library\/[0-9a-f-]{36}\/verify$/i],
-  ["GET", /^\/platform\/saves\/[0-9a-f-]{36}(?:\/[a-z0-9_-]{1,40})?(?:\?|$)/i],
-  ["DELETE", /^\/platform\/saves\/[0-9a-f-]{36}\/[a-z0-9_-]{1,40}$/i],
-  ["GET", /^\/platform\/achievements\/[0-9a-f-]{36}(?:\?|$)/i],
-  ["GET", /^\/platform\/events(?:\?|$)/],
-  ["GET", /^\/platform\/live-ticket$/],
-  ["PATCH", /^\/platform\/telemetry-consent$/],
-  ["POST", /^\/platform\/telemetry$/],
-  ["POST", /^\/admin\/(?:game|newsletter|video)$/],
-  ["DELETE", /^\/admin\/(?:game|newsletter|video)\/[0-9a-f-]{36}$/i],
-  ["POST", /^\/auth\/resend-email$/],
-  ["POST", /^\/account\/email\/change$/],
-  ["GET", /^\/account\/privacy$/],
-  ["PUT", /^\/account\/privacy$/],
+  ['GET', /^\/csrf$/],
+  ['GET', /^\/auth\/me$/],
+  ['POST', /^\/auth\/(?:mobile-login|verify-2fa|logout|resend-email)$/],
+  ['GET', /^\/games\/[a-z0-9-]{2,120}$/],
+  ['GET', /^\/integrations\/itch$/],
+  ['POST', /^\/integrations\/itch\/connect$/],
+  ['GET', /^\/library(?:\/catalog)?$/],
+  ['POST', /^\/library\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i],
+  ['DELETE', /^\/integrations\/itch$/],
+  ['POST', /^\/library\/sync$/],
+  ['GET', /^\/platform\/achievements\/[0-9a-f-]{36}$/i],
+  ['GET', /^\/platform\/events(?:\?|$)/],
+  ['GET', /^\/platform\/live-ticket$/],
 ];
 const GAME_VIEW_API_ALLOWED_REQUESTS = [
-  ["GET", /^\/csrf$/],
-  ["GET", /^\/auth\/me$/],
-  ["GET", /^\/games(?:\?|\/|$)/],
-  ["GET", /^\/library(?:\?|$)/],
-  ["GET", /^\/platform\/saves\/[0-9a-f-]{36}(?:\/[a-z0-9_-]{1,40})?(?:\?|$)/i],
-  ["DELETE", /^\/platform\/saves\/[0-9a-f-]{36}\/[a-z0-9_-]{1,40}$/i],
-  ["GET", /^\/platform\/achievements\/[0-9a-f-]{36}(?:\?|$)/i],
+  ['GET', /^\/auth\/me$/],
+  ['GET', /^\/library$/],
+  ['GET', /^\/platform\/saves\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i],
+  ['GET', /^\/platform\/achievements\/[0-9a-f-]{36}$/i],
 ];
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const MAX_RENDERER_API_BODY_BYTES = 1024 * 1024;
+const MAX_RENDERER_API_BODY_BYTES = 16 * 1024;
 const MAX_GAME_ARCHIVE_BYTES = 20 * 1024 * 1024 * 1024;
 const MAX_LAUNCHER_UPDATE_BYTES = 1024 * 1024 * 1024;
-const MAX_BUTLER_ARCHIVE_BYTES = 512 * 1024 * 1024;
-let gameViewLibraryState = [];
 
 function readPlaytime() {
     try {
@@ -396,16 +370,6 @@ function readGameViewSettings() {
   }
 }
 
-function writeGameViewSettings(settings) {
-  try {
-    fs.writeFileSync(
-      GAME_VIEW_SETTINGS_FILE,
-      JSON.stringify(settings, null, 2),
-      "utf8"
-    );
-  } catch {}
-}
-
 function gameViewShortcutLabel(accelerator) {
   return String(
     accelerator ||
@@ -446,21 +410,6 @@ function unregisterGameViewShortcut() {
   } catch {}
 
   registeredGameViewShortcut = null;
-}
-
-function clearGameViewShortcutCaptureTimer() {
-  if (!gameViewShortcutCaptureTimer) return;
-  clearTimeout(gameViewShortcutCaptureTimer);
-  gameViewShortcutCaptureTimer = null;
-}
-
-function armGameViewShortcutCaptureRestore() {
-  clearGameViewShortcutCaptureTimer();
-  gameViewShortcutCaptureTimer = setTimeout(() => {
-    gameViewShortcutCaptureTimer = null;
-    unregisterGameViewShortcut();
-    registerGameViewShortcut(gameViewSettings);
-  }, 30_000);
 }
 
 function registerGameViewShortcut(
@@ -507,82 +456,6 @@ function registerGameViewShortcut(
   }
 }
 
-function broadcastGameViewSettings() {
-  if (
-    overlayWindow &&
-    !overlayWindow.isDestroyed()
-  ) {
-    try {
-      overlayWindow.webContents.send(
-        "deadsmile:gameview-settings-changed",
-        publicGameViewSettings()
-      );
-    } catch {}
-  }
-}
-
-function updateGameViewSettings(patch = {}) {
-  clearGameViewShortcutCaptureTimer();
-  const previous = {
-    ...gameViewSettings,
-  };
-
-  const candidate = {
-    enabled:
-      patch.enabled === undefined
-        ? previous.enabled
-        : Boolean(patch.enabled),
-
-    shortcut:
-      typeof patch.shortcut === "string" &&
-      patch.shortcut.trim()
-        ? patch.shortcut.trim()
-        : previous.shortcut,
-  };
-
-  unregisterGameViewShortcut();
-
-  const registration = registerGameViewShortcut(candidate, {
-    validateOnly: candidate.enabled && !playSessions.size,
-  });
-
-  if (!registration.ok) {
-    unregisterGameViewShortcut();
-
-    registerGameViewShortcut(previous);
-
-    return {
-      ...registration,
-      settings:
-        publicGameViewSettings(previous),
-    };
-  }
-
-  gameViewSettings = candidate;
-
-  writeGameViewSettings(
-    gameViewSettings
-  );
-
-  if (!gameViewSettings.enabled) {
-    overlayShowPending = false;
-
-    if (
-      overlayWindow &&
-      !overlayWindow.isDestroyed()
-    ) {
-      overlayWindow.hide();
-    }
-  }
-
-  broadcastGameViewSettings();
-
-  return {
-    ok: true,
-    settings:
-      publicGameViewSettings(),
-  };
-}
 const LEGACY_USER_DATA = app.getPath("userData");
 const LEGACY_GAMES_DIR = path.join(app.getPath("downloads"), "Deadsmile Games");
 
@@ -604,7 +477,6 @@ function copyDirectoryContentsSync(from, to) {
 
 fs.mkdirSync(SETTINGS_DIR, { recursive: true });
 fs.mkdirSync(GAMES_DIR, { recursive: true });
-fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 if (path.resolve(LEGACY_USER_DATA) !== path.resolve(SETTINGS_DIR))
   copyDirectoryContentsSync(LEGACY_USER_DATA, SETTINGS_DIR);
 if (
@@ -706,17 +578,6 @@ function handleLaunchArguments(argv = []) {
 function handleDeepLink(url) {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol === "deadsmile:" && parsed.hostname === "itch-oauth") {
-      const pending = pendingButlerOAuth;
-      if (!pending) return;
-      if (parsed.searchParams.get("state") !== pending.state) return;
-      pendingButlerOAuth = null;
-      clearTimeout(pending.timer);
-      const code = parsed.searchParams.get("code");
-      if (!code || parsed.searchParams.get("error")) pending.reject(new Error("ITCH_OAUTH_DENIED"));
-      else pending.resolve({ code, verifier: pending.verifier, clientId: pending.clientId });
-      return;
-    }
     if (parsed.protocol === "deadsmile:" && parsed.hostname === "launch") {
       const gameId = parsed.searchParams.get("gameId");
       if (UUID_PATTERN.test(String(gameId || ""))) dispatchLaunchGame(gameId);
@@ -724,7 +585,7 @@ function handleDeepLink(url) {
   } catch {}
 }
 
-const API_URL = "https://deadsmile.vercel.app/api";
+const API_URL = "https://api-ust8.onrender.com/api";
 
 function canonicalRendererApiPath(value) {
   if (typeof value !== "string" || !value.startsWith("/")) return null;
@@ -1052,14 +913,7 @@ async function removeGameDesktopShortcuts(gameId, { keepPaths = [] } = {}) {
   return removed;
 }
 
-function isItch(value) {
-  try {
-    const u = new URL(value);
-    return isHttps(value) && /(?:^|\.)itch\.io$/i.test(u.hostname);
-  } catch {
-    return false;
-  }
-}
+
 function safeExternalUrl(value) {
   if (typeof value !== "string" || value.length > 4096) return null;
   try {
@@ -1114,9 +968,7 @@ function apiTransportFailure(error) {
     data: {
       error: {
         code: timedOut ? "REQUEST_TIMEOUT" : "NETWORK_ERROR",
-        message: timedOut
-          ? "The Deadsmile Games servers took too long to respond. Please try again."
-          : "Unable to reach the Deadsmile Games servers. Check your internet connection and try again.",
+        message: publicMessage({ code: timedOut ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR' }),
         ...(transportCode ? { transportCode } : {}),
       },
     },
@@ -1140,6 +992,7 @@ async function apiRequest({
         cache: endpoint.startsWith("/auth/") || endpoint === "/csrf" ? "no-store" : "default",
         headers: {
           Accept: "application/json",
+          "Accept-Language": errorLocale(gameViewLanguageState.language),
           ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
           ...headers,
         },
@@ -1317,29 +1170,6 @@ function picoWordAt(source, index) {
   if (!source || !Number.isInteger(index) || index < 0 || index > 63) return null;
   return source.slice(index * 8, index * 8 + 8);
 }
-
-function mergePicoAchievementFlags(remoteFileBytes, localFileBytes) {
-  const remote = picoDataHex(remoteFileBytes);
-  const local = picoDataHex(localFileBytes);
-  if (!remote || !local) return remoteFileBytes;
-
-  const words = Array.from({ length: 64 }, (_, index) => picoWordAt(remote, index));
-
-  for (const index of ABBY_PICO_ACHIEVEMENT_DATA_INDICES) {
-    const localWord = picoWordAt(local, index);
-    const remoteWord = words[index];
-    const localValue = picoFixedFromWord(localWord);
-    const remoteValue = picoFixedFromWord(remoteWord);
-    if (localValue != null && remoteValue != null && localValue > remoteValue) {
-      words[index] = localWord;
-    }
-  }
-
-  const hex = words.join("");
-  const formatted = `${hex.match(/.{1,64}/g).join("\n")}\n`;
-  return Buffer.from(formatted, "utf8");
-}
-
 
 function validatedCloudSaveBytes(remote) {
   const encoded = String(remote?.payload || "");
@@ -1682,9 +1512,7 @@ async function trustedGameMetadata(gameId, gameSlug = null) {
     );
 
     if (match) {
-      const commerceEnabled = Boolean(
-        match.purchaseUrl && match.itchGameId,
-      );
+      const commerceEnabled = match.accessType === "paid";
 
       return {
         ...match,
@@ -1696,24 +1524,7 @@ async function trustedGameMetadata(gameId, gameSlug = null) {
     }
   } catch {}
 
-  try {
-    const catalog = await apiRequest({
-      path: "/games?page=1&limit=48",
-    });
-
-    const items = Array.isArray(
-      catalog?.data?.data?.items,
-    )
-      ? catalog.data.data.items
-      : [];
-
-    return (
-      items.find((item) => String(item?.id) === id) ||
-      null
-    );
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 async function installMetadata(gameId) {
@@ -1725,45 +1536,10 @@ async function installMetadata(gameId) {
     headers: { "X-CSRF-Token": csrf },
   });
   const metadata = result.data?.data;
-  if (!result.ok || !metadata || !Number.isSafeInteger(Number(metadata.itchGameId)) || Number(metadata.itchGameId) <= 0 || !Number.isSafeInteger(Number(metadata.itchUserId)) || Number(metadata.itchUserId) <= 0 || !isHttps(metadata.downloadUrl) || !Number.isSafeInteger(Number(metadata.sizeBytes)) || Number(metadata.sizeBytes) <= 0 || !/\.zip$/i.test(String(metadata.filename || ""))) {
-    throw new Error(result.data?.error?.code || "DOWNLOAD_NOT_AUTHORIZED");
-  }
+  if (!result.ok || !metadata) throw new Error(result.data?.error?.code || 'DOWNLOAD_NOT_AUTHORIZED');
+  if (metadata.delivery !== 'archive' || !isHttps(metadata.downloadUrl) || !Number.isSafeInteger(Number(metadata.sizeBytes)) || Number(metadata.sizeBytes) <= 0 || !/\.zip$/i.test(String(metadata.filename || ''))) throw new Error('DOWNLOAD_NOT_AUTHORIZED');
+
   return metadata;
-}
-
-async function launcherOAuthClientId() {
-  const result = await apiRequest({ path: "/integrations/itch" });
-  if (!result.ok) throw new Error(result.data?.error?.code || "ITCH_NOT_CONNECTED");
-  const clientId = String(result.data?.data?.launcherClientId || "");
-  if (!/^[A-Za-z0-9._-]{6,160}$/.test(clientId)) throw new Error("ITCH_LAUNCHER_NOT_CONFIGURED");
-  return clientId;
-}
-
-function beginButlerOAuth(clientId) {
-  if (pendingButlerOAuth) return Promise.reject(new Error("ITCH_LOGIN_IN_PROGRESS"));
-  const verifier = crypto.randomBytes(32).toString("base64url");
-  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
-  const state = crypto.randomBytes(32).toString("base64url");
-  const url = new URL("https://itch.io/user/oauth");
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("scope", "itch");
-  url.searchParams.set("redirect_uri", BUTLER_OAUTH_REDIRECT);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("state", state);
-  url.searchParams.set("code_challenge", challenge);
-  url.searchParams.set("code_challenge_method", "S256");
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      if (pendingButlerOAuth?.state === state) pendingButlerOAuth = null;
-      reject(new Error("ITCH_LOGIN_EXPIRED"));
-    }, 10 * 60 * 1000);
-    pendingButlerOAuth = { state, verifier, clientId, resolve, reject, timer };
-    shell.openExternal(url.toString()).catch((error) => {
-      if (pendingButlerOAuth?.state === state) pendingButlerOAuth = null;
-      clearTimeout(timer);
-      reject(error);
-    });
-  });
 }
 
 async function downloadGameArchive({ url, destination, expectedSize, expectedSha256 = null, filename, mode, ctx }) {
@@ -1776,7 +1552,7 @@ async function downloadGameArchive({ url, destination, expectedSize, expectedSha
     if (ctx.isAborted() || ctx.isPaused()) controller.abort();
   }, 200);
   try {
-    const response = await session.defaultSession.fetch(url, {
+    const response = await downloadResponse(url, {
       headers: {
         Accept: "application/octet-stream",
         "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}`,
@@ -1806,7 +1582,7 @@ async function downloadGameArchive({ url, destination, expectedSize, expectedSha
       },
     });
     await pipeline(
-      Readable.fromWeb(response.body),
+      response.body,
       meter,
       fs.createWriteStream(destination, { mode: 0o600 }),
     );
@@ -1821,151 +1597,6 @@ async function downloadGameArchive({ url, destination, expectedSize, expectedSha
     clearInterval(watcher);
   }
 }
-
-async function downloadFile(url, destination) {
-  const response = await session.defaultSession.fetch(url, {
-    headers: { Accept: "application/octet-stream", "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}` },
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!response.ok || !response.body) throw new Error("BUTLER_DOWNLOAD_FAILED");
-  const declared = Number(response.headers.get("content-length")) || 0;
-  if (declared > MAX_BUTLER_ARCHIVE_BYTES) throw new Error("BUTLER_DOWNLOAD_TOO_LARGE");
-  let received = 0;
-  const limiter = new Transform({
-    transform(chunk, _encoding, callback) {
-      received += chunk.length;
-      if (received > MAX_BUTLER_ARCHIVE_BYTES) return callback(new Error("BUTLER_DOWNLOAD_TOO_LARGE"));
-      callback(null, chunk);
-    },
-  });
-  await pipeline(Readable.fromWeb(response.body), limiter, fs.createWriteStream(destination, { mode: 0o600 }));
-}
-
-async function ensureButler() {
-  if (process.platform !== "win32") throw new Error("BUTLER_PLATFORM_UNSUPPORTED");
-  let remoteVersion = "";
-  try {
-    const response = await session.defaultSession.fetch(`${BUTLER_BROTH}/LATEST`, {
-      headers: { Accept: "text/plain", "User-Agent": `Deadsmile-Games-Launcher/${APP_VERSION}` },
-    });
-    if (response.ok) remoteVersion = (await response.text()).trim();
-  } catch {}
-  let localVersion = "";
-  try { localVersion = (await fsp.readFile(BUTLER_VERSION_FILE, "utf8")).trim(); } catch {}
-  let localExecutable = BUTLER_EXE;
-  try {
-    const relative = (await fsp.readFile(BUTLER_PATH_FILE, "utf8")).trim();
-    const resolved = path.resolve(BUTLER_ROOT, relative);
-    if (resolved.startsWith(`${path.resolve(BUTLER_ROOT)}${path.sep}`)) localExecutable = resolved;
-  } catch {}
-  if (await pathExists(localExecutable) && (!remoteVersion || remoteVersion === localVersion)) return localExecutable;
-  if (!remoteVersion && !(await pathExists(localExecutable))) throw new Error("BUTLER_UNAVAILABLE");
-  const staging = await fsp.mkdtemp(path.join(SETTINGS_DIR, ".butler-staging-"));
-  const butlerTempRoot = await fsp.mkdtemp(path.join(app.getPath("temp"), "deadsmile-butler-"));
-  const archive = path.join(butlerTempRoot, "butler.zip");
-  try {
-    await downloadFile(`${BUTLER_BROTH}/${encodeURIComponent(remoteVersion)}/archive/default`, archive);
-    await extractZip(archive, staging, { maxExtractedBytes: 1024 * 1024 * 1024, maxEntries: 20000 });
-    const executable = await findNamedFile(staging, "butler.exe");
-    if (!executable) throw new Error("BUTLER_INVALID_ARCHIVE");
-    const relativeExecutable = path.relative(staging, executable);
-    if (!relativeExecutable || relativeExecutable.startsWith("..") || path.isAbsolute(relativeExecutable)) throw new Error("BUTLER_INVALID_ARCHIVE");
-    await fsp.writeFile(path.join(staging, "version.txt"), remoteVersion, { mode: 0o600 });
-    await fsp.writeFile(path.join(staging, "executable.txt"), relativeExecutable, { mode: 0o600 });
-    const previous = `${BUTLER_ROOT}.previous-${process.pid}`;
-    await fsp.rm(previous, { recursive: true, force: true });
-    if (await pathExists(BUTLER_ROOT)) await fsp.rename(BUTLER_ROOT, previous);
-    try {
-      await fsp.rename(staging, BUTLER_ROOT);
-      await fsp.rm(previous, { recursive: true, force: true });
-    } catch (error) {
-      if (!(await pathExists(BUTLER_ROOT)) && await pathExists(previous)) await fsp.rename(previous, BUTLER_ROOT);
-      throw error;
-    }
-  } finally {
-    await fsp.rm(butlerTempRoot, { recursive: true, force: true }).catch(() => {});
-    await fsp.rm(staging, { recursive: true, force: true }).catch(() => {});
-  }
-  const relativeExecutable = (await fsp.readFile(BUTLER_PATH_FILE, "utf8")).trim();
-  const installedExecutable = path.resolve(BUTLER_ROOT, relativeExecutable);
-  if (!installedExecutable.startsWith(`${path.resolve(BUTLER_ROOT)}${path.sep}`) || !(await pathExists(installedExecutable))) throw new Error("BUTLER_INVALID_INSTALL");
-  return installedExecutable;
-}
-
-async function findNamedFile(directory, filename) {
-  const queue = [directory];
-  while (queue.length) {
-    const current = queue.shift();
-    for (const entry of await fsp.readdir(current, { withFileTypes: true })) {
-      const full = path.join(current, entry.name);
-      if (entry.isDirectory()) queue.push(full);
-      else if (entry.isFile() && entry.name.toLowerCase() === filename.toLowerCase()) return full;
-    }
-  }
-  return null;
-}
-
-async function getButlerClient() {
-  if (butlerClient) return butlerClient;
-  if (butlerClientStarting) return butlerClientStarting;
-  butlerClientStarting = (async () => {
-    const executable = await ensureButler();
-    const instance = new Instance({
-      butlerExecutable: executable,
-      args: [
-        "--dbpath", BUTLER_DB,
-        "--address", "https://itch.io",
-        "--user-agent", `Deadsmile-Games-Launcher/${APP_VERSION}`,
-        "--destiny-pid", String(process.pid),
-      ],
-    });
-    const client = new Client(await instance.getEndpoint());
-    client.onError(() => {});
-    client.onWarning(() => {});
-    butlerInstance = instance;
-    butlerClient = client;
-    instance.promise().catch(() => {}).finally(() => {
-      if (butlerInstance === instance) butlerInstance = null;
-      if (butlerClient === client) butlerClient = null;
-    });
-    return client;
-  })();
-  try {
-    return await butlerClientStarting;
-  } finally {
-    butlerClientStarting = null;
-  }
-}
-
-async function getButlerProfile(client, itchUserId, { interactive = true } = {}) {
-  const expectedId = Number(itchUserId);
-  if (!Number.isSafeInteger(expectedId) || expectedId <= 0) throw new Error("ITCH_USER_INVALID");
-  const list = await client.call(butlerMessages.ProfileList, {});
-  const profiles = Array.isArray(list?.profiles) ? list.profiles : [];
-  const saved = profiles.find((profile) => Number(profile?.id) === expectedId);
-  if (saved) {
-    try {
-      const result = await client.call(butlerMessages.ProfileUseSavedLogin, { profileId: expectedId });
-      if (Number(result?.profile?.id) === expectedId) return result.profile;
-    } catch {
-      if (!interactive) throw new Error("ITCH_RECONNECT_REQUIRED");
-    }
-  }
-  if (!interactive) throw new Error("ITCH_RECONNECT_REQUIRED");
-  const clientId = await launcherOAuthClientId();
-  const { code, verifier } = await beginButlerOAuth(clientId);
-  const result = await client.call(butlerMessages.ProfileLoginWithOAuthCode, {
-    code,
-    codeVerifier: verifier,
-    redirectUri: BUTLER_OAUTH_REDIRECT,
-    clientId,
-  });
-  if (Number(result?.profile?.id) !== expectedId) {
-    throw new Error("ITCH_ACCOUNT_MISMATCH");
-  }
-  return result.profile;
-}
-
 
 function send(sender, channel, payload) {
   try {
@@ -2045,7 +1676,7 @@ Expand-Archive -LiteralPath $env:DS_ZIP -DestinationPath $env:DS_DEST -Force
     let stderr = "";
     child.stderr.on("data", (d) => { stderr += d.toString(); });
     child.once("error", reject);
-    child.once("close", (code) => code === 0 ? resolve() : reject(new Error(stderr.trim() || `Zip extraction failed (${code}).`)));
+    child.once("close", (code) => code === 0 ? resolve() : reject(new Error("GAME_DOWNLOAD_FAILED")));
   });
   await validateExtractedTree(destination);
 }
@@ -2140,7 +1771,10 @@ function versionFromFilename(filename) {
   return String(Number.parseInt(version, 10));
 }
 
-async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
+async function swapGameInstall({ id, gameFolder, stagingFolder, ctx }) {
+  return gameOperations.run(id, async () => {
+  if (playSessions.has(id) || launchRequests.has(id)) throw new Error("GAME_RUNNING");
+  ctx.onProgress({ status: "installing", percent: 98 });
   const backupFolder = `${gameFolder}.old`;
   await assertSafeManagedGameDirectory(gameFolder, { allowMissing: true });
   await assertSafeManagedGameDirectory(backupFolder, { allowMissing: true });
@@ -2154,23 +1788,20 @@ async function swapGameInstall({ gameFolder, stagingFolder, ctx }) {
     },
   });
   return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe) };
+  });
 }
 
 async function runDownloadWorker(job, ctx) {
-  const { id, slug, commerceEnabled, mode = "download", currentVersion = null } = job;
-  const authorization = commerceEnabled ? await installMetadata(id) : {
-    downloadUrl: job.url,
-    filename: job.filename,
-    sizeBytes: 0,
-    version: versionFromFilename(job.filename || job.url),
-  };
+  const { id, slug, mode = "download", currentVersion = null } = job;
+  const authorization = await installMetadata(id);
+  if (authorization.delivery !== 'archive') throw new Error('DOWNLOAD_NOT_AUTHORIZED');
   if (!isHttps(authorization.downloadUrl)) throw new Error("DOWNLOAD_NOT_AUTHORIZED");
   const archiveName = sanitizeName(authorization.filename || `${slug || id}.zip`);
   const remoteVersion = String(authorization.version || versionFromFilename(archiveName) || "").trim() || null;
   if (mode === "update" && remoteVersion && currentVersion && compareVersions(remoteVersion, currentVersion) <= 0) {
     throw new Error("NO_UPDATE_AVAILABLE");
   }
-  const gameFolder = path.join(GAMES_DIR, sanitizeName(slug || id));
+  const gameFolder = path.join(GAMES_DIR, id);
   await fsp.mkdir(GAMES_DIR, { recursive: true });
 
   if (playSessions.has(id)) throw new Error("GAME_RUNNING");
@@ -2194,7 +1825,7 @@ async function runDownloadWorker(job, ctx) {
     if (ctx.isAborted()) throw new Error("Cancelled");
     if (ctx.isPaused()) throw new Error("Paused");
     ctx.onProgress({
-      status: mode === "update" ? "updating" : "downloading",
+      status: "extracting",
       percent: 96,
       received: Number(authorization.sizeBytes) || 0,
       total: Number(authorization.sizeBytes) || 0,
@@ -2203,9 +1834,10 @@ async function runDownloadWorker(job, ctx) {
     await extractZip(archivePath, stagingFolder, { maxExtractedBytes: 40 * 1024 * 1024 * 1024, maxEntries: 100000 });
     const exePath = await firstExe(stagingFolder);
     if (!exePath) throw new Error("WINDOWS_EXECUTABLE_MISSING");
+    await writeInstallRecord(stagingFolder, id, exePath, remoteVersion || (mode === "update" ? currentVersion : versionFromFilename(path.basename(exePath))));
 
     if (mode === "update") {
-      const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
+      const swapped = await swapGameInstall({ id, gameFolder, stagingFolder, ctx });
       let shortcut = null;
       try {
         shortcut = await createGameDesktopShortcut({
@@ -2220,7 +1852,7 @@ async function runDownloadWorker(job, ctx) {
       return { ...swapped, slug, version: remoteVersion || currentVersion, shortcut };
     }
 
-    const swapped = await swapGameInstall({ gameFolder, stagingFolder, ctx });
+    const swapped = await swapGameInstall({ id, gameFolder, stagingFolder, ctx });
     const installedExe = swapped.path;
     let shortcut = null;
     try {
@@ -2229,7 +1861,6 @@ async function runDownloadWorker(job, ctx) {
       shortcut = { created: false, reason: error?.message || "GAME_SHORTCUT_CREATE_FAILED", path: null, type: null };
       console.warn("[Shortcut] Could not create game desktop shortcut:", error?.message || error);
     }
-    ctx.onProgress({ status: "complete", percent: 100, fileName: path.basename(installedExe) });
     return { path: installedExe, folderPath: gameFolder, filename: path.basename(installedExe),
       version: remoteVersion || versionFromFilename(path.basename(installedExe)), slug, shortcut };
   } finally {
@@ -2249,6 +1880,7 @@ function broadcast(channel, payload, excludeWindow = null) {
 
 const downloadQueue = new DownloadQueue({
     worker: runDownloadWorker,
+    formatError: publicMessage,
     broadcast,
     maxConcurrent: 2,
 });
@@ -2291,30 +1923,30 @@ async function checkForUpdate() {
 
 async function updateLauncher(sender) {
   if (IS_MICROSOFT_STORE) throw new Error("UPDATE_MANAGED_BY_MICROSOFT_STORE");
-  if (updateInProgress) throw new Error("Launcher update already in progress.");
-  const updateUnsafe = () => playSessions.size > 0 || downloadQueue.snapshot().some(
+  if (updateInProgress) throw new Error("UPDATE_IN_PROGRESS");
+  const updateUnsafe = () => playSessions.size > 0 || launchRequests.size > 0 || gameOperations.size > 0 || downloadQueue.snapshot().some(
     (job) => !['complete', 'failed'].includes(job.status)
   );
-  if (updateUnsafe()) throw new Error('Close games and finish or cancel downloads before updating the launcher.');
+  if (updateUnsafe()) throw new Error('UPDATE_BUSY');
   const update = await checkForUpdate();
-  if (!update.available) throw new Error(update.reason || "No update is available.");
+  if (!update.available) throw new Error("NO_UPDATE_AVAILABLE");
 
   const tempRoot = await fsp.mkdtemp(path.join(app.getPath("temp"), "deadsmile-launcher-update-"));
   const zipPath = path.join(tempRoot, sanitizeName(update.name));
   const response = await session.defaultSession.fetch(update.url, {
     headers: { Accept: "application/octet-stream", "User-Agent": "Deadsmile-Games-Launcher" },
   });
-  if (!response.ok || !response.body) throw new Error(`Unable to download launcher update (${response.status}).`);
+  if (!response.ok || !response.body) throw new Error("GAME_DOWNLOAD_FAILED");
 
   const total = Number(response.headers.get("content-length")) || update.size || 0;
-  if (total > MAX_LAUNCHER_UPDATE_BYTES) throw new Error("Launcher update is too large.");
+  if (total > MAX_LAUNCHER_UPDATE_BYTES) throw new Error("GAME_DOWNLOAD_TOO_LARGE");
   let received = 0;
   const hash = crypto.createHash("sha256");
   const stream = Readable.fromWeb(response.body);
   stream.on("data", (chunk) => {
     received += chunk.length;
     if (received > MAX_LAUNCHER_UPDATE_BYTES) {
-      stream.destroy(new Error("Launcher update is too large."));
+      stream.destroy(new Error("GAME_DOWNLOAD_TOO_LARGE"));
       return;
     }
     hash.update(chunk);
@@ -2338,13 +1970,13 @@ async function updateLauncher(sender) {
       expected = match ? match[1].toLowerCase() : null;
     }
   }
-  if (!expected) throw new Error("Launcher update checksum is unavailable.");
+  if (!expected) throw new Error("UPDATE_VERIFICATION_FAILED");
   const actual = hash.digest("hex").toLowerCase();
-  if (actual !== expected) throw new Error("Launcher update checksum verification failed.");
+  if (actual !== expected) throw new Error("UPDATE_VERIFICATION_FAILED");
   const staging = path.join(tempRoot, "staging");
   await extractZip(zipPath, staging, { maxExtractedBytes: 4 * 1024 * 1024 * 1024, maxEntries: 50000 });
   const stagedExe = await findLauncherExe(staging, path.basename(process.execPath));
-  if (!stagedExe) throw new Error("Updated launcher executable is missing from the archive.");
+  if (!stagedExe) throw new Error("UPDATE_VERIFICATION_FAILED");
   await verifyLauncherUpdateSignature(stagedExe);
   const runnerDir = path.join(tempRoot, "runner");
   await fsp.mkdir(runnerDir, { recursive: true });
@@ -2378,7 +2010,7 @@ async function updateLauncher(sender) {
   }
 
   if (!(await pathExists(runnerExe))) {
-    throw new Error("Failed to stage the Electron runtime for the updater.");
+    throw new Error("UPDATE_VERIFICATION_FAILED");
   }
 
   const helperSourceCandidates = [
@@ -2386,7 +2018,7 @@ async function updateLauncher(sender) {
     path.join(__dirname, "updater.cjs"),
   ];
   const helperSource = helperSourceCandidates.find(fs.existsSync);
-  if (!helperSource) throw new Error("Updater helper is missing from this build.");
+  if (!helperSource) throw new Error("UPDATE_VERIFICATION_FAILED");
   const helper = path.join(tempRoot, "updater.cjs");
   await fsp.copyFile(helperSource, helper);
 
@@ -2400,28 +2032,11 @@ async function updateLauncher(sender) {
     "--confirm", confirmFile,
     "--expected-version", update.latestVersion,
   ];
-  try {
-    const pendingPath = path.join(SETTINGS_DIR, "pending-update.json");
-    await fsp.writeFile(
-      pendingPath,
-      JSON.stringify(
-        {
-          version: update.latestVersion,
-          previousVersion: APP_VERSION,
-          notes: update.notes || "",
-          htmlUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${update.latestVersion}`,
-          installedAt: Date.now(),
-        },
-        null,
-        2,
-      ),
-      "utf8",
-    );
-  } catch {}
-  if (updateUnsafe()) throw new Error('A game or download started during update preparation.');
+  if (updateInProgress) throw new Error('UPDATE_IN_PROGRESS');
+  if (updateUnsafe()) throw new Error('UPDATE_BUSY');
   send(sender, "deadsmile:update-progress", { status: "updating", percent: 0, received, total });
   updateInProgress = true;
-  forceQuit = true;
+  try {
   const child = spawn(runnerExe, args, {
     detached: true,
     stdio: "ignore",
@@ -2429,9 +2044,18 @@ async function updateLauncher(sender) {
     cwd: tempRoot,
     env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ELECTRON_NO_ATTACH_CONSOLE: "1" },
   });
+  child.on("error", (error) => console.warn("[Update] Updater process error:", error?.message || error));
+  await waitForProcessSpawn(child);
   child.unref();
+  forceQuit = true;
   setTimeout(() => app.quit(), 200);
   return { started: true, latestVersion: update.latestVersion };
+  } catch {
+    updateInProgress = false;
+    forceQuit = false;
+    await fsp.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
+    throw new Error("UPDATE_START_FAILED");
+  }
 }
 
 async function authenticodeIdentity(filePath) {
@@ -2486,7 +2110,7 @@ async function verifyLauncherUpdateSignature(stagedExe) {
   if (!current?.valid || !current.subject) return;
   const staged = await authenticodeIdentity(stagedExe);
   if (!staged?.valid || !staged.subject || staged.subject !== current.subject) {
-    throw new Error("Launcher update Authenticode verification failed.");
+    throw new Error("UPDATE_VERIFICATION_FAILED");
   }
 }
 
@@ -2536,16 +2160,9 @@ async function checkGameUpdate(request) {
     if (!metadata) return { available: false, id, localVersion: localVersion || null, reason: "GAME_METADATA_UNAVAILABLE" };
     const slug = String(metadata.slug || id);
     let authorization;
-    if (metadata.commerceEnabled) {
-      const install = await withGameUpdateCheckSlot(() => installMetadata(id));
-      authorization = { version: install.version || null, filename: install.filename || null };
-    } else {
-      const url = metadata.downloadUrl;
-      if (!isHttps(url)) return { available: false, id, slug, localVersion: localVersion || null, reason: "UPDATE_CHECK_UNAVAILABLE" };
-      const parsed = new URL(url);
-      const remoteFilename = decodeURIComponent(path.basename(parsed.pathname || ""));
-      authorization = { version: versionFromFilename(remoteFilename), filename: remoteFilename };
-    }
+    const install = await withGameUpdateCheckSlot(() => installMetadata(id));
+    if (install.delivery !== 'archive') return { available: false, id, reason: 'UPDATE_MANAGED_BY_MICROSOFT_STORE' };
+    authorization = { version: install.version || null, filename: install.filename || null };
     const latestVersion = String(authorization.version || versionFromFilename(authorization.filename || "") || "").trim() || null;
     return {
       available: Boolean(latestVersion && localVersion && compareVersions(latestVersion, localVersion) > 0),
@@ -2654,10 +2271,6 @@ function createOverlayWindow() {
 }
 
 const OVERLAY_FADE_MS = 180;
-
-function hasRunningGame() {
-  return playSessions.size > 0;
-}
 
 function hasVisibleRunningGame() {
   for (const gameId of playSessions.keys()) {
@@ -2844,19 +2457,12 @@ function showGameOverlay() {
 
       win.setFocusable(false);
 
-
-
       win.setIgnoreMouseEvents(
         true,
         { forward: true }
       );
 
-
-
       win.showInactive();
-
-
-
 
       try {
         win.webContents.send("deadsmile:overlay-shown", true);
@@ -2893,113 +2499,6 @@ function toggleGameOverlay() {
   }
 
   showGameOverlay();
-}
-
-async function takeGameScreenshot(options = {}) {
-  const restoreOverlay = options.restoreOverlay !== false;
-  const copyToClipboard = options.copyToClipboard === true;
-  const display = overlayWindow && !overlayWindow.isDestroyed()
-    ? screen.getDisplayMatching(overlayWindow.getBounds())
-    : getOverlayDisplay();
-  const wasVisible = Boolean(
-    overlayWindow && !overlayWindow.isDestroyed() && overlayWindow.isVisible(),
-  );
-  if (wasVisible) overlayWindow.hide();
-
-  try {
-
-    await new Promise((resolve) => setTimeout(resolve, 180));
-    const scale = Number(display?.scaleFactor || 1);
-    const width = Math.max(1, Math.round((display?.bounds?.width || 1920) * scale));
-    const height = Math.max(1, Math.round((display?.bounds?.height || 1080) * scale));
-    const sources = await desktopCapturer.getSources({
-      types: ["screen"],
-      thumbnailSize: { width, height },
-      fetchWindowIcons: false,
-    });
-    const source =
-      sources.find((item) => String(item.display_id) === String(display?.id)) ||
-      sources[0];
-    if (!source || source.thumbnail.isEmpty()) {
-      throw new Error("Unable to capture the display.");
-    }
-
-    await fsp.mkdir(SCREENSHOTS_DIR, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const runningId = [...playSessions.keys()][0];
-    const suffix = runningId
-      ? `-${String(runningId).replace(/[^a-z0-9_-]/gi, "")}`
-      : "";
-    const filePath = path.join(
-      SCREENSHOTS_DIR,
-      `Deadsmile-${stamp}${suffix}.png`,
-    );
-
-    const png = source.thumbnail.toPNG();
-    await fsp.writeFile(filePath, png);
-    if (copyToClipboard) {
-      await clipboard.write([
-        new ClipboardItem({
-          "image/png": new Blob([png], { type: "image/png" }),
-        }),
-      ]);
-    }
-
-    return { ok: true, path: filePath, folder: SCREENSHOTS_DIR };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error?.message || "Unable to take screenshot.",
-    };
-  } finally {
-    if (
-      restoreOverlay &&
-      wasVisible &&
-      canOpenGameView() &&
-      overlayWindow &&
-      !overlayWindow.isDestroyed()
-    ) {
-      showGameOverlay();
-    }
-  }
-}
-
-async function shareGameOnX(payload = {}) {
-  if (!canOpenGameView()) {
-    return { ok: false, error: "GAME_NOT_RUNNING" };
-  }
-
-  const text = String(payload?.text || "").trim();
-  if (!text) return { ok: false, error: "EMPTY_SHARE_TEXT" };
-
-  const screenshot = await takeGameScreenshot({
-    restoreOverlay: false,
-    copyToClipboard: true,
-  });
-
-  if (!screenshot?.ok) {
-    if (canOpenGameView()) showGameOverlay();
-    return screenshot;
-  }
-
-  try {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      text.slice(0, 280),
-    )}`;
-    await openExternalSafely(url);
-    return {
-      ok: true,
-      path: screenshot.path,
-      folder: screenshot.folder,
-      imageCopied: true,
-    };
-  } catch (error) {
-    if (canOpenGameView()) showGameOverlay();
-    return {
-      ok: false,
-      error: error?.message || "Unable to open X.",
-    };
-  }
 }
 
 function createAchievementWindow() {
@@ -3047,10 +2546,10 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1271,
     height: 796,
-    minWidth: 1024,
+    minWidth: 800,
     minHeight: 600,
     center: true,
-    backgroundColor: "#0b0c10",
+    backgroundColor: "#0f0f0f",
     title: "Deadsmile Games Launcher",
     icon: path.join(
       __dirname,
@@ -3058,7 +2557,7 @@ function createWindow() {
       app.isPackaged ? "dist" : "public",
       "favicon.ico",
     ),
-    
+
     frame: true,
     titleBarStyle: "hidden",
     titleBarOverlay: {
@@ -3081,7 +2580,7 @@ function createWindow() {
   });
   mainWindow = win;
   win.on("close", (event) => {
-    if (updateInProgress && !forceQuit) event.preventDefault();
+    if (!forceQuit && (updateInProgress || launchRequests.size || gameOperations.size)) event.preventDefault();
   });
   win.on("closed", () => {
     if (mainWindow === win) mainWindow = null;
@@ -3119,7 +2618,7 @@ function sameUnderlyingFrame(a, b) {
     if (Number.isInteger(a.frameTreeNodeId) && Number.isInteger(b.frameTreeNodeId)) {
       return a.frameTreeNodeId === b.frameTreeNodeId;
     }
-    return a.processId === b.processId && a.routingId === b.routingId;
+    return Number.isInteger(a.processId) && Number.isInteger(a.routingId) && a.processId === b.processId && a.routingId === b.routingId;
   } catch {
     return false;
   }
@@ -3137,9 +2636,6 @@ const IPC_RENDERER_ACCESS = new Map([
   ["deadsmile:api", new Set(["main", "overlay"])],
   ["deadsmile:overlay-bootstrap", new Set(["overlay", "toast"])],
   ["deadsmile:overlay-close", new Set(["overlay"])],
-  ["deadsmile:overlay-screenshot", new Set(["overlay"])],
-  ["deadsmile:overlay-share-x", new Set(["overlay"])],
-  ["deadsmile:overlay-screenshot-folder", new Set(["overlay"])],
   ["deadsmile:overlay-interactive", new Set(["overlay"])],
 ]);
 
@@ -3148,7 +2644,17 @@ function secureIpcHandle(channel, handler) {
     const kind = rendererKindForEvent(event);
     const allowed = IPC_RENDERER_ACCESS.get(channel) || new Set(["main"]);
     if (!kind || !allowed.has(kind)) throw new Error("IPC_FORBIDDEN");
-    return handler(event, ...args);
+    try {
+      const result = await handler(event, ...args);
+      if (result && typeof result === 'object' && (result.error || result.ok === false)) {
+        const code = result.code || String(result.error || '').match(/^[A-Z][A-Z_]+$/)?.[0] || 'INTERNAL_ERROR';
+        return { ...result, code, error: publicMessage({ code }) };
+      }
+      return result;
+    } catch (error) {
+      const code = error?.message === 'Cancelled' ? 'DOWNLOAD_CANCELLED' : error?.code || String(error?.message || '').match(/^[A-Z][A-Z_]+$/)?.[0] || 'INTERNAL_ERROR';
+      throw new Error(`${code}: ${publicMessage({ code })}`);
+    }
   });
 }
 
@@ -3214,22 +2720,19 @@ function handlePackagedAssetRequest(request) {
 function sanitizeRendererApiRequest(request, kind) {
   const reqPath = canonicalRendererApiPath(request?.path);
   const method = String(request?.method || "GET").toUpperCase();
-  if (
-  !["GET", "POST", "PUT", "PATCH", "DELETE"]
-    .includes(method)
-) {
-  return null;
-}
+  if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) return null;
   const allowlist = kind === "overlay" ? GAME_VIEW_API_ALLOWED_REQUESTS : API_ALLOWED_REQUESTS;
   if (!reqPath || !allowlist.some(([allowedMethod, re]) => allowedMethod === method && re.test(reqPath))) return null;
   const headers = {};
+  const locale = request?.headers?.['Accept-Language'];
+  if (typeof locale === 'string' && locale.length <= 40) headers['Accept-Language'] = errorLocale(locale);
   const csrf = request?.headers?.["X-CSRF-Token"] || request?.headers?.["x-csrf-token"];
   if (typeof csrf === "string" && csrf.length <= 512) headers["X-CSRF-Token"] = csrf;
   let body = request?.body;
   if (body !== undefined) {
     let serialized;
     try { serialized = JSON.stringify(body); } catch { return null; }
-    if (Buffer.byteLength(serialized, "utf8") > MAX_RENDERER_API_BODY_BYTES) return null;
+    if (typeof serialized !== 'string' || Buffer.byteLength(serialized, "utf8") > MAX_RENDERER_API_BODY_BYTES) return null;
   }
   return { path: reqPath, method, body, headers };
 }
@@ -3264,7 +2767,7 @@ app.whenReady().then(() => {
       if (
         details.resourceType !== "webSocket" ||
         !String(details.url || "").startsWith(
-          "wss://deadsmile.vercel.app/api/live"
+          "wss://api-ust8.onrender.com/api/live"
         )
       ) {
         callback({
@@ -3323,8 +2826,13 @@ app.whenReady().then(() => {
       return {
         ok: false,
         status: 403,
-        data: { error: { code: "BLOCKED_REQUEST", message: "This request is not available in the launcher." } },
+        data: { error: { code: "BLOCKED_REQUEST", message: publicMessage({ code: "BLOCKED_REQUEST" }) } },
       };
+    }
+    if (normalized.path === '/integrations/itch' && normalized.method === 'DELETE') {
+      const code = playSessions.size || launchRequests.size ? 'GAME_RUNNING'
+        : gameOperations.size || downloadQueue.active || [...downloadQueue.jobs.values()].some((job) => !['failed', 'complete'].includes(job.status)) ? 'GAME_DOWNLOAD_IN_PROGRESS' : null;
+      if (code) return { ok: false, status: 409, data: { error: { code, message: publicMessage({ code }) } } };
     }
     return apiRequest(normalized);
   });
@@ -3363,57 +2871,14 @@ secureIpcHandle(
     return true;
   }
 );
-  secureIpcHandle("deadsmile:gameview-library-set", (_event, ids) => {
-    const next = Array.isArray(ids) ? ids.map(String).filter((id) => UUID_PATTERN.test(id)).slice(0, 500) : [];
-    gameViewLibraryState = [...new Set(next)];
-    return true;
-  });
-  secureIpcHandle("deadsmile:gameview-settings-get", () => ({
-    ok: true,
-    settings: publicGameViewSettings(),
-  }));
-  secureIpcHandle("deadsmile:gameview-settings-set", (_event, patch) =>
-    updateGameViewSettings(patch || {}),
-  );
-  secureIpcHandle("deadsmile:gameview-shortcut-capture-start", () => {
-    unregisterGameViewShortcut();
-    armGameViewShortcutCaptureRestore();
-    return true;
-  });
-  secureIpcHandle("deadsmile:gameview-shortcut-capture-cancel", () => {
-    clearGameViewShortcutCaptureTimer();
-    unregisterGameViewShortcut();
-    return registerGameViewShortcut(gameViewSettings).ok;
-  });
-
-    secureIpcHandle("deadsmile:consume-pending-update", async () => {
-    const pendingPath = path.join(SETTINGS_DIR, "pending-update.json");
-    try {
-      const raw = await fsp.readFile(pendingPath, "utf8");
-      await fsp.rm(pendingPath, { force: true });
-      const data = JSON.parse(raw);
-      if (!data?.version) return null;
-      const installed = String(data.version).replace(/^v/i, "");
-      const current = String(APP_VERSION).replace(/^v/i, "");
-      if (installed !== current) return null;
-
-      return data;
-    } catch {
-      return null;
-    }
-  });
-  secureIpcHandle("deadsmile:storage-paths", () => ({
-    root: STORAGE_ROOT,
-    settings: SETTINGS_DIR,
-    games: GAMES_DIR,
-  }));
 
   secureIpcHandle("deadsmile:normalize-library", async (_event, library) => {
     if (!library || typeof library !== "object") return {};
     const legacyRoot = path.resolve(LEGACY_GAMES_DIR);
     const newRoot = path.resolve(GAMES_DIR);
     const normalized = {};
-    for (const [id, entry] of Object.entries(library)) {
+    for (const [id, entry] of Object.entries(library).slice(0, 500)) {
+      if (!UUID_PATTERN.test(id)) continue;
       if (!entry || typeof entry !== "object") continue;
       const next = { ...entry };
       for (const key of ["folderPath", "path"]) {
@@ -3427,7 +2892,10 @@ secureIpcHandle(
       }
       normalized[id] = next;
     }
-    return reconcileLibrary(GAMES_DIR, normalized);
+    const reconciled = await reconcileLibrary(GAMES_DIR, normalized, { isBusy: gameBusy, run: gameOperations.run });
+    const catalog = await apiRequest({ path: '/library/catalog', method: 'GET' });
+    if (!catalog.ok) return reconciled;
+    return migrateLibraryIdentity(GAMES_DIR, reconciled, catalog.data?.data?.items, gameBusy, gameOperations.run);
   });
   secureIpcHandle("deadsmile:renderer-ready-for-launch", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -3440,7 +2908,6 @@ secureIpcHandle(
     }
     return true;
   });
-  secureIpcHandle("deadsmile:app-version", () => APP_VERSION);
   secureIpcHandle("deadsmile:clear-auth-session", () => clearLocalAuthSession());
   secureIpcHandle("deadsmile:update-check", () => checkForUpdate());
   secureIpcHandle("deadsmile:game-update-check", (_event, request) => checkGameUpdateDeduped(request));
@@ -3448,54 +2915,29 @@ secureIpcHandle(
     updateLauncher(event.sender),
   );
   secureIpcHandle("deadsmile:open-external", async (_event, url) => openExternalSafely(url));
-  secureIpcHandle("deadsmile:window", (event, action) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) return false;
-    if (action === "minimize") win.minimize();
-    if (action === "close" && !updateInProgress) win.close();
-    if (action === "toggleMaximize")
-      win.isMaximized() ? win.unmaximize() : win.maximize();
-    return win.isMaximized();
-  });
-  secureIpcHandle("deadsmile:ensure-game-shortcut", async (_event, request) => {
-      const id = String(request?.id || "");
-      if (!UUID_PATTERN.test(id)) throw new Error("GAME_INVALID");
-      const requestedExe = String(request?.exePath || "");
-      if (!requestedExe.toLowerCase().endsWith(".exe")) throw new Error("GAME_PATH_INVALID");
-      const installedExe = await resolveExistingPathInsideRoot(GAMES_DIR, requestedExe);
-      if (!installedExe) throw new Error("GAME_PATH_INVALID");
-      const stat = await fsp.stat(installedExe);
-      if (!stat.isFile()) throw new Error("GAME_PATH_INVALID");
-      return createGameDesktopShortcut({
-        id,
-        title: String(request?.title || id).slice(0, 200),
-        installedExe,
-      });
-  });
 
   secureIpcHandle("deadsmile:download-game", async (_event, request) => {
       const id = String(request?.id || "");
       if (!UUID_PATTERN.test(id)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
+      if (updateInProgress) throw new Error("UPDATE_IN_PROGRESS");
       const metadata = await trustedGameMetadata(
         id,
         request?.slug,
       );
       if (!metadata) throw new Error("GAME_METADATA_UNAVAILABLE");
-      const commerceEnabled = Boolean(metadata.commerceEnabled);
-      if (!commerceEnabled && !isHttps(metadata.downloadUrl)) throw new Error("DOWNLOAD_NOT_AVAILABLE");
+      if (!metadata.downloadAvailable) throw new Error('DOWNLOAD_NOT_AVAILABLE');
+      const added = await protectedApi(`/library/${id}`, 'POST');
+      if (!added.ok) throw new Error(apiFailureDetails(added).code || 'GAME_NOT_OWNED');
+      await installMetadata(id);
       const mode = request?.mode === "update" ? "update" : "download";
+      if (updateInProgress) throw new Error("UPDATE_IN_PROGRESS");
+      if (playSessions.has(id) || launchRequests.has(id)) throw new Error("GAME_RUNNING");
       return downloadQueue.enqueue({
         id,
         slug: String(metadata.slug || id).slice(0, 160),
         title: String(metadata.title || "").slice(0, 200),
-        url: commerceEnabled ? null : metadata.downloadUrl,
-        commerceEnabled,
-        itchGameId: Number.isSafeInteger(Number(metadata.itchGameId)) ? Number(metadata.itchGameId) : null,
-        preferredItchChannel: null,
         mode,
         currentVersion: normalizeVersion(request?.currentVersion),
-        filename: typeof request?.filename === "string" ? path.basename(request.filename).slice(0, 200) : "",
-        path: typeof request?.path === "string" ? request.path : null,
       });
   });
   secureIpcHandle("deadsmile:download-pause", (_event, id) =>
@@ -3507,21 +2949,15 @@ secureIpcHandle(
   secureIpcHandle("deadsmile:download-cancel", (_event, id) =>
       downloadQueue.cancel(id),
   );
-  secureIpcHandle("deadsmile:download-reorder", (_event, ids) =>
-      downloadQueue.reorder(ids),
-  );
-  secureIpcHandle("deadsmile:download-set-concurrent", (_event, n) => {
-      downloadQueue.setMaxConcurrent(n);
-      return downloadQueue.maxConcurrent;
-  });
+
+
   secureIpcHandle("deadsmile:download-snapshot", () =>
       downloadQueue.snapshot(),
   );
-  secureIpcHandle("deadsmile:playtime-get", () => readPlaytime());
+
   secureIpcHandle("deadsmile:running-games", () => runningGamesSnapshot());
   secureIpcHandle("deadsmile:overlay-bootstrap", async () => ({
     language: gameViewLanguageState.language,
-    installedIds: gameViewLibraryState,
     running: runningGamesSnapshot(),
     gameViewSettings: publicGameViewSettings(),
     i18n: gameViewLanguageState,
@@ -3530,14 +2966,7 @@ secureIpcHandle(
     hideGameOverlay();
     return true;
   });
-  secureIpcHandle("deadsmile:overlay-screenshot", () => takeGameScreenshot());
-  secureIpcHandle("deadsmile:overlay-share-x", (_event, payload) =>
-    shareGameOnX(payload),
-  );
-  secureIpcHandle("deadsmile:overlay-screenshot-folder", async () => {
-    await fsp.mkdir(SCREENSHOTS_DIR, { recursive: true });
-    return shell.openPath(SCREENSHOTS_DIR);
-  });
+
 secureIpcHandle(
   "deadsmile:overlay-interactive",
   (_event, interactive) => {
@@ -3560,16 +2989,19 @@ secureIpcHandle(
   }
 );
 
-  secureIpcHandle("deadsmile:playtime-clear", () => {
-      writePlaytime({});
-      return {};
-  });
-
   secureIpcHandle(
       "deadsmile:play-game",
       async (_event, { id, slug = null, title = null, coverImage = null, exePath, gameVersion = null }) => {
+          if (launchRequests.has(id)) return { error: true, code: "GAME_ALREADY_RUNNING" };
+          launchRequests.add(id);
+          try {
+          return await gameOperations.run(id, async () => {
+          if (updateInProgress) return { error: true, code: "UPDATE_IN_PROGRESS" };
+          const pendingDownload = downloadQueue.jobs.get(id);
+          if (pendingDownload && (pendingDownload._workerActive || !["complete", "failed"].includes(pendingDownload.status))) return { error: true, code: "GAME_DOWNLOAD_IN_PROGRESS" };
           if (!UUID_PATTERN.test(String(id || "")) || typeof exePath !== "string") return { error: "Invalid game.", code: "GAME_INVALID" };
-          const resolvedExe = await resolveExistingPathInsideRoot(GAMES_DIR, exePath);
+          const recovered = await recoverGameInstallation(GAMES_DIR, id, { path: exePath });
+          const resolvedExe = await resolveExistingPathInsideRoot(GAMES_DIR, recovered.path);
           if (!resolvedExe || !resolvedExe.toLowerCase().endsWith(".exe")) {
               return { error: "Invalid game executable.", code: "GAME_EXECUTABLE_INVALID" };
           }
@@ -3580,9 +3012,8 @@ secureIpcHandle(
             return { error: "The launcher could not verify this game with Deadsmile Games.", code: "GAME_METADATA_UNAVAILABLE" };
           }
           if (metadata.slug) {
-            const expectedFolder = path.join(GAMES_DIR, sanitizeName(metadata.slug));
-            const relativeExecutable = path.relative(path.resolve(expectedFolder), path.resolve(resolvedExe));
-            if (!relativeExecutable || relativeExecutable === ".." || relativeExecutable.startsWith(`..${path.sep}`) || path.isAbsolute(relativeExecutable)) {
+            const folders = [path.join(GAMES_DIR, id), path.join(GAMES_DIR, sanitizeName(metadata.slug))];
+            if (!folders.some((folder) => isPathInside(folder, resolvedExe))) {
               return { error: "Game executable does not match this game.", code: "GAME_EXECUTABLE_MISMATCH" };
             }
           }
@@ -3665,18 +3096,7 @@ secureIpcHandle(
               cwd: path.dirname(resolvedExe),
             });
             gameProcess = monitorGameProcess(child);
-            await new Promise((resolve, reject) => {
-              const onSpawn = () => {
-                child.off("error", onError);
-                resolve();
-              };
-              const onError = (error) => {
-                child.off("spawn", onSpawn);
-                reject(error);
-              };
-              child.once("spawn", onSpawn);
-              child.once("error", onError);
-            });
+            await waitForProcessSpawn(child);
             child.unref();
           } catch (error) {
             await endPlatformSessionWithRetry(platformSession.id, 2);
@@ -4083,31 +3503,39 @@ secureIpcHandle(
           }
 
           return { pid: child.pid, startedAt };
+      
+          });
+          } finally { launchRequests.delete(id); }
       },
   );
 
   secureIpcHandle("deadsmile:delete-game", async (_event, request) => {
     const payload = request && typeof request === "object" && !Array.isArray(request) ? request : {};
     const gameId = String(payload.id || "");
-    if (!UUID_PATTERN.test(gameId)) return "Invalid game ID.";
-    if (playSessions.has(gameId)) return "Game is currently running.";
+    if (!UUID_PATTERN.test(gameId)) return { code: "VALIDATION_ERROR" };
+    return gameOperations.run(gameId, async () => {
+    if (updateInProgress) return { code: "UPDATE_IN_PROGRESS" };
+    if (playSessions.has(gameId) || launchRequests.has(gameId)) return { code: "GAME_RUNNING" };
     const queued = downloadQueue.jobs.get(gameId);
-    if (queued && !["complete", "failed"].includes(queued.status)) return "Game download or update is in progress.";
+    if (queued && (queued._workerActive || !["complete", "failed"].includes(queued.status))) return { code: "GAME_DOWNLOAD_IN_PROGRESS" };
     const metadata = await trustedGameMetadata(gameId, payload.slug);
-    if (!metadata?.slug) return "The game identity could not be verified.";
-    const expectedFolder = path.resolve(GAMES_DIR, sanitizeName(metadata.slug));
-    if (!isPathInside(GAMES_DIR, expectedFolder) || typeof payload.target !== "string") return "Invalid game path.";
+    if (!metadata?.slug) return { code: "GAME_NOT_FOUND" };
+    if (typeof payload.target !== "string") return { code: "GAME_PATH_INVALID" };
     const supplied = path.resolve(payload.target);
-    if (supplied !== expectedFolder && !isPathInside(expectedFolder, supplied)) return "Game path does not match this game.";
+    const expectedFolder = [path.resolve(GAMES_DIR, gameId), path.resolve(GAMES_DIR, sanitizeName(metadata.slug))].find((folder) => supplied === folder || isPathInside(folder, supplied));
+    if (!expectedFolder || !isPathInside(GAMES_DIR, expectedFolder)) return { code: "GAME_PATH_UNSAFE" };
     try {
       const stat = await fsp.lstat(expectedFolder).catch((error) => {
         if (error?.code === "ENOENT") return null;
         throw error;
       });
       if (stat) {
-        if (!stat.isDirectory() || stat.isSymbolicLink()) return "Unsafe game directory.";
+        if (!stat.isDirectory() || stat.isSymbolicLink()) return { code: "GAME_PATH_UNSAFE" };
         const safeFolder = await resolveExistingPathInsideRoot(GAMES_DIR, expectedFolder);
-        if (!safeFolder || path.resolve(safeFolder) !== expectedFolder) return "Unsafe game directory.";
+        if (!safeFolder || path.resolve(safeFolder) !== expectedFolder) return { code: "GAME_PATH_UNSAFE" };
+        if (playSessions.has(gameId) || launchRequests.has(gameId)) return { code: "GAME_RUNNING" };
+        const pendingJob = downloadQueue.jobs.get(gameId);
+        if (pendingJob && (pendingJob._workerActive || !["complete", "failed"].includes(pendingJob.status))) return { code: "GAME_DOWNLOAD_IN_PROGRESS" };
         await fsp.rm(safeFolder, { recursive: true, force: true });
       }
       await removeGameDesktopShortcuts(gameId).catch((error) => {
@@ -4115,8 +3543,9 @@ secureIpcHandle(
       });
       return "";
     } catch (error) {
-      return error?.message || "Unable to delete the local game.";
+      return { code: "GAME_UNINSTALL_FAILED" };
     }
+    });
   });
   createWindow();
 
@@ -4147,6 +3576,6 @@ app.on("will-quit", () => {
     achievementSyncTimer = null;
   }
 });
-app.on("before-quit", () => {
-  butlerInstance?.cancel().catch(() => {});
+app.on("before-quit", (event) => {
+  if (!forceQuit && (launchRequests.size || gameOperations.size)) event.preventDefault();
 });

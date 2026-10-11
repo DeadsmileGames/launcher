@@ -1,22 +1,17 @@
 class DownloadQueue {
-    constructor({ worker, broadcast, maxConcurrent = 2 }) {
+    constructor({ worker, broadcast, formatError = defaultError, maxConcurrent = 2 }) {
         this.worker = worker;
         this.broadcast = broadcast;
+        this.formatError = formatError;
         this.maxConcurrent = Math.max(1, Math.min(5, maxConcurrent));
         this.jobs = new Map();
         this.order = [];
         this.active = 0;
     }
 
-    setMaxConcurrent(n) {
-        this.maxConcurrent = Math.max(1, Math.min(5, Number(n) || 1));
-        this._pump();
-        this._emit();
-    }
-
-    enqueue({ id, slug, title, url, itchGameId = null, preferredItchChannel = null, commerceEnabled = false, mode = "download", currentVersion = null, filename = "", path: installedPath = null }) {
+    enqueue({ id, slug, title, mode = "download", currentVersion = null }) {
         const previous = this.jobs.get(id);
-        if (previous && previous.status !== 'failed') return previous.promise;
+        if (previous && (previous._workerActive || !['failed', 'complete'].includes(previous.status))) return previous.promise;
         if (previous) {
             this.jobs.delete(id);
             this.order = this.order.filter((itemId) => itemId !== id);
@@ -32,14 +27,8 @@ class DownloadQueue {
             id,
             slug,
             title,
-            url,
-            itchGameId,
-            commerceEnabled,
-            preferredItchChannel,
             mode,
             currentVersion,
-            filename,
-            installedPath,
             status: "queued",
             percent: 0,
             bytesReceived: 0,
@@ -77,9 +66,6 @@ class DownloadQueue {
         const job = this.jobs.get(id);
         if (!job || !job.paused) return false;
 
-
-
-
         if (job.status !== "paused") {
             job.paused = false;
             this._emit();
@@ -111,16 +97,6 @@ class DownloadQueue {
         return true;
     }
 
-    reorder(ids) {
-        if (!Array.isArray(ids)) return false;
-        const valid = [...new Set(ids.filter((id) => this.jobs.has(id)))];
-        const rest = this.order.filter((id) => !valid.includes(id));
-        this.order = [...valid, ...rest];
-        this._emit();
-        this._pump();
-        return true;
-    }
-
     snapshot() {
         return this.order
             .map((id) => this.jobs.get(id))
@@ -135,7 +111,8 @@ class DownloadQueue {
                 bytesReceived: j.bytesReceived,
                 totalBytes: j.totalBytes,
                 fileName: j.fileName,
-                error: j.error,
+                error: j.error ? this.formatError({ code: j.errorCode }) : null,
+                errorCode: j.errorCode || null,
                 queuePosition: i,
                 speed: j.speed || 0,
                 eta: j.eta ?? null,
@@ -188,11 +165,11 @@ class DownloadQueue {
                 isPaused: () => job.paused,
                 isAborted: () => job.aborted,
                 onProgress: (p) => {
-                    if (p.status) job.status = p.status;
-                    if (typeof p.percent === "number") job.percent = p.percent;
-                    if (typeof p.received === "number")
-                        job.bytesReceived = p.received;
-                    if (typeof p.total === "number") job.totalBytes = p.total;
+                    if (!job.aborted && ["downloading", "extracting", "installing", "updating"].includes(p.status)) job.status = p.status;
+                    if (Number.isFinite(p.percent)) job.percent = Math.max(0, Math.min(99, p.percent));
+                    if (Number.isFinite(p.received))
+                        job.bytesReceived = Math.max(0, p.received);
+                    if (Number.isFinite(p.total)) job.totalBytes = Math.max(0, p.total);
                     if (p.fileName) job.fileName = p.fileName;
                     tickSpeed();
                     this._emit();
@@ -225,9 +202,6 @@ class DownloadQueue {
                 return;
             }
 
-
-
-
             if (msg === "Paused") {
                 job.status = "queued";
                 this._emit();
@@ -236,7 +210,8 @@ class DownloadQueue {
             }
 
             job.status = "failed";
-            job.error = friendlyDownloadError(msg);
+            job.errorCode = err?.code || msg.match(/^[A-Z][A-Z_]+$/)?.[0] || 'GAME_DOWNLOAD_FAILED';
+            job.error = this.formatError({ code: job.errorCode });
             this._emit();
             job._reject?.(err);
 
@@ -254,6 +229,7 @@ class DownloadQueue {
         job.result = result;
         this._emit();
         job._resolve(result);
+        this._pump();
 
         setTimeout(() => {
             if (this.jobs.get(id) !== job) return;
@@ -271,15 +247,7 @@ class DownloadQueue {
     }
 }
 
-function friendlyDownloadError(message) {
-    const raw = String(message || "");
-    if (raw === "Cancelled" || raw === "Paused") return raw;
-    if (/TOO_LARGE/i.test(raw)) return "The download is too large.";
-    if (/ACCESS|AUTHORIZED|OWNED|LIBRARY/i.test(raw)) return "This game is not available in your library.";
-    if (/NETWORK|GITHUB|DOWNLOAD|CHECKSUM|SIZE|ZIP|ARCHIVE|EXECUTABLE|RELEASE|ASSET|WINDOWS/i.test(raw)) {
-        return "The download failed. Try again later.";
-    }
-    return "The download failed. Try again later.";
-}
+const catalog = require('./generated/errors.json');
+function defaultError(error) { return catalog.en[error.code] || catalog.en.GAME_DOWNLOAD_FAILED; }
 
 module.exports = { DownloadQueue };

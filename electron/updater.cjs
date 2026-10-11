@@ -104,31 +104,6 @@ function cleanupStaleBackups() {
     .catch(() => {});
 }
 
-async function clearDestination(to) {
-  if (!(await exists(to))) return;
-
-  for (let attempt = 0; attempt < 15; attempt += 1) {
-    try {
-      await fsp.rm(to, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      if (attempt === 14) {
-        log(`clearDestination: rm(${to}) failed: ${error.message}`);
-      }
-      await sleep(200);
-    }
-  }
-
-  const stale = `${to}.stale-${Date.now()}-${process.pid}`;
-  try {
-    await fsp.rename(to, stale);
-    log(`clearDestination: moved locked ${to} -> ${stale}`);
-  } catch (error) {
-    log(`clearDestination: rename(${to}) also failed: ${error.message}`);
-    throw error;
-  }
-}
-
 async function moveDirectory(from, to) {
   await fsp.rm(to, { recursive: true, force: true });
   let lastError;

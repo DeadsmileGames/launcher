@@ -15,8 +15,8 @@ const checks = [
   ['Fresh installs create a game shortcut', /createGameDesktopShortcut\(\{ id, title: job\.title \|\| slug \|\| id, installedExe \}\)/.test(main)],
   ['Game updates also ensure a shortcut exists', /installedExe: swapped\.path/.test(main)],
   ['Uninstall removes both .url and .lnk shortcuts', /endsWith\(["']\.url["']\)/.test(main) && /endsWith\(["']\.lnk["']\)/.test(main)],
-  ['Renderer can request shortcut repair for existing installs', /ensureGameShortcut/.test(preload) && /deadsmile:ensure-game-shortcut/.test(main) && /ensureGameShortcut/.test(app)],
-  ['Shortcut repair validates installed executable inside managed Games directory', /resolveExistingPathInsideRoot\(GAMES_DIR, requestedExe\)/.test(main)],
+  ['Removed shortcut repair does not expose an unused IPC method', !/ensureGameShortcut/.test(preload) && !/deadsmile:ensure-game-shortcut/.test(main)],
+  ['Playing validates the executable inside the managed Games directory', /resolveExistingPathInsideRoot\(GAMES_DIR, recovered\.path\)/.test(main)],
 ];
 
 let failed = 0;

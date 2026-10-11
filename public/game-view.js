@@ -1,552 +1,226 @@
 (() => {
-      'use strict';
-      const bridge = window.deadsmile;
-      const SITE = 'https://deadsmilegames.vercel.app';
-      const FALLBACK = `${SITE}/assets/placeholders/game-cover.svg`;
-      const copy = {
-        en: {
-          error: 'Error', gameView: 'Game View', profile: 'Profile', library: 'Library',
-          cloudSaves: 'Cloud saves', achievements: 'Achievements', loading: 'Loading…',
-          selectGame: 'Select a game', playing: 'Playing', game: 'Game',
-          noCloudSaves: 'No cloud saves found.',
-          cloudSavesUnavailable: 'Cloud saves are not enabled for this game.',
-          noAchievements: 'No achievements yet.', deleteCloudSave: 'Delete cloud save', cloudSaveDeleted: 'Cloud save deleted.',
-          deleteCloudSaveConfirm: 'Click delete again to confirm.', takeScreenshot: 'Take screenshot',
-          screenshotSaved: 'Screenshot saved', screenshotFailed: 'Could not take screenshot',
-          openScreenshotFolder: 'Open screenshot folder', gameViewTutorialTitle: 'Meet Game View',
-          gameViewTutorialDescription: 'Press {shortcut} to open or close Game View while playing.',
-          gameViewTutorialProfile: 'See your profile and the game currently running.',
-          gameViewTutorialLibrary: 'Browse the games in your library.',
-          gameViewTutorialCloud: 'Check and delete cloud saves for supported games.',
-          gameViewTutorialScreenshot: 'Take a clean screenshot of the game without the overlay.',
-          gotIt: 'Got it', signIn: 'Sign in to the launcher to use Game View.', close: 'Close',
-          shareOnX: 'Share on X', sharePreparing: 'Preparing screenshot…',
-          shareFailed: 'Could not share on X.',
-          sharePlayingX: "Look what I'm playing on the @DeadsmileGames Launcher: {game}",
-          sharePasteScreenshot: 'Screenshot copied. Paste it into X with Ctrl + V.'
-        },
-        'pt-BR': {
-          error: 'Erro', gameView: 'Game View', profile: 'Perfil', library: 'Biblioteca',
-          cloudSaves: 'Saves na nuvem', achievements: 'Conquistas', loading: 'Carregando…',
-          selectGame: 'Selecione um jogo', playing: 'Jogando', game: 'Jogo',
-          noCloudSaves: 'Nenhum save na nuvem encontrado.',
-          cloudSavesUnavailable: 'Os saves na nuvem não estão ativados para este jogo.',
-          noAchievements: 'Nenhuma conquista ainda.', deleteCloudSave: 'Apagar save da nuvem', cloudSaveDeleted: 'Save da nuvem apagado.',
-          deleteCloudSaveConfirm: 'Clique em apagar novamente para confirmar.', takeScreenshot: 'Tirar screenshot',
-          screenshotSaved: 'Screenshot salvo', screenshotFailed: 'Não foi possível tirar o screenshot',
-          openScreenshotFolder: 'Abrir pasta de screenshots', gameViewTutorialTitle: 'Conheça a Game View',
-          gameViewTutorialDescription: 'Pressione {shortcut} para abrir ou fechar a Game View enquanto joga.',
-          gameViewTutorialProfile: 'Veja seu perfil e o jogo que está rodando.',
-          gameViewTutorialLibrary: 'Navegue pelos jogos da sua biblioteca.',
-          gameViewTutorialCloud: 'Veja e apague saves na nuvem dos jogos compatíveis.',
-          gameViewTutorialScreenshot: 'Tire uma captura limpa do jogo sem o overlay aparecer.',
-          gotIt: 'Entendi', signIn: 'Entre no launcher para usar a Game View.', close: 'Fechar',
-          shareOnX: 'Compartilhar no X', sharePreparing: 'Preparando screenshot…',
-          shareFailed: 'Não foi possível compartilhar no X.',
-          sharePlayingX: 'Olha o que eu estou jogando no @DeadsmileGames Launcher: {game}',
-          sharePasteScreenshot: 'Screenshot copiada. Cole no X com Ctrl + V.'
-        },
-        es: {
-          error: 'Error', gameView: 'Game View', profile: 'Perfil', library: 'Biblioteca',
-          cloudSaves: 'Guardados en la nube', achievements: 'Logros', loading: 'Cargando…',
-          selectGame: 'Selecciona un juego', playing: 'Jugando', game: 'Juego',
-          noCloudSaves: 'No hay guardados en la nube.',
-          cloudSavesUnavailable: 'Los guardados en la nube no están activados para este juego.',
-          noAchievements: 'Todavía no hay logros.', deleteCloudSave: 'Borrar guardado de la nube', cloudSaveDeleted: 'Guardado de la nube eliminado.',
-          deleteCloudSaveConfirm: 'Pulsa borrar de nuevo para confirmar.', takeScreenshot: 'Tomar captura',
-          screenshotSaved: 'Captura guardada', screenshotFailed: 'No se pudo tomar la captura',
-          openScreenshotFolder: 'Abrir carpeta de capturas', gameViewTutorialTitle: 'Conoce Game View',
-          gameViewTutorialDescription: 'Pulsa {shortcut} para abrir o cerrar Game View mientras juegas.',
-          gameViewTutorialProfile: 'Mira tu perfil y el juego que está en ejecución.',
-          gameViewTutorialLibrary: 'Explora los juegos de tu biblioteca.',
-          gameViewTutorialCloud: 'Consulta y elimina guardados en la nube de juegos compatibles.',
-          gameViewTutorialScreenshot: 'Haz una captura limpia del juego sin mostrar el overlay.',
-          gotIt: 'Entendido', signIn: 'Inicia sesión en el launcher para usar Game View.', close: 'Cerrar',
-          shareOnX: 'Compartir en X', sharePreparing: 'Preparando captura…',
-          shareFailed: 'No se pudo compartir en X.',
-          sharePlayingX: 'Mira lo que estoy jugando en el @DeadsmileGames Launcher: {game}',
-          sharePasteScreenshot: 'Captura copiada. Pégala en X con Ctrl + V.'
-        }
-      };
-      let lang = 'en', csrfToken = null, user = null, games = [], running = [], selectedId = null, saves = [], achievements = [], statusTimer = null, interactiveState = null;
-      let sharedStrings = {};
-      let shortcutLabel = 'Ctrl + D';
-      let selectedLoadToken = 0;
-      let pendingDeleteSlot = null;
-      let pendingDeleteTimer = null;
-      const $ = (id) => document.getElementById(id);
-      const t = (key) => {
-        if (sharedStrings?.[key]) {
-          return sharedStrings[key];
-        }
+  const bridge = window.deadsmile;
+  const copy = {
+    en: { profile: 'Profile', library: 'Library', cloud: 'Cloud saves', achievements: 'Achievements', refresh: 'Refresh', close: 'Close', loading: 'Loading…', empty: 'Your library is empty.', noSaves: 'No cloud saves found.', noAchievements: 'No achievements yet.', disabled: 'Cloud saves are not enabled for this game.', hidden: 'Hidden achievement', locked: 'Locked', unlocked: 'Unlocked', playing: 'Playing', none: 'No game running.', select: 'Select a game', retry: 'Try again', revision: 'Revision' },
+    'pt-BR': { profile: 'Perfil', library: 'Biblioteca', cloud: 'Saves na nuvem', achievements: 'Conquistas', refresh: 'Atualizar', close: 'Fechar', loading: 'Carregando…', empty: 'Sua biblioteca está vazia.', noSaves: 'Nenhum save na nuvem.', noAchievements: 'Nenhuma conquista ainda.', disabled: 'Os saves na nuvem não estão ativados para este jogo.', hidden: 'Conquista oculta', locked: 'Bloqueada', unlocked: 'Desbloqueada', playing: 'Jogando', none: 'Nenhum jogo em execução.', select: 'Selecione um jogo', retry: 'Tentar novamente', revision: 'Revisão' },
+    es: { profile: 'Perfil', library: 'Biblioteca', cloud: 'Guardados en la nube', achievements: 'Logros', refresh: 'Actualizar', close: 'Cerrar', loading: 'Cargando…', empty: 'Tu biblioteca está vacía.', noSaves: 'No hay guardados en la nube.', noAchievements: 'Aún no hay logros.', disabled: 'Los guardados en la nube no están habilitados para este juego.', hidden: 'Logro oculto', locked: 'Bloqueado', unlocked: 'Desbloqueado', playing: 'Jugando', none: 'Ningún juego en ejecución.', select: 'Selecciona un juego', retry: 'Intentar de nuevo', revision: 'Revisión' }
+  };
+  const get = (id) => document.getElementById(id);
+  const validId = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+  let language = 'en', user = null, games = [], running = [], selected = null;
+  let generation = 0, bootGeneration = 0, interactive = null, disposed = false;
+  const cleanups = [];
+  const t = (key) => copy[language][key];
 
-        return (
-          copy[lang]?.[key] ||
-          copy.en?.[key] ||
-          key
-        );
-      };
-      const formatText = (value, params = {}) => String(value || '').replace(/{(\w+)}/g, (_, key) =>
-        params[key] !== undefined ? String(params[key]) : `{${key}}`
-      );
-      const esc = (v) => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
-      const idEq = (a, b) => String(a ?? '') === String(b ?? '');
-      const listFrom = (data, key) => Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : Array.isArray(data?.data) ? data.data : Array.isArray(data?.data?.items) ? data.data.items : Array.isArray(data?.[key]) ? data[key] : [];
-      const asset = (value, fallback = '') => { if (!value) return fallback; const raw = String(value); if (raw.length > 2_000_000) return fallback; if (/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i.test(raw)) return raw; try { const url = new URL(raw, SITE); return url.protocol === 'https:' && !url.username && !url.password ? url.toString() : fallback } catch { return fallback } };
-      const imageOf = (g) => asset(g?.coverImage || g?.cover_image, asset(g?.heroImage || g?.hero_image, FALLBACK));
-      const cloudEnabled = (g) => Boolean(g?.cloudSavesEnabled ?? g?.cloud_saves_enabled);
-      const initials = (u) => String(u?.username || u?.email || 'P').slice(0, 1).toUpperCase();
-      const friendlyStatusMessage = (error, fallback) => {
-        const code = String(error?.code || error?.message || '').toUpperCase();
-        if (code.includes('SCREENSHOT')) return t('screenshotFailed');
-        if (code.includes('SHARE')) return t('shareFailed');
-        if (code.includes('SAVE')) return fallback || t('error');
-        if (code.includes('NETWORK') || code.includes('FETCH')) return 'Could not connect. Check your internet.';
-        if (code.includes('UNAUTHENTICATED')) return t('signIn');
-        return fallback || t('error');
-      };
+  function failure(error) {
+    if (typeof error?.code === 'string' && typeof error?.message === 'string') return error.message;
+    const code = error?.code || String(error?.message || '').match(/\b[A-Z][A-Z_]{2,}\b/)?.[0] || 'NETWORK_ERROR';
+    const catalog = window.deadsmileErrors?.[language];
+    return catalog?.[code] || catalog?.INTERNAL_ERROR || window.deadsmileErrors?.en?.INTERNAL_ERROR || '';
+  }
 
-      async function request(path, method = 'GET', body, allowRetry = true) {
-        const headers = {};
-        if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-          if (!csrfToken) {
-            const tokenResult = await bridge.api({ path: '/csrf', method: 'GET' });
-            csrfToken = tokenResult?.data?.data?.token || null;
-          }
-          if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-        }
-        const result = await bridge.api({ path, method, body, headers });
-        const payload = result?.data;
-        if (!result?.ok) {
-          const code = payload?.error?.code;
-          if (result?.status === 403 && code === 'CSRF_VALIDATION_FAILED' && allowRetry) { csrfToken = null; return request(path, method, body, false) }
-          const error = new Error(friendlyStatusMessage({ code }, payload?.error?.message));
-          error.code = code;
-          throw error;
-        }
-        return payload?.data;
+  function imageUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const raw = value.trim();
+    if (raw.startsWith('/') && (raw.startsWith('//') || raw.includes('\\') || /[\u0000-\u001f]/.test(raw))) return null;
+    try {
+      const url = new URL(raw, 'https://deadsmilegames.vercel.app');
+      return (raw.startsWith('/') || /^https:\/\//i.test(raw)) && url.protocol === 'https:' && !url.username && !url.password ? url.href : null;
+    } catch { return null; }
+  }
+
+  async function request(path) {
+    const result = await bridge.api({ path, method: 'GET', headers: { 'Accept-Language': language } });
+    if (!result?.ok) throw result?.data?.error || { code: 'NETWORK_ERROR' };
+    if (result.data?.success !== true || !Object.hasOwn(result.data, 'data')) throw { code: 'INVALID_RESPONSE' };
+    return result.data.data;
+  }
+
+  function empty(root, key) {
+    const node = document.createElement(root.tagName === 'UL' ? 'li' : 'p');
+    node.className = 'game-view__empty';
+    node.textContent = t(key);
+    root.replaceChildren(node);
+  }
+
+  function loading(root) {
+    root.setAttribute('aria-busy', 'true');
+    const node = document.createElement(root.tagName === 'UL' ? 'li' : 'div');
+    node.className = 'skeleton game-view__loading';
+    node.setAttribute('aria-label', t('loading'));
+    root.replaceChildren(node);
+  }
+
+  function errorRow(root, error, retry) {
+    const node = document.createElement(root.tagName === 'UL' ? 'li' : 'div');
+    node.className = 'game-view__row';
+    const message = document.createElement('p');
+    message.className = 'launcher-error';
+    message.setAttribute('role', 'alert');
+    message.textContent = failure(error);
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'btn btn--secondary'; button.textContent = t('retry');
+    button.addEventListener('click', retry);
+    node.append(message, button); root.replaceChildren(node);
+  }
+
+  function row(title, description, state) {
+    const node = document.createElement('div'); node.className = 'game-view__row';
+    const strong = document.createElement('strong'); strong.textContent = title; node.append(strong);
+    if (description) { const p = document.createElement('p'); p.textContent = description; node.append(p); }
+    if (state) { const small = document.createElement('small'); small.textContent = state; node.append(small); }
+    return node;
+  }
+
+  function renderProfile() {
+    get('username').textContent = user?.username || '';
+    const avatar = get('avatar');
+    avatar.textContent = (user?.username || '').slice(0, 1).toUpperCase();
+    const url = imageUrl(user?.avatarUrl);
+    if (url) {
+      const image = document.createElement('img'); image.src = url; image.alt = '';
+      image.addEventListener('error', () => { if (avatar.contains(image)) avatar.textContent = (user?.username || '').slice(0, 1).toUpperCase(); }, { once: true });
+      avatar.replaceChildren(image);
+    }
+    get('playing').textContent = running.length ? `${t('playing')}: ${running.map((item) => item.title || '').join(', ')}` : t('none');
+  }
+
+  function renderLibrary() {
+    const merged = new Map(games.map((game) => [game.id, game]));
+    for (const game of running) merged.set(game.id, { ...merged.get(game.id), ...game });
+    games = [...merged.values()].filter((game) => validId(game?.id));
+    if (!games.some((game) => game.id === selected)) selected = running[0]?.id || games[0]?.id || null;
+    get('library-count').textContent = String(games.length);
+    const root = get('games');
+    root.setAttribute('aria-busy', 'false');
+    if (!games.length) { empty(root, 'empty'); return; }
+    root.replaceChildren(...games.map((game) => {
+      const node = document.createElement('li');
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'game-view__game';
+      button.setAttribute('aria-pressed', String(game.id === selected));
+      const url = imageUrl(game.coverImage);
+      if (url) {
+        const image = document.createElement('img'); image.src = url; image.alt = ''; image.loading = 'lazy';
+        image.addEventListener('error', () => image.remove(), { once: true }); button.append(image);
       }
+      const text = document.createElement('span');
+      const strong = document.createElement('strong'); strong.textContent = game.title || ''; text.append(strong);
+      if (running.some((item) => item.id === game.id)) { const small = document.createElement('small'); small.textContent = t('playing'); text.append(small); }
+      button.append(text);
+      button.addEventListener('click', () => { if (selected === game.id) return; selected = game.id; renderLibrary(); loadSelection(); });
+      node.append(button); return node;
+    }));
+  }
 
-      function applyShortcut() {
-        $('shortcutBadge').textContent = shortcutLabel;
-        $('tutorialShortcutBadge').textContent = shortcutLabel;
-        $('tutorialTitle').textContent = `${t('gameView')} (${shortcutLabel})`;
-        $('tutorialDescription').textContent = formatText(
-          t('gameViewTutorialDescription'),
-          { shortcut: shortcutLabel },
-        );
+  async function loadSelection() {
+    const version = ++generation;
+    const game = games.find((item) => item.id === selected);
+    get('achievement-game').textContent = game?.title || '';
+    get('cloud-game').textContent = game?.title || '';
+    get('achievement-count').textContent = '';
+    const achievements = get('items'), saves = get('cloud-list');
+    if (!game) {
+      empty(achievements, 'select'); empty(saves, 'select');
+      achievements.setAttribute('aria-busy', 'false'); saves.setAttribute('aria-busy', 'false'); return;
+    }
+    const valid = () => !disposed && version === generation && selected === game.id;
+    loading(achievements);
+    const jobs = [request(`/platform/achievements/${game.id}`).then((items) => {
+      if (!valid()) return;
+      if (!Array.isArray(items)) throw { code: 'INVALID_RESPONSE' };
+      get('achievement-count').textContent = `${items.filter((item) => item.unlocked_at || item.unlockedAt).length} / ${items.length}`;
+      if (!items.length) { empty(achievements, 'noAchievements'); return; }
+      achievements.replaceChildren(...items.map((item) => {
+        const unlocked = Boolean(item.unlocked_at || item.unlockedAt), hidden = item.hidden && !unlocked;
+        const node = document.createElement('li');
+        const content = row(hidden ? t('hidden') : item.title || item.key, hidden ? '' : item.description, t(unlocked ? 'unlocked' : 'locked'));
+        if (unlocked) content.classList.add('unlocked'); node.append(content); return node;
+      }));
+    }).catch((error) => { if (valid()) errorRow(achievements, error, loadSelection); }).finally(() => { if (valid()) achievements.setAttribute('aria-busy', 'false'); })];
+    if (!game.cloudSavesEnabled) { empty(saves, 'disabled'); saves.setAttribute('aria-busy', 'false'); }
+    else {
+      loading(saves);
+      jobs.push(request(`/platform/saves/${game.id}`).then((items) => {
+        if (!valid()) return;
+        if (!Array.isArray(items)) throw { code: 'INVALID_RESPONSE' };
+        if (!items.length) { empty(saves, 'noSaves'); return; }
+        saves.replaceChildren(...items.map((item) => {
+          const date = Date.parse(item.updated_at || item.updatedAt || '');
+          return row(item.slot || '', Number.isFinite(date) ? new Date(date).toLocaleString(language) : '', Number.isSafeInteger(item.revision) ? `${t('revision')}: ${item.revision}` : '');
+        }));
+      }).catch((error) => { if (valid()) errorRow(saves, error, loadSelection); }).finally(() => { if (valid()) saves.setAttribute('aria-busy', 'false'); }));
+    }
+    await Promise.all(jobs);
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = language;
+    document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+  }
+
+  async function bootstrap() {
+    const version = ++bootGeneration;
+    get('refresh').disabled = true;
+    get('status').hidden = true;
+    if (!games.length) loading(get('games'));
+    try {
+      const snapshot = await bridge.getOverlayBootstrap();
+      if (disposed || version !== bootGeneration) return;
+      language = copy[snapshot.language] ? snapshot.language : 'en';
+      applyLanguage();
+      running = Array.isArray(snapshot.running) ? snapshot.running.filter((game) => validId(game?.id)) : [];
+      get('shortcut').textContent = snapshot.gameViewSettings?.label || 'Ctrl + D';
+      const results = await Promise.allSettled([request('/auth/me'), request('/library')]);
+      if (disposed || version !== bootGeneration) return;
+      const [profile, library] = results;
+      get('profile-error').hidden = profile.status === 'fulfilled';
+      get('library-error').hidden = library.status === 'fulfilled';
+      if (profile.status === 'fulfilled') user = profile.value;
+      else { user = null; get('profile-error').textContent = failure(profile.reason); }
+      if (library.status === 'fulfilled' && Array.isArray(library.value?.items)) games = library.value.items;
+      else {
+        get('library-error').hidden = false;
+        get('library-error').textContent = failure(library.status === 'rejected' ? library.reason : { code: 'INVALID_RESPONSE' });
+        if (library.status === 'rejected' && library.reason?.code === 'UNAUTHENTICATED') games = [];
       }
+      renderProfile(); renderLibrary(); await loadSelection();
+    } catch (error) {
+      if (disposed || version !== bootGeneration) return;
+      get('status').textContent = failure(error); get('status').hidden = false;
+      renderLibrary(); await loadSelection();
+    } finally { if (!disposed && version === bootGeneration) get('refresh').disabled = false; }
+  }
 
-      function applyLanguage() {
-        document.documentElement.lang = lang;
-        document.querySelectorAll('[data-i18n]').forEach((el) => {
-          el.textContent = t(el.dataset.i18n);
-        });
-        $('shotBtn').title = t('takeScreenshot');
-        $('shotBtn').setAttribute('aria-label', t('takeScreenshot'));
-        $('shareXBtn').title = t('shareOnX');
-        $('shareXBtn').setAttribute('aria-label', t('shareOnX'));
-        $('helpBtn').title = t('gameViewTutorialTitle');
-        $('helpBtn').setAttribute('aria-label', t('gameViewTutorialTitle'));
-        $('closeBtn').title = t('close');
-        $('closeBtn').setAttribute('aria-label', t('close'));
-        applyShortcut();
-      }
+  function setInteractive(value) {
+    if (interactive === value || disposed) return;
+    interactive = value;
+    Promise.resolve(bridge?.setOverlayInteractive?.(value)).catch(() => {});
+  }
 
-      function currentGame() {
-        const state = running[0];
-        if (!state) return null;
-        return games.find((game) => idEq(state.id, game.id)) || {
-          id: state.id,
-          title: state.title || t('game'),
-          coverImage: state.coverImage || null,
-          cloudSavesEnabled: Boolean(state.cloudSavesEnabled),
-        };
-      }
+  function subscribe(name, callback) {
+    const off = bridge?.[name]?.(callback);
+    if (typeof off === 'function') cleanups.push(off);
+  }
 
-      function selectedGame() {
-        return games.find((game) => idEq(game.id, selectedId)) || currentGame() || games[0] || null;
-      }
-
-      function renderProfile() {
-        $('username').textContent = user?.username || user?.email || 'Player';
-        const avatar = $('avatar');
-        avatar.textContent = '';
-        if (user?.avatarUrl || user?.avatar_url) {
-          const img = document.createElement('img');
-          img.src = asset(user.avatarUrl || user.avatar_url, '');
-          img.alt = '';
-          avatar.appendChild(img);
-        } else {
-          avatar.textContent = initials(user);
-        }
-        const current = currentGame();
-        $('playingText').textContent = current
-          ? `${t('playing')}: ${current.title}`
-          : t('gameView');
-        $('shareXBtn').disabled = !current;
-      }
-
-      function renderGames() {
-        $('libraryCount').textContent = String(games.length);
-        const root = $('gameList');
-        if (!games.length) {
-          root.innerHTML = `<div class="empty">${esc(t('selectGame'))}</div>`;
-          return;
-        }
-        const selected = selectedGame();
-        root.innerHTML = games.slice(0, 20).map((game) => {
-          const active = selected && idEq(selected.id, game.id);
-          const isRunning = running.some((item) => idEq(item.id, game.id));
-          const subtitle = isRunning
-            ? t('playing')
-            : cloudEnabled(game)
-              ? t('cloudSaves')
-              : t('game');
-          return `<button class="game ${active ? 'active' : ''}" data-game-id="${esc(game.id)}"><img src="${esc(imageOf(game))}" alt=""><span class="copy"><strong>${esc(game.title || t('game'))}</strong><small>${esc(subtitle)}</small></span>${isRunning ? '<i class="running-dot"></i>' : ''}</button>`;
-        }).join('');
-      }
-
-      async function loadSelected() {
-        const game = selectedGame();
-        const loadToken = ++selectedLoadToken;
-
-        pendingDeleteSlot = null;
-        if (pendingDeleteTimer) {
-          clearTimeout(pendingDeleteTimer);
-          pendingDeleteTimer = null;
-        }
-        $('cloudGame').textContent = game?.title || '';
-        $('saveList').innerHTML = `<div class="empty">${esc(game ? t('loading') : t('selectGame'))}</div>`;
-        $('achievementList').innerHTML = `<div class="empty">${esc(game ? t('loading') : t('selectGame'))}</div>`;
-        $('achievementCount').textContent = '0/0';
-        if (!game) {
-          saves = [];
-          achievements = [];
-          return;
-        }
-
-        const [achievementResult, saveResult] = await Promise.allSettled([
-          request(`/platform/achievements/${encodeURIComponent(game.id)}`),
-          cloudEnabled(game)
-            ? request(`/platform/saves/${encodeURIComponent(game.id)}`)
-            : Promise.resolve([]),
-        ]);
-
-        if (loadToken !== selectedLoadToken || !idEq(selectedGame()?.id, game.id)) return;
-
-        achievements = achievementResult.status === 'fulfilled' && Array.isArray(achievementResult.value)
-          ? achievementResult.value
-          : [];
-        saves = saveResult.status === 'fulfilled' && Array.isArray(saveResult.value)
-          ? saveResult.value
-          : [];
-        renderAchievements();
-        renderSaves();
-      }
-
-      function renderAchievements() {
-        const root = $('achievementList');
-        const unlocked = achievements.filter((item) => item.unlocked_at || item.unlockedAt).length;
-        $('achievementCount').textContent = `${unlocked}/${achievements.length}`;
-        if (!achievements.length) {
-          root.innerHTML = `<div class="empty">${esc(t('noAchievements'))}</div>`;
-          return;
-        }
-        root.innerHTML = achievements.slice(0, 10).map((achievement) => {
-          const unlockedNow = achievement.unlocked_at || achievement.unlockedAt;
-          const title = achievement.hidden && !unlockedNow
-            ? '???'
-            : (achievement.title || achievement.key || '');
-          return `<div class="achievement ${unlockedNow ? 'unlocked' : 'locked'}"><svg width="17" height="17" viewBox="0 0 24 24" fill="${unlockedNow ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><span class="copy"><strong>${esc(title)}</strong><small>${esc(achievement.description || '')}</small></span></div>`;
-        }).join('');
-      }
-
-      function renderSaves() {
-        const game = selectedGame();
-        const root = $('saveList');
-        if (!game) {
-          root.innerHTML = `<div class="empty">${esc(t('selectGame'))}</div>`;
-          return;
-        }
-        if (!cloudEnabled(game)) {
-          root.innerHTML = `<div class="empty">${esc(t('cloudSavesUnavailable'))}</div>`;
-          return;
-        }
-        if (!saves.length) {
-          root.innerHTML = `<div class="empty">${esc(t('noCloudSaves'))}</div>`;
-          return;
-        }
-        root.innerHTML = saves.slice(0, 10).map((save) => {
-          const dateValue = save.updatedAt || save.updated_at;
-          const date = dateValue ? new Date(dateValue) : null;
-          const dateText = date && !Number.isNaN(date.getTime()) ? date.toLocaleString(lang) : '';
-          return `<div class="save"><span class="copy"><strong>${esc(save.slot)}</strong><small>${esc(dateText)}</small></span><button class="delete" data-delete-slot="${esc(save.slot)}" title="${esc(t('deleteCloudSave'))}" aria-label="${esc(t('deleteCloudSave'))}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button></div>`;
-        }).join('');
-      }
-
-      function showStatus(message, { error = false, folder = null, sticky = false } = {}) {
-        if (statusTimer) {
-          clearTimeout(statusTimer);
-          statusTimer = null;
-        }
-        const box = $('status');
-        box.classList.remove('hidden', 'error');
-        if (error) box.classList.add('error');
-        $('statusText').textContent = message;
-        $('statusIcon').textContent = error ? '!' : '●';
-        const action = $('statusAction');
-        if (folder) {
-          action.textContent = t('openScreenshotFolder');
-          action.dataset.folder = folder;
-          action.classList.remove('hidden');
-        } else {
-          action.classList.add('hidden');
-          action.dataset.folder = '';
-        }
-        if (!sticky) statusTimer = setTimeout(() => box.classList.add('hidden'), 5000);
-      }
-
-      function showTutorial(force = false) {
-        let seen = false;
-        try {
-          seen = localStorage.getItem('deadsmile.gameview.tutorial.v3') === 'seen';
-        } catch {}
-        if (force || !seen) {
-          $('tutorialLayer').classList.remove('hidden');
-          setInteractive(true);
-        }
-      }
-
-      function hideTutorial() {
-        try {
-          localStorage.setItem('deadsmile.gameview.tutorial.v3', 'seen');
-        } catch {}
-        $('tutorialLayer').classList.add('hidden');
-        setInteractive(false);
-      }
-
-      function setInteractive(value) {
-        value = Boolean(value);
-        if (interactiveState === value) return;
-        interactiveState = value;
-        bridge?.setOverlayInteractive?.(value).catch?.(() => {});
-      }
-
-      async function takeScreenshot() {
-        showStatus(`${t('takeScreenshot')}…`, { sticky: true });
-        try {
-          const result = await bridge.takeScreenshot();
-          if (!result?.ok) throw new Error(t('screenshotFailed'));
-          showStatus(t('screenshotSaved'), { folder: result.folder });
-        } catch (error) {
-          showStatus(friendlyStatusMessage(error, t('screenshotFailed')), { error: true });
-        }
-      }
-
-      function gameHashtag(title) {
-        const clean = String(title || 'IndieGame')
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-zA-Z0-9]/g, '');
-        return clean.slice(0, 48) || 'IndieGame';
-      }
-
-      function buildXShareText() {
-        const game = currentGame();
-        if (!game) return '';
-        const hashtags = `#DeadsmileGames #${gameHashtag(game.title)} #indiedev`;
-        let body = formatText(t('sharePlayingX'), { game: game.title || t('game') });
-        const maxBodyLength = Math.max(1, 280 - hashtags.length - 2);
-        if (body.length > maxBodyLength) body = `${body.slice(0, Math.max(0, maxBodyLength - 1))}…`;
-        return `${body}\n\n${hashtags}`;
-      }
-
-      async function shareOnX() {
-        if (!currentGame()) return;
-        showStatus(t('sharePreparing'), { sticky: true });
-        try {
-          const result = await bridge.shareOnX({ text: buildXShareText() });
-          if (!result?.ok) throw new Error(t('shareFailed'));
-          showStatus(t('sharePasteScreenshot'), { folder: result.folder, sticky: true });
-        } catch (error) {
-          showStatus(friendlyStatusMessage(error, t('shareFailed')), { error: true });
-        }
-      }
-
-      async function removeSave(slot) {
-        const game = selectedGame();
-        if (!game) return;
-        const normalizedSlot = String(slot);
-
-        if (pendingDeleteSlot !== normalizedSlot) {
-          pendingDeleteSlot = normalizedSlot;
-          if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer);
-          pendingDeleteTimer = setTimeout(() => {
-            pendingDeleteSlot = null;
-            pendingDeleteTimer = null;
-          }, 4500);
-          showStatus(t('deleteCloudSaveConfirm'));
-          return;
-        }
-
-        pendingDeleteSlot = null;
-        if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer);
-        pendingDeleteTimer = null;
-
-        const button = document.querySelector(`[data-delete-slot="${CSS.escape(normalizedSlot)}"]`);
-        if (button) {
-          button.disabled = true;
-          button.innerHTML = '<span class="spinner"></span>';
-        }
-        try {
-          await request(
-            `/platform/saves/${encodeURIComponent(game.id)}/${encodeURIComponent(normalizedSlot)}`,
-            'DELETE',
-          );
-          saves = saves.filter((save) => String(save.slot) !== normalizedSlot);
-          renderSaves();
-          showStatus(t('cloudSaveDeleted'));
-        } catch (error) {
-          showStatus(friendlyStatusMessage(error, t('error')), { error: true });
-          renderSaves();
-        }
-      }
-
-      async function init() {
-        try {
-          const bootstrap = await bridge.getOverlayBootstrap?.();
-          const initialI18n = bootstrap?.i18n || {};
-          const initialStrings = initialI18n.strings && typeof initialI18n.strings === 'object'
-            ? initialI18n.strings
-            : {};
-          const hasSharedStrings = Object.keys(initialStrings).length > 0;
-
-          lang = hasSharedStrings && ['en', 'pt-BR', 'es'].includes(initialI18n.language)
-            ? initialI18n.language
-            : (['en', 'pt-BR', 'es'].includes(bootstrap?.language) ? bootstrap.language : 'en');
-          sharedStrings = initialStrings;
-          running = Array.isArray(bootstrap?.running) ? bootstrap.running : [];
-          shortcutLabel = bootstrap?.gameViewSettings?.label || 'Ctrl + D';
-          applyLanguage();
-
-          const results = await Promise.allSettled([
-            request('/auth/me'),
-            request('/games?page=1&limit=100'),
-            request('/library'),
-          ]);
-          user = results[0].status === 'fulfilled' ? results[0].value : null;
-          const catalog = results[1].status === 'fulfilled'
-            ? listFrom(results[1].value, 'games')
-            : [];
-          const libraryItems = results[2].status === 'fulfilled'
-            ? listFrom(results[2].value, 'items')
-            : [];
-          const ids = new Set([
-            ...libraryItems.map((item) => String(item.id)),
-            ...(bootstrap?.installedIds || []).map(String),
-          ]);
-          games = catalog.filter((game) => ids.has(String(game.id)));
-          if (!games.length && libraryItems.length && libraryItems.some((item) => item.title)) {
-            games = libraryItems;
-          }
-          for (const state of running) {
-            if (!games.some((game) => idEq(game.id, state.id)) && state.title) {
-              games.unshift({
-                id: state.id,
-                title: state.title,
-                coverImage: state.coverImage || null,
-                cloudSavesEnabled: Boolean(state.cloudSavesEnabled),
-              });
-            }
-          }
-          const current = currentGame();
-          selectedId = current?.id || games[0]?.id || null;
-          renderProfile();
-          renderGames();
-          await loadSelected();
-          showTutorial(false);
-        } catch (error) {
-          applyLanguage();
-          showStatus(friendlyStatusMessage(error, 'Unable to load Game View'), {
-            error: true,
-            sticky: true,
-          });
-        }
-      }
-
-      $('closeBtn').addEventListener('click', () => bridge.closeOverlay());
-      $('shotBtn').addEventListener('click', takeScreenshot);
-      $('shareXBtn').addEventListener('click', shareOnX);
-      $('helpBtn').addEventListener('click', () => showTutorial(true));
-      $('tutorialDone').addEventListener('click', hideTutorial);
-      $('statusAction').addEventListener('click', () => {
-        const folder = $('statusAction').dataset.folder;
-        if (folder) bridge.openScreenshotFolder?.();
-      });
-      $('gameList').addEventListener('click', async (event) => {
-        const button = event.target.closest('[data-game-id]');
-        if (!button) return;
-        selectedId = button.dataset.gameId;
-        renderGames();
-        await loadSelected();
-      });
-      $('saveList').addEventListener('click', (event) => {
-        const button = event.target.closest('[data-delete-slot]');
-        if (button && !button.disabled) removeSave(button.dataset.deleteSlot);
-      });
-      document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        if (!$('tutorialLayer').classList.contains('hidden')) hideTutorial();
-        else bridge.closeOverlay();
-      });
-      document.addEventListener('mousemove', (event) => {
-        const target = event.target?.closest?.('[data-interactive]');
-        setInteractive(Boolean(target));
-      }, { passive: true });
-      document.addEventListener('mouseleave', () => setInteractive(false));
-
-      bridge.onGameState?.((state) => {
-        running = state.running
-          ? [...running.filter((item) => !idEq(item.id, state.id)), state]
-          : running.filter((item) => !idEq(item.id, state.id));
-        const current = currentGame();
-        if (current) selectedId = current.id;
-        renderProfile();
-        renderGames();
-        loadSelected().catch(() => {});
-      });
-      bridge.onAchievementUnlocked?.((payload) => {
-        if (selectedGame() && idEq(selectedGame().id, payload?.gameId)) {
-          loadSelected().catch(() => {});
-        }
-      });
-      bridge.onGameViewSettingsChanged?.((settings) => {
-        if (!settings) return;
-        shortcutLabel = settings.label || shortcutLabel;
-        applyShortcut();
-      });
-      bridge.onOverlayShown?.(() => {
-        document.documentElement.classList.remove('overlay-hiding');
-        interactiveState = null;
-        setInteractive(false);
-      });
-      bridge.onOverlayHiding?.(() => {
-        document.documentElement.classList.add('overlay-hiding');
-        interactiveState = null;
-        setInteractive(false);
-      });
-      bridge.onGameViewLanguageChanged?.((payload) => {
-        if (!payload) return;
-        if (['en', 'pt-BR', 'es'].includes(payload.language)) lang = payload.language;
-        sharedStrings = payload.strings && typeof payload.strings === 'object'
-          ? payload.strings
-          : {};
-        applyLanguage();
-        renderProfile();
-        renderGames();
-        renderSaves();
-        renderAchievements();
-      });
-      init();
-    })();
+  get('close').addEventListener('click', () => { Promise.resolve(bridge.closeOverlay()).catch((error) => { get('status').textContent = failure(error); get('status').hidden = false; }); });
+  get('refresh').addEventListener('click', bootstrap);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') Promise.resolve(bridge.closeOverlay()).catch(() => {}); });
+  document.addEventListener('mousemove', (event) => setInteractive(Boolean(event.target instanceof Element && event.target.closest('[data-interactive]'))));
+  document.documentElement.addEventListener('mouseleave', () => setInteractive(false));
+  subscribe('onGameState', (item) => {
+    if (!validId(item?.id)) return;
+    running = item.running ? [...running.filter((game) => game.id !== item.id), item] : running.filter((game) => game.id !== item.id);
+    renderProfile(); renderLibrary(); loadSelection();
+  });
+  subscribe('onAchievementUnlocked', (item) => { if (item?.gameId === selected) loadSelection(); });
+  subscribe('onGameViewLanguageChanged', (item) => {
+    if (!copy[item?.language]) return;
+    ++generation; language = item.language; applyLanguage(); bootstrap();
+  });
+  subscribe('onOverlayShown', () => { document.documentElement.classList.remove('overlay-hiding'); interactive = null; setInteractive(false); bootstrap(); });
+  subscribe('onOverlayHiding', () => { document.documentElement.classList.add('overlay-hiding'); setInteractive(false); });
+  window.addEventListener('beforeunload', () => { disposed = true; ++generation; ++bootGeneration; cleanups.forEach((off) => off()); });
+  applyLanguage();
+  if (bridge?.api && bridge?.getOverlayBootstrap) bootstrap();
+  else { get('status').textContent = failure({ code: 'SERVICE_UNAVAILABLE' }); get('status').hidden = false; }
+})();

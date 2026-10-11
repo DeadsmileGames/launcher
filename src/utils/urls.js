@@ -33,7 +33,7 @@ export function safeImageUrl(value) {
   if (typeof value !== 'string') return null;
   const raw = value.trim();
   if (!raw) return null;
-  if (safeRelativeUrl(raw)) return new URL(raw, 'https://rlxtfzt3-5174.brs.devtunnels.ms').href;
+  if (safeRelativeUrl(raw)) return new URL(raw, 'https://deadsmilegames.vercel.app').href;
   if (/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i.test(raw)) return raw;
   return safeHttpsUrl(raw);
 }

@@ -61,17 +61,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "NSIS installation failed." }
       - name: Build app, MSIX and EXE
         run: ./scripts/build-windows.ps1 -Target All -DevelopmentCertificate
-      - name: Check application startup
-        run: |
-          $app = Join-Path $PWD 'artifacts/app-x64/Deadsmile.Launcher.exe'
-          $process = Start-Process -FilePath $app -PassThru
-          try {
-            Start-Sleep -Seconds 8
-            $process.Refresh()
-            if ($process.HasExited) { throw "Launcher exited during startup with code $($process.ExitCode)." }
-          } finally {
-            if (!$process.HasExited) { Stop-Process -Id $process.Id -Force }
-          }
+      - name: Test installation, startup and uninstallation
+        run: ./scripts/test-installers.ps1
       - name: Upload EXE installer
         uses: actions/upload-artifact@v7
         with:

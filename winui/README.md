@@ -2,7 +2,7 @@
 
 Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .NET 10, Windows App SDK 2.5.1 e Windows SDK BuildTools 10.0.28000.2705.
 
-**Status desta entrega: código-fonte para compilação e homologação. Não contém MSIX/EXE compilados.** A compilação C#, os 20 testes C# e a execução visual não puderam ser feitos no ambiente Linux sem SDK .NET/Windows. Os scripts abaixo produzem os arquivos reais em Windows; sua execução ainda precisa ser validada.
+**Status: em validação no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI, o empacotamento e os testes dos instaladores estão sendo validados no PR #10. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
 
 ## Conteúdo
 
@@ -12,7 +12,16 @@ Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .N
 - Recursos originais, incluindo fontes convertidas de WOFF2 para TTF.
 - Projetos Core e Launcher, solução Visual Studio, testes de invariantes e documentação.
 - Empacotamento MSIX e instalador EXE/NSIS, com opção de assinatura de desenvolvimento.
-- Workflow opcional, que não foi publicado nem executado.
+- Workflow de build Windows no GitHub Actions, com instaladores disponíveis como artefatos após uma execução bem-sucedida.
+
+## Baixar sem instalar Visual Studio
+
+Abra [Actions do projeto](https://github.com/DeadsmileGames/launcher/actions), selecione uma execução bem-sucedida de **Build Deadsmile WinUI** e baixe um dos artefatos no fim da página. É necessário estar conectado ao GitHub para baixar artefatos.
+
+- **Deadsmile-WinUI-Setup-x64**: extraia o ZIP e execute o arquivo Setup.exe. O instalador inclui o .NET e o runtime WinUI; não exige Visual Studio, SDK ou NSIS no computador do usuário.
+- **Deadsmile-WinUI-MSIX-Development-x64**: contém o MSIX, seu hash e o certificado público de desenvolvimento. Siga a seção de certificados abaixo antes de instalar este pacote de teste.
+
+Os artefatos ficam disponíveis por 30 dias. O workflow executa testes Core, gera os pacotes e verifica instalação, abertura da janela e desinstalação no runner Windows. Após integrar o workflow à branch principal, também é possível iniciar um novo build pelo botão **Run workflow**. Não é necessário compilar localmente.
 
 ## Gerar o app e os instaladores no Windows
 

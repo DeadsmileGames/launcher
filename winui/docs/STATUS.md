@@ -1,6 +1,6 @@
 # Estado da implementação — 12/10/2026
 
-A entrega contém uma implementação C#/WinUI 3 e o processo de geração de MSIX e Setup.exe. **Não é uma versão homologada e ainda não há binários produzidos.**
+A entrega contém uma implementação C#/WinUI 3 e o processo de geração de MSIX e Setup.exe. **Não é uma versão homologada.** A validação está em andamento no [PR #10](https://github.com/DeadsmileGames/launcher/pull/10), com build e testes no GitHub Actions.
 
 | Verificação | Estado |
 |---|---|
@@ -9,17 +9,17 @@ A entrega contém uma implementação C#/WinUI 3 e o processo de geração de MS
 | Eventos XAML e arquivos referenciados | Verificados estruturalmente. |
 | Fontes TTF | Convertidas a partir dos arquivos originais e inspecionadas com fontTools. |
 | Testes originais Electron | 40 passaram na análise do ZIP, antes desta implementação. |
-| Testes novos em C# | 20 casos preparados; não executados por ausência do SDK .NET. |
-| Compilação Core/C# | Não executada. |
-| Compilação WinUI/XAML | Não executada; exige Windows. |
-| Geração e assinatura MSIX/EXE | Scripts preparados; não executados. |
-| Instalação e desinstalação | Não executadas. |
+| Testes novos em C# | 20 passaram em Linux e Windows no GitHub Actions; nenhum ignorado. |
+| Compilação Core/C# | Passou em Linux e Windows. |
+| Compilação WinUI/XAML | Em validação no runner Windows; conflito de referência de timer corrigido após o primeiro build. |
+| Geração e assinatura MSIX/EXE | Em validação no runner Windows. |
+| Instalação e desinstalação | Smoke tests automáticos adicionados para EXE e MSIX no runner isolado. |
 | Login/2FA e itch.io reais | Não executados. |
 | Downloads e jogos reais | Não executados. |
 | Saves/conquistas com backend | Não executados. |
 | Layout e escalas de tela | Não verificados em execução. |
 | Overlay/avisos transparentes | Implementação de prova de conceito; não verificada em Windows. |
-| Workflow remoto | Não publicado nem executado. |
+| Workflow remoto | Publicado e executado no PR #10; artefatos de instalador disponibilizados apenas após validação bem-sucedida. |
 
 ## O que o código implementa
 
@@ -31,7 +31,7 @@ O instalador EXE prepara uma pasta nova e troca a instalação com backup. O MSI
 
 ## Limitações que exigem continuidade
 
-1. Ainda podem existir erros de compilação, tipos/API ou comportamento que a análise estrutural não detecta. O primeiro build Windows é obrigatório.
+1. A validação WinUI e dos instaladores está em andamento. Testes automáticos não substituem a homologação visual e integrada.
 2. O overlay não tem garantia de funcionar em fullscreen exclusivo, sobre jogos elevados, com todos os drivers gráficos ou em todas as escalas.
 3. Falhas de rede, conflitos de saves e pedidos de autorização dependem do comportamento do backend e de conta de teste.
 4. A biblioteca antiga guardada apenas no localStorage do Electron e a pasta de jogos de versões muito antigas em Downloads não são importadas automaticamente. A recuperação usa registros e pastas do layout atual em Documentos.

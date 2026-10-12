@@ -15,7 +15,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.Windows.AppLifecycle;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
-using Windows.System;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace Deadsmile.Launcher;
 

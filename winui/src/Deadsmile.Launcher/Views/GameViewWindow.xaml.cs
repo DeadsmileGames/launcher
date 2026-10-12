@@ -79,12 +79,12 @@ public sealed partial class GameViewWindow : Window
             AchievementRows.Children.Clear();
             foreach (var a in achievements.Items())
             {
-                var unlocked = a.At("unlocked_at", "unlockedAt") is not null;
+                var unlocked = a.First("unlocked_at", "unlockedAt") is not null;
                 var hidden = a.B("hidden") && !unlocked;
                 AchievementRows.Children.Add(new Border
                 {
                     Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16),
-                    BorderBrush = new SolidColorBrush(unlocked ? Windows.UI.Color.FromArgb(255, 168, 221, 178) : Colors.DimGray),
+                    BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
                     Child = new TextBlock { Text = (hidden ? owner.Locale.T("Hidden achievement") : a.S("title")) +
                         "\n" + owner.Locale.T(unlocked ? "Unlocked" : "Locked") }
                 });
@@ -96,8 +96,8 @@ public sealed partial class GameViewWindow : Window
             if (revision != request) return;
             foreach (var item in saves.Items())
                 CloudRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"],
-                    Child = new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") +
-                        "\n" + item.S("updated_at", "updatedAt") } });
+                    Child = new TextBlock { Text = item.First("filename", "slot").S() + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") +
+                        "\n" + item.First("updated_at", "updatedAt").S() } });
             if (CloudRows.Children.Count == 0) CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("No cloud saves found.") });
         }
         catch (Exception ex)

@@ -46,7 +46,7 @@ public sealed class NativeWindow : IDisposable
         if (message == 0x0024)
         {
             var s = Scale?.Invoke() ?? 1;
-            Marshal.WriteInt32(lp, 24, (int)(800 * s)); Marshal.WriteInt32(lp, 28, (int)(600 * s));
+            Marshal.WriteInt32(lp, 24, (int)(640 * s)); Marshal.WriteInt32(lp, 28, (int)(480 * s));
         }
         return CallWindowProc(previous, h, message, wp, lp);
     }

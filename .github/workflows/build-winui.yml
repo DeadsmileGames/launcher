@@ -63,6 +63,16 @@ jobs:
         run: ./scripts/build-windows.ps1 -Target All -DevelopmentCertificate
       - name: Test installation, startup and uninstallation
         run: ./scripts/test-installers.ps1
+      - name: Validate native WinUI navigation and layout
+        run: ./scripts/test-native-ui.ps1
+      - name: Upload native UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Deadsmile-WinUI-UI-Validation
+          path: winui/artifacts/ui-screenshots/*
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Upload EXE installer
         uses: actions/upload-artifact@v7
         with:

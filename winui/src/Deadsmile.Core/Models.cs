@@ -14,6 +14,8 @@ public static class J
 {
     public static JsonNode? At(this JsonNode? n, params string[] keys)
     { foreach (var key in keys) if (n is JsonObject o && o[key] is { } v) return v; return null; }
+    public static JsonNode? First(this JsonNode? n, params string[] keys)
+    { foreach (var key in keys) if (n is JsonObject o && o[key] is { } value) return value; return null; }
     public static string S(this JsonNode? n, params string[] keys)
     {
         var v = keys.Length > 0 ? n.At(keys) : n;
@@ -47,7 +49,7 @@ public sealed class Game(JsonNode data)
     public string Id => Data.S("id");
     public string Slug => Data.S("slug");
     public string Title => Data.S("title");
-    public string Cover => Urls.Image(Data.S("coverImage", "cover_image")) ?? "";
+    public string Cover => Urls.Image(Data.First("coverImage", "cover_image").S()) ?? "";
     public string Engine => Data.S("engine");
     public string Description => Data.S("description");
     public string Version => Data.S("version");

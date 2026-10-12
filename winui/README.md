@@ -2,14 +2,14 @@
 
 Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .NET 10, Windows App SDK 2.5.1 e Windows SDK BuildTools 10.0.28000.2705.
 
-**Status: binários de teste compilados no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI/XAML, o empacotamento, a instalação e a desinstalação de EXE/MSIX passaram no runner Windows Server 2025, incluindo abertura da janela do aplicativo instalado pelo EXE. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
+**Status da UI 2.0.1: em validação no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI/XAML, o empacotamento, a instalação e a desinstalação de EXE/MSIX passaram no runner Windows Server 2025, incluindo abertura da janela do aplicativo instalado pelo EXE. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
 
 ## Conteúdo
 
 - Interface WinUI: login e 2FA, Explorar, Biblioteca, detalhes, galeria, Downloads e Configurações.
 - Serviços: API original, cookies protegidos com DPAPI, CSRF, biblioteca ao vivo, itch.io, downloads, instalação, processos, saves PICO-8 e conquistas.
 - Game View e avisos de conquistas em janelas XAML com integração Win32.
-- Recursos originais, incluindo fontes convertidas de WOFF2 para TTF.
+- Controles e tipografia padrão WinUI. Os recursos antigos de login e as fontes personalizadas foram removidos da versão nativa.
 - Projetos Core e Launcher, solução Visual Studio, testes de invariantes e documentação.
 - Empacotamento MSIX e instalador EXE/NSIS, com opção de assinatura de desenvolvimento.
 - Workflow de build Windows no GitHub Actions, com instaladores disponíveis como artefatos após uma execução bem-sucedida.
@@ -36,8 +36,8 @@ Abra PowerShell na pasta extraída e execute:
 O processo executa os testes C#, compila o app e gera, se todas as etapas passarem:
 
 - artifacts/app-x64/Deadsmile.Launcher.exe, acompanhado dos arquivos do aplicativo.
-- artifacts/Deadsmile-Games-Launcher-WinUI-2.0.0-x64.msix
-- artifacts/Deadsmile-Games-Launcher-WinUI-Setup-2.0.0-x64.exe
+- artifacts/Deadsmile-Games-Launcher-WinUI-2.0.1-x64.msix
+- artifacts/Deadsmile-Games-Launcher-WinUI-Setup-2.0.1-x64.exe
 - artifacts/Deadsmile-Development.cer e hashes SHA-256.
 
 O certificado de desenvolvimento é criado no armazenamento pessoal do usuário que executa o build. Sua chave privada não é exportada. Esse certificado serve para testes; não equivale a assinatura pública de produção.

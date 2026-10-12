@@ -69,7 +69,7 @@ public sealed class CloudSaveService(ApiClient api, Storage storage)
             if (remote is null) throw new LauncherException("CLOUD_SAVE_INVALID_RESPONSE");
             var bytes = RemoteBytes(remote);
             state.Revision = remote.At("revision") is null ? null : remote.L("revision");
-            DateTimeOffset.TryParse(remote.S("updated_at", "updatedAt"), out var updated);
+            DateTimeOffset.TryParse(remote.First("updated_at", "updatedAt").S(), out var updated);
             if (!File.Exists(target) || updated.UtcDateTime > File.GetLastWriteTimeUtc(target))
             {
                 if (File.Exists(target) && !(await File.ReadAllBytesAsync(target)).SequenceEqual(bytes))

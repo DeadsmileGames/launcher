@@ -8,6 +8,7 @@
     <PublishTrimmed>false</PublishTrimmed><PublishSingleFile>false</PublishSingleFile>
     <ApplicationManifest>app.manifest</ApplicationManifest><ApplicationIcon>Assets/Icon.ico</ApplicationIcon>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <DefineConstants Condition="'$(ValidateNativeUi)' == 'true'">$(DefineConstants);UI_VALIDATION</DefineConstants>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1"/><PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all"/><ProjectReference Include="../Deadsmile.Core/Deadsmile.Core.csproj"/></ItemGroup>
   <ItemGroup><Content Include="Assets/**/*"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content></ItemGroup>

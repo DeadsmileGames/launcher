@@ -15,6 +15,17 @@ const string id = "c24ddf96-8bea-46f5-9707-d6997d996c2b";
 var root = Path.Combine(Path.GetTempPath(), "deadsmile-tests-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);
 
+Add("Catalog artwork resolves both current and legacy API field names", () =>
+{
+    Check(new Game(J.Obj(("coverImage", "https://example.com/current.png"))).Cover == "https://example.com/current.png");
+    Check(new Game(J.Obj(("cover_image", "https://example.com/legacy.png"))).Cover == "https://example.com/legacy.png");
+});
+Add("Alternative metadata keys do not change nested JSON lookup", () =>
+{
+    var metadata = J.Obj(("unlockedAt", "2026-10-12"), ("error", J.Obj(("code", "UNAUTHENTICATED"))));
+    Check(metadata.First("unlocked_at", "unlockedAt").S() == "2026-10-12");
+    Check(metadata.S("error", "code") == "UNAUTHENTICATED");
+});
 Add("Private IPv4 and mapped IPv6 cannot be download targets", () =>
 {
     foreach (var ip in new[] { "127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1", "169.254.169.254",

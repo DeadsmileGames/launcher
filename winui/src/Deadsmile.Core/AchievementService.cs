@@ -66,7 +66,7 @@ public sealed class AchievementService(ApiClient api, Storage storage)
             var queue = storage.Read("achievement-sync.json", new List<PendingAchievement>());
             foreach (var key in keys)
             {
-                if (catalog.Any(x => x.S("key") == key && (x.At("unlocked_at", "unlockedAt") is not null))) continue;
+                if (catalog.Any(x => x.S("key") == key && (x.First("unlocked_at", "unlockedAt") is not null))) continue;
                 if (!queue.Any(x => x.GameId == game.Id && x.Key == key && x.UserId == userId))
                     queue.Add(new(game.Id, key, userId, 0, DateTimeOffset.UtcNow));
                 var d = Abby.First(x => x.Key == key);

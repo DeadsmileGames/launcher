@@ -152,7 +152,11 @@
     "Update": "Update",
     "Update available": "Update available",
     "Check for updates": "Check for updates",
-    "Install": "Install"
+    "Install": "Install",
+    "Account": "Account",
+    "About": "About",
+    "More options": "More options",
+    "Additional information": "Additional information"
   },
   "pt-BR": {
     "Achievement unlocked": "Conquista desbloqueada",
@@ -307,7 +311,11 @@
     "Update": "Atualizar",
     "Update available": "Atualização disponível",
     "Check for updates": "Verificar atualizações",
-    "Install": "Instalar"
+    "Install": "Instalar",
+    "Account": "Conta",
+    "About": "Sobre",
+    "More options": "Mais opções",
+    "Additional information": "Informações adicionais"
   },
   "es": {
     "Achievement unlocked": "Logro desbloqueado",
@@ -462,6 +470,10 @@
     "Update": "Actualizar",
     "Update available": "Actualización disponible",
     "Check for updates": "Buscar actualizaciones",
-    "Install": "Instalar"
+    "Install": "Instalar",
+    "Account": "Cuenta",
+    "About": "Acerca de",
+    "More options": "Más opciones",
+    "Additional information": "Información adicional"
   }
 }

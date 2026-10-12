@@ -8,7 +8,7 @@ namespace Deadsmile.Launcher;
 
 public sealed partial class MainWindow
 {
-    private void AddStoreInformation(Game game)
+    private void AddStoreInformation(Game game, StackPanel target)
     {
         var store = game.Store;
         var system = Locale.Language == "pt-BR" ? "DJCTQ" : Locale.Language == "es" ? "PEGI" : "ESRB";
@@ -21,7 +21,7 @@ public sealed partial class MainWindow
         {
             if (Urls.Image(rating.S("imageUrl")) is { } url)
             { var image = new Image { Height = 80, HorizontalAlignment = HorizontalAlignment.Left }; SetImage(image, url); ratingPanel.Children.Add(image); }
-            ratingPanel.Children.Add(Text(rating.S("description", "label")));
+            ratingPanel.Children.Add(Text(rating.First("description", "label").S()));
         }
         else
         {
@@ -31,7 +31,7 @@ public sealed partial class MainWindow
             ratingPanel.Children.Add(Action("Visit esrb.org for rating information.", () =>
             { Services.DesktopIntegration.Open("https://www.esrb.org/ratings-guide/"); return Task.CompletedTask; }));
         }
-        DetailContent.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Child = ratingPanel });
+        target.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Child = ratingPanel });
         if (store is null) return;
         var info = new StackPanel { Spacing = 14 };
         if (store.B("stale")) info.Children.Add(Text(Locale.T("Showing the last available Store information.")));
@@ -42,7 +42,7 @@ public sealed partial class MainWindow
         var notes = store.At("releaseNotes").Items().Select(x => x.S()).ToArray();
         if (notes.Length > 0) { info.Children.Add(Text(Locale.T("What’s new"), 22, true)); foreach (var note in notes) info.Children.Add(Text(note)); }
         var actions = new List<Button>();
-        var publisher = store.S("publisher", "developer");
+        var publisher = store.First("publisher", "developer").S();
         var publisherUrl = publisher.Length == 0 ? "" : "https://apps.microsoft.com/search/publisher?name=" + Uri.EscapeDataString(publisher) +
             "&hl=" + Uri.EscapeDataString(Locale.Language) + "&gl=" + (Locale.Language == "pt-BR" ? "BR" : Locale.Language == "es" ? "ES" : "US");
         foreach (var (key, value) in new[] { ("Privacy policy", store.S("privacyUrl")), ("More from this publisher", publisherUrl),
@@ -52,7 +52,7 @@ public sealed partial class MainWindow
             if (url is not null) actions.Add(Action(key, () => { Services.DesktopIntegration.Open(url.AbsoluteUri); return Task.CompletedTask; }));
         }
         info.Children.Add(WrapActions(actions));
-        DetailContent.Children.Add(new Expander { Header = Locale.T("Microsoft Store information"), Content = info,
+        target.Children.Add(new Expander { Header = Locale.T("Microsoft Store information"), Content = info,
             HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
     }
 }

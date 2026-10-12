@@ -339,7 +339,7 @@ public sealed partial class MainWindow : Window
         {
             if (revision != detailRevision) return;
             DetailContent.Children.Clear(); DetailContent.Children.Add(Text(Locale.Error(ex)));
-            DetailContent.Children.Add(Action("Retry", () => LoadDetail(game)));
+            DetailContent.Children.Add(Action("Try again", () => LoadDetail(game)));
         }
     }
     private void RefreshGameActions() { if (selected is not null) RenderDetail(selected); }

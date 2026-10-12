@@ -2,13 +2,20 @@
 
 Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .NET 10, Windows App SDK 2.5.1 e Windows SDK BuildTools 10.0.28000.2705.
 
-**Status da UI 2.0.1: em validação no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI/XAML, o empacotamento, a instalação e a desinstalação de EXE/MSIX passaram no runner Windows Server 2025, incluindo abertura da janela do aplicativo instalado pelo EXE. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
+**WinUI 2.1.0:** compilação, instaladores e validação nativa no GitHub Actions. Interface com controles C#/XAML padrão WinUI, sidebar escura #202020 e corpo #272727. O runner de validação é Windows Server 2025; homologação com conta/jogos reais em desktops Windows 10/11 ainda é necessária.
 
 ## Conteúdo
 
-- Interface WinUI: login e 2FA, Explorar, Biblioteca, detalhes, galeria, Downloads e Configurações.
+- Entrada como visitante; boot de três segundos, frases, códigos locais de erro e nova tentativa. Login/2FA em diálogo.
+- Explorar, Biblioteca, Wishlist, Newswire, Vídeos, Conta, Suporte, detalhes, galeria, Downloads e Configurações.
+- Busca com sugestões de jogos/configurações no popup nativo, capas da Store, trailer no banner e foto de perfil.
+- DeadBar com captura PNG e preparação/compartilhamento de imagens para Windows, Instagram, X e WhatsApp.
+- Fechar para a área de notificação, aviso inicial único e notificações de atualizações/lançamentos.
 - Serviços: API original, cookies protegidos com DPAPI, CSRF, biblioteca ao vivo, itch.io, downloads, instalação, processos, saves PICO-8 e conquistas.
-- Game View e avisos de conquistas em janelas XAML com integração Win32.
+- Game View em widgets flutuantes WinUI, com arraste, fixação e fechamento; avisos de conquistas com superfície opaca no Windows 10 e Mica/fallback no Windows 11.
+- Banner de produto limitado a 360 DIPs, galeria que preserva a imagem inteira e animações padrão WinUI.
+- Personalização: tema escuro/claro/sistema, navegação compacta/expandida, animações, rotação de banners, materiais do Windows e notificações.
+- Ícone multiresolução e variantes de barra de tarefas MSIX sem a placa/margem acrescentada pelo sistema.
 - Controles e tipografia padrão WinUI. Os recursos antigos de login e as fontes personalizadas foram removidos da versão nativa.
 - Projetos Core e Launcher, solução Visual Studio, testes de invariantes e documentação.
 - Empacotamento MSIX e instalador EXE/NSIS, com opção de assinatura de desenvolvimento.
@@ -36,8 +43,8 @@ Abra PowerShell na pasta extraída e execute:
 O processo executa os testes C#, compila o app e gera, se todas as etapas passarem:
 
 - artifacts/app-x64/Deadsmile.Launcher.exe, acompanhado dos arquivos do aplicativo.
-- artifacts/Deadsmile-Games-Launcher-WinUI-2.0.1-x64.msix
-- artifacts/Deadsmile-Games-Launcher-WinUI-Setup-2.0.1-x64.exe
+- artifacts/Deadsmile-Games-Launcher-WinUI-2.1.0-x64.msix
+- artifacts/Deadsmile-Games-Launcher-WinUI-Setup-2.1.0-x64.exe
 - artifacts/Deadsmile-Development.cer e hashes SHA-256.
 
 O certificado de desenvolvimento é criado no armazenamento pessoal do usuário que executa o build. Sua chave privada não é exportada. Esse certificado serve para testes; não equivale a assinatura pública de produção.
@@ -91,9 +98,13 @@ A desinstalação do launcher preserva jogos, configurações e saves fora da pa
 
 ## Validação e pendências
 
-Leia docs/STATUS.md e docs/VALIDACAO-WINDOWS.md antes de considerar esta versão pronta para distribuição.
+Leia docs/STATUS.md, docs/REVISAO-SEGURANCA.md e docs/VALIDACAO-WINDOWS.md antes de considerar esta versão pronta para distribuição.
 
-A equivalência visual ainda precisa ser conferida em execução. O overlay usa um SystemBackdrop personalizado e integração de DWM/Win32; transparência, passagem de cliques, foco, fullscreen e múltiplos monitores continuam pendentes de prova de conceito real.
+A validação nativa usa capturas da árvore XAML e uma conta de teste isolada. O overlay conserva a integração de DWM/Win32: passagem de cliques, foco, fullscreen e múltiplos monitores continuam exigindo testes com jogos reais em Windows 10/11. Consulte docs/UI-WINUI.md para os padrões de design e a documentação usada.
+
+O site externo está retornando HTTP 402 / DEPLOYMENT_DISABLED. Cadastro, recuperação e gerenciamento no website dependem de sua reativação. O catálogo público e os serviços da API foram verificados separadamente.
+
+O compartilhamento social salva/copia a imagem e abre o destino; a postagem exige confirmação/anexação no aplicativo da rede. A tela de compartilhamento do Windows depende dos apps instalados.
 
 O caminho de atualização EXE aceita apenas o artefato WinUI correspondente, exige digest SHA-256 e valida assinatura Authenticode e a chave pública do publicador atual. Um app sem assinatura confiável não consegue aplicar atualização automática por esse caminho. A rotação de chave precisa ser planejada antes da distribuição. A modalidade MSIX remete a atualização para App Installer/Store; o feed .appinstaller e a publicação não foram configurados.
 
@@ -112,5 +123,5 @@ O caminho de atualização EXE aceita apenas o artefato WinUI correspondente, ex
 - [WinVerifyTrust](https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust)
 - [Assinatura MSIX](https://learn.microsoft.com/en-us/windows/msix/package/signing-package-overview)
 
-Os recursos de marca e fontes vieram do ZIP fornecido. O arquivo LICENSE original foi preservado; ele não é uma declaração adicional de direitos sobre fontes ou recursos.
+Os recursos de marca vieram do ZIP fornecido. A tipografia é a padrão WinUI. O arquivo LICENSE original foi preservado; ele não é uma declaração adicional de direitos sobre recursos.
 

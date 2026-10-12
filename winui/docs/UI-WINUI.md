@@ -1,20 +1,25 @@
-# Interface nativa WinUI 3 — versão 2.0.2
+# Interface nativa WinUI 3 — versão 2.1.0
 
 A UI segue as quatro imagens de referência fornecidas: WinUI 3 Gallery, página de um jogo da Microsoft Store página inicial da Store e Xbox Game Bar. O launcher conserva sua identidade e seus contratos de API; conteúdo de outros produtos da Store não é adicionado ao catálogo.
 
 | Elemento | Implementação |
 |---|---|
-| Sidebar | NavigationView nativo, LeftCompact; #202020. |
+| Sidebar | NavigationView nativo, LeftCompact; #202020. Itens no topo; recolher/expandir no PaneFooter. Voltar sempre visível na TitleBar. |
 | Corpo | #272727; cards com brushes de tema WinUI. |
 | Barra superior | TitleBar nativo, AutoSuggestBox central e PersonPicture com MenuFlyout. |
 | Tipografia | Estilos Body, Caption, Subtitle e Title do WinUI; fonte padrão do sistema. |
-| Login | TextBox, PasswordBox, AccentButton, HyperlinkButton, ComboBox e InfoBar padrão. |
-| Catálogo/biblioteca | GridView com teclado, foco, seleção e rolagem nativos; imagens vindas do catálogo existente. |
-| Produto | Banner de 360 DIPs, imagem limitada e recortada dentro da faixa; ações, screenshots, descrição e metadados. |
+| Entrada | Boot de pelo menos três segundos e verificação do catálogo público; visitante entra direto. Login/2FA em ContentDialog com controles padrão. |
+| Conta | PersonPicture recebe URL ou imagem embutida validada. Download/executar/wishlist solicitam login por diálogo com benefícios e screenshot do launcher. |
+| Catálogo/biblioteca | GridView com capa 180×270 DIPs; Poster/BoxArt da Store, depois cover do banco. Tipografia, teclado, foco e rolagem nativos. |
+| Busca | AutoSuggestBox apresenta jogos no popup; se não há jogo correspondente, oferece Configurações. |
+| Newswire | Cards na Home e página própria; ContentDialog com título, resumo, imagem, texto e jogo relacionado, altura limitada e ScrollViewer. |
+| Produto | Banner de 360 DIPs; MediaPlayerElement com trailer direto/DASH da Store ou mídia direta do jogo. Capa do banco como fallback. Ícone apenas se existe na Store, com cantos de 16 DIPs. |
 | Galeria | ContentDialog com largura sincronizada à imagem, Stretch.Uniform e altura limitada à janela; imagens panorâmicas e verticais aparecem inteiras. |
 | Downloads | ProgressBar, botões padrão e InfoBadge na navegação. |
 | Configurações | Tema escuro/claro/sistema, navegação compacta/expandida, animações, rotação do banner, efeitos do Windows e avisos de conquistas; controles padrão. |
-| Ctrl+D | Barra compacta com relógio real e widgets flutuantes de perfil, biblioteca, conquistas e saves; títulos curtos, arraste, fixação e fechamento. Fundo fora dos widgets transparente; widgets opacos. |
+| DeadBar/Ctrl+D | Barra compacta com relógio real e widgets flutuantes de perfil, biblioteca, conquistas, saves e captura; arraste, fixação, fechamento e restauração. Widgets opacos. |
+| Captura | Windows.Graphics.Capture de uma janela; PNG local, formatos story/post sem distorção e compartilhamento nativo. |
+| Tray/notificações | Shell notification icon; menu XAML de abrir/sair. App notifications com fallback de notificações do Shell. Preferências e aviso inicial único. |
 | Conquistas | Aviso XAML com fundo sólido no Windows 10; Mica opaco e cantos do DWM no Windows 11 quando disponíveis. O fallback do Mica continua opaco. |
 | Ícone | ICO com 15 tamanhos e assets MSIX targetsize com variantes unplated/lightunplated; sem margem extra adicionada no build. |
 | Movimento | EntranceThemeTransition, ContentThemeTransition, RepositionThemeTransition e FadeInThemeAnimation do WinUI; opção do app e preferência de animações do Windows respeitadas. |
@@ -29,7 +34,7 @@ O pipeline compila primeiro o aplicativo de distribuição e produz os instalado
 
 O teste de UI verifica login, navegação, busca, retorno dos detalhes, redimensionamento, posicionamento dos controles, cores dos pixels, limites da galeria, tema claro, persistência de preferências, widgets fixados e fundo sólido do toast. As capturas usam dados e imagens locais de teste, por isso não representam uma conta ou biblioteca real. Os testes integrados com jogos e contas reais continuam separados da validação de layout.
 
-Os widgets reproduzem a organização da referência da Game Bar usando controles WinUI. Seus botões apresentam apenas as funções já existentes do launcher; não há métricas fictícias de desempenho ou ações de captura sem implementação. Fixar mantém o widget sobre o jogo quando Ctrl+D fecha a barra; fechar o jogo ou desativar o Game View oculta todos os widgets.
+Os widgets reproduzem a organização da referência da Game Bar usando controles WinUI. Seus botões apresentam apenas as funções já existentes do launcher; não há métricas fictícias de desempenho. A captura usa Windows.Graphics.Capture e é iniciada pelo usuário. Fixar mantém o widget sobre o jogo quando Ctrl+D fecha a barra; fechar o jogo ou desativar o Game View oculta todos os widgets.
 
 O ícone é derivado da arte quadrada existente. A falta de variantes targetsize/unplated fazia o Windows escolher a representação de tile com placa e redução. Gerar os tamanhos adequados também evita reutilizar apenas o ICO antigo de 256 pixels.
 
@@ -49,3 +54,9 @@ As decisões usam navegação consistente, hierarquia tipográfica, espaçamento
 - [Materiais e fallback](https://learn.microsoft.com/en-us/windows/apps/develop/ui/materials)
 - [System backdrops](https://learn.microsoft.com/en-us/windows/apps/develop/ui/system-backdrops)
 - [Construção do ícone Windows](https://learn.microsoft.com/en-us/windows/apps/design/iconography/app-icon-construction)
+
+- [MediaPlayerElement e transporte](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/media-playback)
+- [Captura de janela](https://learn.microsoft.com/en-us/windows/apps/develop/media-authoring-processing/screen-capture)
+- [Compartilhamento WinRT com HWND](https://learn.microsoft.com/en-us/windows/apps/develop/ui/display-ui-objects)
+- [App notifications](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart)
+- [Segoe Fluent Icons / Windows 10](https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-fluent-icons-font)

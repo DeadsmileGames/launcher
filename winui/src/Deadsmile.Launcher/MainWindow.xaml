@@ -32,7 +32,7 @@
     <ProgressRing x:Name="BootRing" IsActive="True" Width="80" Height="80"/>
     <TextBlock x:Name="BootErrorPhrase" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" Visibility="Collapsed"/>
     <TextBlock x:Name="BootErrorCode" TextAlignment="Center" TextWrapping="Wrap" Visibility="Collapsed"/>
-    <Button x:Name="BootRetry" Content="Retry" Tag="Retry" HorizontalAlignment="Center" Visibility="Collapsed" Click="BootRetryClick"/>
+    <Button x:Name="BootRetry" Content="Try again" Tag="Try again" HorizontalAlignment="Center" Visibility="Collapsed" Click="BootRetryClick"/>
    </StackPanel>
    <TextBlock x:Name="BootQuote" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" MaxWidth="600"/>
   </Grid>

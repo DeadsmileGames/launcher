@@ -1,0 +1,10 @@
+<Window x:Class="Deadsmile.Launcher.Views.AchievementWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid RequestedTheme="Dark" Background="Transparent" Padding="10">
+  <Border CornerRadius="12" Background="#EF202020" BorderBrush="#A8DDB2" BorderThickness="2" Padding="22">
+   <StackPanel Spacing="8"><TextBlock x:Name="Heading" FontSize="13" Foreground="#A8DDB2"/>
+    <TextBlock x:Name="AchievementTitle" FontSize="24" FontFamily="{StaticResource DisplayFont}" MaxLines="2"/>
+   </StackPanel>
+  </Border>
+ </Grid>
+</Window>

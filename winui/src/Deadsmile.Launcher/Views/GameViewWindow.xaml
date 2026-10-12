@@ -1,0 +1,31 @@
+<Window x:Class="Deadsmile.Launcher.Views.GameViewWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Deadsmile Game View">
+ <Grid x:Name="OverlayRoot" RequestedTheme="Dark" Background="#55000000" Padding="24" RowSpacing="24" ColumnSpacing="24">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <Border x:Name="ToolbarPanel" Grid.ColumnSpan="3" HorizontalAlignment="Center" Style="{StaticResource Panel}" Padding="18,10">
+   <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Text="Deadsmile Game View" FontFamily="{StaticResource DisplayFont}" FontSize="23" VerticalAlignment="Center"/>
+    <TextBlock x:Name="ShortcutLabel" Text="Ctrl + D" VerticalAlignment="Center"/><Button x:Name="ReloadButton" Content="Refresh" Click="ReloadClick"/><Button x:Name="CloseButton" Content="Close" Click="CloseClick"/>
+   </StackPanel>
+  </Border>
+  <Border x:Name="ProfilePanel" Grid.Row="1" Style="{StaticResource Panel}"><StackPanel Spacing="12">
+   <TextBlock x:Name="ProfileHeading" Text="Profile" FontSize="26" FontFamily="{StaticResource DisplayFont}"/>
+   <TextBlock x:Name="UserLabel"/><TextBlock x:Name="PlayingLabel" Foreground="{StaticResource MutedBrush}"/>
+  </StackPanel></Border>
+  <Border x:Name="AchievementsPanel" Grid.Row="2" Style="{StaticResource Panel}"><Grid RowSpacing="16">
+   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <TextBlock x:Name="AchievementsHeading" Text="Achievements" FontSize="26" FontFamily="{StaticResource DisplayFont}"/>
+   <ScrollViewer Grid.Row="1"><StackPanel x:Name="AchievementRows" Spacing="12"/></ScrollViewer>
+  </Grid></Border>
+  <Border x:Name="LibraryPanel" Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Style="{StaticResource Panel}"><Grid RowSpacing="16">
+   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <TextBlock x:Name="LibraryHeading" Text="Library" FontSize="26" FontFamily="{StaticResource DisplayFont}"/>
+   <ScrollViewer Grid.Row="1"><StackPanel x:Name="LibraryRows" Spacing="12"/></ScrollViewer>
+  </Grid></Border>
+  <Border x:Name="CloudPanel" Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource Panel}"><Grid RowSpacing="16">
+   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <TextBlock x:Name="CloudHeading" Text="Cloud saves" FontSize="26" FontFamily="{StaticResource DisplayFont}"/>
+   <ScrollViewer Grid.Row="1"><StackPanel x:Name="CloudRows" Spacing="12"/></ScrollViewer>
+  </Grid></Border>
+ </Grid>
+</Window>

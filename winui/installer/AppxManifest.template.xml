@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+ xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+ xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+ xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+ xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+ IgnorableNamespaces="uap uap3 uap10 rescap">
+ <Identity Name="__IDENTITY__" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="x64"/>
+ <Properties><DisplayName>Deadsmile Games Launcher</DisplayName><PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
+ <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/></Dependencies>
+ <Resources><Resource Language="pt-BR"/><Resource Language="en-US"/><Resource Language="es-ES"/></Resources>
+ <Applications><Application Id="DeadsmileGamesLauncher" Executable="Deadsmile.Launcher.exe" EntryPoint="Windows.FullTrustApplication"
+   uap10:RuntimeBehavior="packagedClassicApp" uap10:TrustLevel="mediumIL">
+  <uap:VisualElements DisplayName="Deadsmile Games Launcher" Description="Discover, download and manage Deadsmile Games"
+    BackgroundColor="#0F0F0F" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+   <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/><uap:SplashScreen Image="Assets\SplashScreen.png"/>
+  </uap:VisualElements>
+  <Extensions><uap3:Extension Category="windows.protocol"><uap3:Protocol Name="deadsmile" Parameters="&quot;%1&quot;"/></uap3:Extension></Extensions>
+ </Application></Applications>
+ <Capabilities><Capability Name="internetClient"/><rescap:Capability Name="runFullTrust"/></Capabilities>
+</Package>

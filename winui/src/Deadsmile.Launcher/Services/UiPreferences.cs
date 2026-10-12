@@ -10,6 +10,9 @@ public sealed record UiPreferences
     public bool RotateBanners { get; init; } = true;
     public bool AchievementToasts { get; init; } = true;
     public bool WindowsMaterials { get; init; } = true;
+    public bool CloseToTray { get; init; } = true;
+    public bool Notifications { get; init; } = true;
+    public bool VideoBackgrounds { get; init; } = true;
     [System.Text.Json.Serialization.JsonIgnore]
     public ElementTheme ElementTheme => Theme switch { "light" => Microsoft.UI.Xaml.ElementTheme.Light, "system" => Microsoft.UI.Xaml.ElementTheme.Default, _ => Microsoft.UI.Xaml.ElementTheme.Dark };
 }

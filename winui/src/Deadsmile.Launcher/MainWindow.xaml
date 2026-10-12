@@ -4,20 +4,22 @@
  <Grid x:Name="Root" RequestedTheme="Dark" Background="{ThemeResource BaseBrush}">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
   <TitleBar x:Name="AppTitleBar" Title="Deadsmile Games Launcher" Background="{ThemeResource SidebarBrush}"
-   IsPaneToggleButtonVisible="False" IsBackButtonVisible="False" IsBackButtonEnabled="False"
+   IsPaneToggleButtonVisible="False" IsBackButtonVisible="True" IsBackButtonEnabled="False"
    BackRequested="TitleBackRequested" PaneToggleRequested="TitlePaneToggleRequested">
    <TitleBar.IconSource><BitmapIconSource UriSource="ms-appx:///Assets/Square44x44Logo.png" ShowAsMonochrome="False"/></TitleBar.IconSource>
    <TitleBar.Content>
     <AutoSuggestBox x:Name="SearchBox" PlaceholderText="Search games" QueryIcon="Find" MinWidth="180" MaxWidth="600"
-     HorizontalAlignment="Stretch" Visibility="Collapsed" TextChanged="SearchChanged" QuerySubmitted="SearchSubmitted"
+     HorizontalAlignment="Stretch" Visibility="Collapsed" TextChanged="SearchChanged" QuerySubmitted="SearchSubmitted" SuggestionChosen="SearchChosen"
      AutomationProperties.AutomationId="GlobalSearch" AutomationProperties.Name="Search games"/>
    </TitleBar.Content>
    <TitleBar.RightHeader>
     <Button x:Name="AccountButton" Style="{StaticResource SubtleButtonStyle}" Padding="4" Visibility="Collapsed"
      AutomationProperties.Name="Account" AutomationProperties.AutomationId="AccountMenu">
-     <PersonPicture x:Name="Avatar" Width="28" Height="28"/>
+     <StackPanel Orientation="Horizontal" Spacing="8"><PersonPicture x:Name="Avatar" Width="28" Height="28"/><TextBlock x:Name="AccountActionLabel" Text="Sign in" VerticalAlignment="Center"/></StackPanel>
      <Button.Flyout><MenuFlyout>
       <MenuFlyoutItem x:Name="Username" Text="Account" IsEnabled="False"/>
+      <MenuFlyoutItem x:Name="AccountMenuItem" Text="My account" Click="AccountClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+      <MenuFlyoutItem x:Name="SignInMenuItem" Text="Sign in" Click="GuestSignInClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
       <MenuFlyoutSeparator/>
       <MenuFlyoutItem x:Name="WebsiteMenuItem" Text="Website" Click="WebsiteClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="World"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
       <MenuFlyoutItem x:Name="LogoutButton" Text="Sign out" Click="LogoutClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="LeaveChat"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
@@ -25,9 +27,15 @@
     </Button>
    </TitleBar.RightHeader>
   </TitleBar>
-  <Grid x:Name="BootPanel" Grid.Row="1"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-   <ProgressRing IsActive="True"/><TextBlock Text="Loading…" Tag="Loading…" Style="{StaticResource BodyTextBlockStyle}"/>
-  </StackPanel></Grid>
+  <Grid x:Name="BootPanel" Grid.Row="1" Background="{ThemeResource BaseBrush}" Padding="32">
+   <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" MaxWidth="480">
+    <ProgressRing x:Name="BootRing" IsActive="True" Width="80" Height="80"/>
+    <TextBlock x:Name="BootErrorPhrase" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" Visibility="Collapsed"/>
+    <TextBlock x:Name="BootErrorCode" TextAlignment="Center" TextWrapping="Wrap" Visibility="Collapsed"/>
+    <Button x:Name="BootRetry" Content="Retry" Tag="Retry" HorizontalAlignment="Center" Visibility="Collapsed" Click="BootRetryClick"/>
+   </StackPanel>
+   <TextBlock x:Name="BootQuote" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" MaxWidth="600"/>
+  </Grid>
   <ScrollViewer x:Name="LoginPanel" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
    <Grid x:Name="LoginLayout" Padding="24" MinHeight="500">
     <StackPanel Width="360" MaxWidth="360" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
@@ -60,21 +68,23 @@
   </ScrollViewer>
   <NavigationView x:Name="Shell" Grid.Row="1" Visibility="Collapsed" PaneDisplayMode="LeftCompact"
    CompactPaneLength="72" OpenPaneLength="280" IsPaneOpen="False" IsPaneToggleButtonVisible="False"
-   IsBackButtonVisible="Collapsed" IsSettingsVisible="True" AlwaysShowHeader="False"
+   IsBackButtonVisible="Collapsed" IsSettingsVisible="False" AlwaysShowHeader="False"
    Background="{ThemeResource SidebarBrush}" SelectionChanged="NavigationChanged">
    <NavigationView.MenuItems>
-    <NavigationViewItem x:Name="ExploreItem" Content="Explore" Tag="explore" AutomationProperties.AutomationId="ExploreNavigation">
-     <NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon>
-    </NavigationViewItem>
+    <NavigationViewItem x:Name="ExploreItem" Content="Explore" Tag="explore" AutomationProperties.AutomationId="ExploreNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="LibraryItem" Content="Library" Tag="library" AutomationProperties.AutomationId="LibraryNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Library"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="WishlistItem" Content="Wishlist" Tag="wishlist" AutomationProperties.AutomationId="WishlistNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="NewsItem" Content="Newswire" Tag="news" AutomationProperties.AutomationId="NewsNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Message"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="VideosItem" Content="Videos" Tag="videos" AutomationProperties.AutomationId="VideosNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Video"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="DownloadsItem" Content="Downloads" Tag="downloads" AutomationProperties.AutomationId="DownloadsNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Download"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="SupportItem" Content="Support" Tag="support" AutomationProperties.AutomationId="SupportNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Help"/></NavigationViewItem.Icon></NavigationViewItem>
+    <NavigationViewItem x:Name="SettingsNav" Content="Settings" Tag="settings"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon></NavigationViewItem>
    </NavigationView.MenuItems>
-   <NavigationView.FooterMenuItems>
-    <NavigationViewItem x:Name="DownloadsItem" Content="Downloads" Tag="downloads" AutomationProperties.AutomationId="DownloadsNavigation">
-     <NavigationViewItem.Icon><SymbolIcon Symbol="Download"/></NavigationViewItem.Icon>
-    </NavigationViewItem>
-    <NavigationViewItem x:Name="LibraryItem" Content="Library" Tag="library" AutomationProperties.AutomationId="LibraryNavigation">
-     <NavigationViewItem.Icon><SymbolIcon Symbol="Library"/></NavigationViewItem.Icon>
-    </NavigationViewItem>
-   </NavigationView.FooterMenuItems>
+   <NavigationView.PaneFooter>
+    <Button x:Name="CollapseButton" Margin="12,8" Style="{StaticResource SubtleButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="CollapseClick" AutomationProperties.Name="Collapse navigation">
+     <StackPanel Orientation="Horizontal" Spacing="12"><SymbolIcon Symbol="GlobalNavigationButton"/><TextBlock x:Name="CollapseLabel" Text="Collapse" VerticalAlignment="Center" Visibility="Collapsed"/></StackPanel>
+    </Button>
+   </NavigationView.PaneFooter>
    <Grid x:Name="PageLayout" Background="{ThemeResource BaseBrush}" Padding="24,16,24,24" RowSpacing="16">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <InfoBar x:Name="Notice" IsClosable="True"/>
@@ -87,6 +97,7 @@
      </StackPanel>
     </Grid>
     <Grid Grid.Row="2">
+     <ScrollViewer x:Name="ContentPage" Visibility="Collapsed"><StackPanel x:Name="ContentRows" Spacing="16" Padding="0,0,8,24"/></ScrollViewer>
      <Grid x:Name="CatalogPanel">
       <GridView x:Name="GameGrid" IsItemClickEnabled="True" SelectionMode="None" ItemClick="GameClick"
        HorizontalContentAlignment="Stretch" Padding="0,0,0,16" AutomationProperties.AutomationId="GameCatalog">
@@ -126,30 +137,27 @@
            </Grid>
           </Grid>
          </Grid>
+        <StackPanel x:Name="HomeNews" Spacing="12">
+         <TextBlock Text="Newswire" Style="{StaticResource SubtitleTextBlockStyle}"/>
+         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled"><StackPanel x:Name="HomeNewsRows" Orientation="Horizontal" Spacing="16"/></ScrollViewer>
+        </StackPanel>
          <CheckBox x:Name="InstalledFilter" Content="Installed only" Checked="FilterChanged" Unchecked="FilterChanged"/>
         </StackPanel>
        </GridView.Header>
-       <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid x:Name="CatalogWrap" ItemWidth="244" Orientation="Horizontal"/></ItemsPanelTemplate></GridView.ItemsPanel>
+       <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid x:Name="CatalogWrap" ItemWidth="196" Orientation="Horizontal"/></ItemsPanelTemplate></GridView.ItemsPanel>
        <GridView.ItemTemplate><DataTemplate>
-        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-         BorderThickness="1" CornerRadius="8" Width="228" Margin="0,0,8,16" AutomationProperties.Name="{Binding Title}">
-         <StackPanel>
-          <Grid Height="140" CornerRadius="7,7,0,0" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-           <SymbolIcon Symbol="Play" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-           <Image Source="{Binding Cover}" Stretch="UniformToFill"/>
-          </Grid>
-          <StackPanel Padding="16" Spacing="8">
-           <TextBlock Text="{Binding Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" MinHeight="40"/>
-           <TextBlock Text="{Binding Genres}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
-          </StackPanel>
-         </StackPanel>
-        </Border>
+        <StackPanel Width="180" Spacing="8">
+         <Border CornerRadius="8" Height="270" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+          <Image Source="{Binding Poster}" Stretch="UniformToFill" Width="180" Height="270"/>
+         </Border>
+         <TextBlock Text="{Binding Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
        </DataTemplate></GridView.ItemTemplate>
       </GridView>
       <TextBlock x:Name="EmptyCatalog" Style="{StaticResource BodyTextBlockStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
      </Grid>
      <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-      <StackPanel x:Name="DetailContent" Spacing="16" Padding="0,0,8,24"/>
+      <StackPanel x:Name="DetailContent" MaxWidth="1600" HorizontalAlignment="Stretch" Spacing="16" Padding="0,0,8,24"/>
      </ScrollViewer>
      <ScrollViewer x:Name="DownloadsPanel" Visibility="Collapsed"><StackPanel x:Name="DownloadRows" Spacing="12" Padding="0,0,8,24"/></ScrollViewer>
      <ScrollViewer x:Name="SettingsPanel" Visibility="Collapsed">
@@ -188,12 +196,17 @@
         </StackPanel></Border>
        </StackPanel>
        <StackPanel Spacing="12">
-        <TextBlock Text="Game View" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <TextBlock Text="DeadBar" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}"><Grid ColumnSpacing="24">
          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-         <StackPanel Spacing="8"><TextBlock Text="Game View"/><TextBlock x:Name="ShortcutText" Text="Ctrl + D" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
+         <StackPanel Spacing="8"><TextBlock Text="DeadBar"/><TextBlock x:Name="ShortcutText" Text="Ctrl + D" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
          <ToggleSwitch x:Name="OverlayToggle" Grid.Column="1" Toggled="OverlayToggled" IsOn="True"/>
         </Grid></Border>
+        <Border Style="{StaticResource Panel}"><StackPanel Spacing="16">
+         <ToggleSwitch x:Name="TrayToggle" Header="Keep running when closed" Toggled="AppearanceToggled"/>
+         <ToggleSwitch x:Name="NotificationsToggle" Header="Update and release notifications" Toggled="AppearanceToggled"/>
+         <ToggleSwitch x:Name="VideoToggle" Header="Play video backgrounds" Toggled="AppearanceToggled"/>
+        </StackPanel></Border>
         <Button Content="Open games folder" Tag="Open games folder" Click="OpenGamesClick"/>
        </StackPanel>
        <StackPanel Spacing="12">

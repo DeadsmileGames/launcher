@@ -11,10 +11,11 @@ public sealed class LiveLibrary(ApiClient api) : IDisposable
     private bool initialized;
     private readonly SemaphoreSlim gate = new(1, 1);
     public event Action? Changed;
-    public void Start()
+    public event Action<JsonNode>? EventReceived;
+    public void Start(bool authenticated = true)
     {
         Stop(); after = 0; initialized = false; stop = new();
-        _ = PollLoop(stop.Token); _ = SocketLoop(stop.Token);
+        _ = PollLoop(stop.Token); if (authenticated) _ = SocketLoop(stop.Token);
     }
     public void Stop() { stop?.Cancel(); stop?.Dispose(); stop = null; }
     private async Task Poll(CancellationToken ct)
@@ -30,7 +31,11 @@ public sealed class LiveLibrary(ApiClient api) : IDisposable
                 {
                     if (item.L("id") <= after) continue;
                     after = item.L("id");
-                    if (initialized && item.S("event_type") is "game.published" or "game.updated" or "game.deleted") changed = true;
+                    if (initialized)
+                    {
+                        EventReceived?.Invoke(item.DeepClone());
+                        if (item.S("event_type") is "game.published" or "game.updated" or "game.deleted" or "news.updated" or "news.deleted") changed = true;
+                    }
                 }
                 if (items.Length < 100) { initialized = true; break; }
             }

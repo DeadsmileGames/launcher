@@ -76,10 +76,10 @@ public sealed partial class MainWindow : Window
         live = new LiveLibrary(Api);
         native = new NativeWindow(this) { Scale = () => Root.XamlRoot?.RasterizationScale ?? 1 };
         native.Hotkey += ToggleOverlay;
-        Api.Invalidated += () => UI(() => { User = null; live.Stop(); achievements.Stop(); ShowLogin(); return Task.CompletedTask; });
+        Api.Invalidated += () => { if (!booting && User is not null) UI(async () => { User = null; achievements.Stop(); await Enter(); }); };
         saves.Conflict += _ => UI(() => { Notify(Locale.Error("SAVE_CONFLICT")); return Task.CompletedTask; });
         Games.Failed += ex => UI(() => { Notify(Locale.Error(ex)); return Task.CompletedTask; });
-        Games.Changed += () => UI(() => { UpdateBusy(); RefreshGameActions(); return Task.CompletedTask; });
+        Games.Changed += () => UI(() => { UpdateBusy(); RefreshGameActions(); GameStartedHint(); return Task.CompletedTask; });
         achievements.Unlocked += (_, achievement) => UI(() => { ShowAchievement(achievement); return Task.CompletedTask; });
         downloads.Changed += () => Interlocked.Exchange(ref downloadDirty, 1);
         downloads.Installed += (install, game) => UI(async () =>
@@ -87,7 +87,8 @@ public sealed partial class MainWindow : Window
             try { DesktopIntegration.Shortcut(install, game); } catch { Notify(Locale.Error("GAME_SHORTCUT_CREATE_FAILED")); }
             await Refresh(); RefreshGameActions();
         });
-        live.Changed += () => UI(Refresh);
+        live.Changed += () => UI(async () => { await Refresh(); await LoadNews(); });
+        live.EventReceived += item => UI(() => { ContentNotification(item); return Task.CompletedTask; });
         downloadTimer = DispatcherQueue.CreateTimer(); downloadTimer.Interval = TimeSpan.FromMilliseconds(250);
         downloadTimer.Tick += (_, _) => { if (Interlocked.Exchange(ref downloadDirty, 0) != 0) { RenderDownloads(); UpdateBusy(); } };
         downloadTimer.Start();
@@ -107,12 +108,14 @@ public sealed partial class MainWindow : Window
         { AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(255, 32, 32, 32); AppWindow.TitleBar.ButtonForegroundColor = Colors.White; }
         AppWindow.Closing += (_, args) =>
         {
+            if (!exiting && Preferences.CloseToTray && tray is { Available: true })
+            { args.Cancel = true; MinimizeToTray(); return; }
             if (Games.AnyBusy || downloads.AnyBusy || commandBusy)
             { args.Cancel = true; UI(ConfirmClose); }
         };
         Closed += (_, _) =>
         {
-            live.Dispose(); achievements.Stop(); downloads.Dispose(); native.Dispose(); overlay?.Close();
+            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); updateTimer?.Stop(); bannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
             downloadTimer.Stop(); heroTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
@@ -127,10 +130,11 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(OverlayShortcut)) OverlayShortcut = "Control+D";
         OverlayToggle.IsOn = storage.Read("game-view.json", new JsonObject()).B("enabled") ||
             !File.Exists(storage.FilePath("game-view.json"));
-        ShortcutText.Text = OverlayShortcut;
+        ShortcutText.Text = OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
         ApplyLanguage();
         Root.Loaded += async (_, _) => await Boot();
         DesktopIntegration.RegisterProtocol();
+        InitializeDesktop();
     }
     private void UI(Func<Task> action) => DispatcherQueue.TryEnqueue(async () =>
     { try { await action(); } catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED"); } });
@@ -138,38 +142,19 @@ public sealed partial class MainWindow : Window
     { try { await action(); } catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED"); } }
     private void Notify(string text, InfoBarSeverity severity = InfoBarSeverity.Warning)
     { Notice.Message = text; Notice.Severity = severity; Notice.IsOpen = true; }
-    private async Task Boot()
+    private async Task Boot() => await StartBoot();
+    private void ShowLogin() => UI(async () => { await OpenSignIn(); });
+    private async Task Enter(bool alreadyLoaded = false)
     {
-        try { User = await Api.Get("/auth/me"); if (User is null) throw new LauncherException("INVALID_RESPONSE"); await Enter(); }
-        catch (LauncherException ex) when (ex.Status == 401) { ShowLogin(); }
-        catch (Exception ex) { ShowLogin(); LoginError.Message = Locale.Error(ex); LoginError.IsOpen = true; }
-    }
-    private void ShowLogin()
-    {
-        BootPanel.Visibility = Visibility.Collapsed; Shell.Visibility = Visibility.Collapsed; LoginPanel.Visibility = Visibility.Visible;
-        SearchBox.Visibility = Visibility.Collapsed; AccountButton.Visibility = Visibility.Collapsed;
-        AppTitleBar.IsPaneToggleButtonVisible = false; AppTitleBar.IsBackButtonVisible = false;
-        AppTitleBar.IsBackButtonEnabled = false;
-        LoginHeading.Text = Locale.T("Sign in");
-        selected = null; detailRevision++; twoFactor = false; PasswordBox.Password = ""; CodeBox.Text = "";
-        CredentialsPanel.Visibility = Visibility.Visible; CodeBox.Visibility = Visibility.Collapsed;
-        LoginBackButton.Visibility = Visibility.Collapsed; ResendButton.Visibility = Visibility.Collapsed; LoginButton.Content = Locale.T("Sign in");
-        overlay?.Hide();
-    }
-    private async Task Enter()
-    {
-        BootPanel.Visibility = Visibility.Collapsed; LoginPanel.Visibility = Visibility.Collapsed; Shell.Visibility = Visibility.Visible;
+        LoginPanel.Visibility = Visibility.Collapsed; Shell.Visibility = Visibility.Visible;
         SearchBox.Visibility = Visibility.Visible; AccountButton.Visibility = Visibility.Visible;
-        AppTitleBar.IsPaneToggleButtonVisible = true;
-        Username.Text = User.S("username"); Avatar.DisplayName = Username.Text;
-        AutomationProperties.SetName(AccountButton, Username.Text);
-        if (Urls.Https(User.S("avatarUrl")) is { } avatar) Avatar.ProfilePicture = new BitmapImage(avatar);
-        PasswordBox.Password = ""; CodeBox.Text = ""; LoginError.IsOpen = false;
-        await Refresh(); ShowPage();
+        AppTitleBar.IsPaneToggleButtonVisible = false; AppTitleBar.IsBackButtonVisible = true;
+        UpdateAccount(); PasswordBox.Password = ""; CodeBox.Text = ""; LoginError.IsOpen = false;
+        if (!alreadyLoaded) await Refresh(); ShowPage(); loginDialog?.Hide();
 #if !UI_VALIDATION
-        live.Start(); achievements.Start(User.S("id"));
+        live.Start(User is not null); if (User is not null) achievements.Start(User.S("id"));
 #endif
-        if (pendingLaunch is { } id)
+        if (User is not null && pendingLaunch is { } id)
         { pendingLaunch = null; var game = Catalog.FirstOrDefault(x => x.Id == id); if (game is not null) await Guard(() => Games.Launch(game)); }
     }
     private async void LoginClick(object sender, RoutedEventArgs e) => await SignIn();
@@ -222,25 +207,26 @@ public sealed partial class MainWindow : Window
         try
         {
             if (AllBusy) return;
-            await Api.Post("/auth/logout"); Api.ClearSession(); User = null; live.Stop(); achievements.Stop(); Catalog = []; GameGrid.ItemsSource = null; ShowLogin();
+            await Api.Post("/auth/logout"); Api.ClearSession(); User = null; live.Stop(); achievements.Stop(); Catalog = []; GameGrid.ItemsSource = null; await Enter();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
         finally { accountGate.Release(); }
     }
     private async Task Refresh()
     {
-        if (User is null) return;
         if (refreshing) { refreshAgain = true; return; }
         var user = User.S("id"); refreshing = true; BusyRing.IsActive = true; UpdateBusy();
         try
         {
-            var connection = await Api.Get("/integrations/itch");
-            itchConfigured = connection.B("configured"); itchConnected = connection.B("connected");
-            ItchStatus.Text = Locale.T(connection.B("connected") ? "Connected to itch.io" : "Connect itch.io to sync purchased games.");
-            ItchButton.Tag = connection.B("connected"); ItchButton.Content = Locale.T(connection.B("connected") ? "Disconnect itch.io" : "Connect itch.io");
-            ItchButton.IsEnabled = connection.B("configured") || connection.B("connected");
-            var data = await Api.Get("/library/catalog");
-            var catalog = data.At("items").Items().Where(x => Guid.TryParse(x.S("id"), out _)).Select(x => new Game(x)).ToArray();
+            if (User is not null)
+            {
+                var connection = await Api.Get("/integrations/itch");
+                itchConfigured = connection.B("configured"); itchConnected = connection.B("connected");
+                ItchStatus.Text = Locale.T(itchConnected ? "Connected to itch.io" : "Connect itch.io to sync purchased games.");
+                ItchButton.Tag = itchConnected; ItchButton.Content = Locale.T(itchConnected ? "Disconnect itch.io" : "Connect itch.io");
+            }
+            else { itchConfigured = itchConnected = false; ItchStatus.Text = Locale.T("Sign in to manage your account."); ItchButton.Content = Locale.T("Sign in"); }
+            var catalog = await PublicCatalog.Load(Api, User is not null);
             if (User.S("id") != user) return;
             await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id));
             Catalog = catalog; RenderCatalog();
@@ -252,32 +238,37 @@ public sealed partial class MainWindow : Window
     private void NavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (!ready || changingNavigation) return;
+        RememberPage();
         page = args.IsSettingsSelected ? "settings" : (args.SelectedItem as NavigationViewItem)?.Tag as string ?? "explore";
         selected = null; detailRevision++; ShowPage();
     }
     private void TitleBackRequested(TitleBar sender, object args)
-    { selected = null; detailRevision++; ShowPage(); }
+    { NavigateBack(); }
     private void TitlePaneToggleRequested(TitleBar sender, object args) => Shell.IsPaneOpen = !Shell.IsPaneOpen;
     private void ShowPage()
     {
-        if (selected is null) { heroImage = null; heroImages = []; }
+        if (selected is null) { heroImage = null; heroImages = []; bannerPlayer?.Dispose(); bannerPlayer = null; }
         CatalogPanel.Visibility = selected is null && (page is "explore" or "library") ? Visibility.Visible : Visibility.Collapsed;
         DetailPanel.Visibility = selected is not null ? Visibility.Visible : Visibility.Collapsed;
         DownloadsPanel.Visibility = selected is null && page == "downloads" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = selected is null && page == "settings" ? Visibility.Visible : Visibility.Collapsed;
         PageToolbar.Visibility = selected is null ? Visibility.Visible : Visibility.Collapsed;
-        AppTitleBar.IsBackButtonVisible = selected is not null;
-        AppTitleBar.IsBackButtonEnabled = selected is not null;
-        PageHeading.Text = Locale.T(page switch { "library" => "Library", "downloads" => "Downloads", "settings" => "Settings", _ => "Explore" });
+        AppTitleBar.IsBackButtonVisible = true;
+        AppTitleBar.IsBackButtonEnabled = selected is not null || page != "explore" || history.Count > 0;
+        ContentPage.Visibility = selected is null && page is "wishlist" or "news" or "videos" or "account" or "support" ? Visibility.Visible : Visibility.Collapsed;
+        HomeNews.Visibility = page == "explore" && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        CollapseLabel.Visibility = Shell.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (ContentPage.Visibility == Visibility.Visible) UI(RenderContentPage);
+        PageHeading.Text = Locale.T(page switch { "library" => "Library", "downloads" => "Downloads", "settings" => "Settings", "wishlist" => "Wishlist", "news" => "Newswire", "videos" => "Videos", "account" => "My account", "support" => "Support", _ => "Explore" });
         changingNavigation = true;
-        try { Shell.SelectedItem = page switch { "library" => LibraryItem, "downloads" => DownloadsItem, "settings" => Shell.SettingsItem, _ => ExploreItem }; }
+        try { Shell.SelectedItem = page switch { "library" => LibraryItem, "downloads" => DownloadsItem, "settings" => SettingsNav, "wishlist" => WishlistItem, "news" => NewsItem, "videos" => VideosItem, "support" => SupportItem, "account" => null, _ => ExploreItem }; }
         finally { changingNavigation = false; }
         RenderCatalog(); RenderDownloads(); AdjustLayout();
     }
     private void AdjustLayout()
     {
         if (LoginLayout is null || GameGrid is null) return;
-        LoginLayout.MinHeight = Math.Max(0, Root.ActualHeight - AppTitleBar.ActualHeight);
+        LoginLayout.MinHeight = 0;
         SearchBox.Width = Root.ActualWidth < 900 ? 180 : Math.Clamp(Root.ActualWidth * 0.4, 180, 600);
         AppTitleBar.Title = Root.ActualWidth < 900 ? "Deadsmile" : "Deadsmile Games Launcher";
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
@@ -289,7 +280,7 @@ public sealed partial class MainWindow : Window
     }
     private void RenderCatalog()
     {
-        var query = SearchBox.Text.Trim();
+        var query = "";
         var items = Catalog.Where(x => (page != "library" || x.InLibrary) &&
             (!(InstalledFilter.IsChecked ?? false) || installs.Installed.ContainsKey(x.Id)) &&
             (x.Title + " " + x.Genres).Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
@@ -317,14 +308,11 @@ public sealed partial class MainWindow : Window
         EmptyCatalog.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     private void SearchChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (!ready || User is null || args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        if (selected is not null || page is not ("explore" or "library"))
-        { selected = null; detailRevision++; page = "explore"; ShowPage(); }
-        else RenderCatalog();
-    }
-    private void SearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
-    { if (User is not null) { selected = null; detailRevision++; if (page != "library") page = "explore"; ShowPage(); } }
+    { if (ready && args.Reason == AutoSuggestionBoxTextChangeReason.UserInput) SearchSuggestions(sender.Text); }
+    private async void SearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    { await ChooseSearch(args.ChosenSuggestion ?? searchResults.FirstOrDefault()); }
+    private void SearchChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+    { if (args.SelectedItem is SearchEntry entry) sender.Text = entry.Title; }
     private async void FeaturedClick(object sender, RoutedEventArgs e)
     { if (featuredGame is { } game) await LoadDetail(game); }
     private async void SecondaryFeaturedClick(object sender, RoutedEventArgs e)
@@ -337,7 +325,7 @@ public sealed partial class MainWindow : Window
     { if (e.ClickedItem is Game game) await LoadDetail(game); }
     private async Task LoadDetail(Game game)
     {
-        selected = game; ShowPage(); var revision = ++detailRevision;
+        RememberPage(); selected = game; ShowPage(); var revision = ++detailRevision;
         heroImage = null; heroImages = [];
         DetailContent.Children.Clear(); DetailContent.Children.Add(new ProgressRing { IsActive = true });
         try
@@ -383,6 +371,7 @@ public sealed partial class MainWindow : Window
     }
     private async Task Download(Game game)
     {
+        if (!await RequireAccount()) return;
         await accountGate.WaitAsync();
         try
         {
@@ -415,7 +404,7 @@ public sealed partial class MainWindow : Window
         hero.Background = Root.Background;
         heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
-        SetImage(heroImage, heroImages.FirstOrDefault() ?? ""); hero.Children.Add(heroImage);
+        SetImage(heroImage, game.Cover); hero.Children.Add(heroImage);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(245, 39, 39, 39), Offset = 0 });
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 39, 39, 39), Offset = 0.4 });
@@ -427,7 +416,9 @@ public sealed partial class MainWindow : Window
         identity.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         identity.ColumnDefinitions.Add(new ColumnDefinition());
         var icon = new Image { Width = 96, Height = 96, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
-        SetImage(icon, game.ProductIcon.Length > 0 ? game.ProductIcon : game.Cover); identity.Children.Add(icon);
+        if (game.ProductIcon.Length > 0)
+        { SetImage(icon, game.ProductIcon); identity.Children.Add(new Border { Width = 96, Height = 96, CornerRadius = new CornerRadius(16), Child = icon }); }
+        else identity.ColumnDefinitions[0].Width = new GridLength(0);
         var heading = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         heading.Children.Add(Text(game.Title, 28, true));
         var publisher = game.Data.S("publisher"); if (publisher.Length == 0) publisher = game.Store.S("publisher");
@@ -440,7 +431,7 @@ public sealed partial class MainWindow : Window
         var busy = Games.Busy(game.Id) || downloads.Busy(game.Id) || commandBusy;
         if (installs.Installed.ContainsKey(game.Id) && game.CanLaunch)
         {
-            var play = Action(Games.Busy(game.Id) ? "Running" : "Play", () => Games.Launch(game), true); play.IsEnabled = !busy; buttons.Add(play);
+            var play = Action(Games.Busy(game.Id) ? "Running" : "Play", async () => { if (await RequireAccount()) await Games.Launch(game); }, true); play.IsEnabled = !busy; buttons.Add(play);
             var update = new MenuFlyoutItem { Text = Locale.T("Update game"), Icon = new SymbolIcon(Symbol.Refresh), IsEnabled = !busy };
             update.Click += async (_, _) => await Guard(async () =>
             {
@@ -451,7 +442,7 @@ public sealed partial class MainWindow : Window
             var remove = new MenuFlyoutItem { Text = Locale.T("Uninstall"), Icon = new SymbolIcon(Symbol.Delete), IsEnabled = !busy };
             remove.Click += async (_, _) => await Guard(() => Uninstall(game)); options.Items.Add(remove);
         }
-        else if (game.DownloadAvailable && (game.CanLaunch || game.Data.S("accessType") == "free"))
+        else if (game.DownloadAvailable && (game.CanLaunch || game.Data.S("accessType") == "free" || User is null))
         { var install = Action("Install", () => Download(game), true); install.IsEnabled = !busy; buttons.Add(install); }
         foreach (var offer in game.Data.At("offers").Items())
         {
@@ -470,6 +461,7 @@ public sealed partial class MainWindow : Window
             AutomationProperties.SetName(more, Locale.T("More options")); buttons.Add(more);
         }
         if (buttons.Count == 0) { var unavailable = Action("Unavailable", () => Task.CompletedTask); unavailable.IsEnabled = false; buttons.Add(unavailable); }
+        buttons.Add(Action("Wishlist", () => ToggleWishlist(game)));
         contents.Children.Add(WrapActions(buttons)); hero.Children.Add(contents);
         hero.SizeChanged += (_, _) =>
         {
@@ -479,7 +471,8 @@ public sealed partial class MainWindow : Window
             contents.Width = Math.Min(640, hero.ActualWidth);
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };
-        if (heroImages.Length > 1)
+        AddVideoBackground(game, hero, banner);
+        if (heroImages.Length > 1 && game.BackgroundVideo.Length == 0)
         {
             var pause = new Button { Content = new SymbolIcon(heroPaused ? Symbol.Play : Symbol.Pause), Margin = new Thickness(16),
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom };
@@ -536,13 +529,13 @@ public sealed partial class MainWindow : Window
         if (times.GetValueOrDefault(game.Id) > 0) meta.Children.Add(Text(Locale.T("Playtime") + ": " + TimeSpan.FromSeconds(times[game.Id]).ToString(@"hh\:mm")));
         if (meta.Children.Count > 0) information.Children.Add(Section("Additional information", meta));
         AddStoreInformation(game, information);
-        var achievementsPanel = new StackPanel { Spacing = 12 }; main.Children.Add(Section("Achievements", achievementsPanel));
+        var achievementsPanel = new StackPanel { Spacing = 12 }; if (User is not null) main.Children.Add(Section("Achievements", achievementsPanel));
         DetailContent.Children.Add(body);
-        _ = FillAchievements(game.Id, achievementsPanel, detailRevision);
+        if (User is not null) _ = FillAchievements(game.Id, achievementsPanel, detailRevision);
     }
     private async Task VerifyPurchase(Game game)
     {
-        if (AllBusy) return;
+        if (AllBusy || !await RequireAccount()) return;
         await accountGate.WaitAsync(); commandBusy = true; UpdateBusy();
         try
         {
@@ -620,12 +613,12 @@ public sealed partial class MainWindow : Window
     private void UpdateBusy()
     {
         if (!ready) return;
-        LogoutButton.IsEnabled = !AllBusy; ItchButton.IsEnabled = !AllBusy && (itchConfigured || itchConnected); UpdateButton.IsEnabled = !AllBusy;
+        LogoutButton.IsEnabled = !AllBusy; ItchButton.IsEnabled = !AllBusy && (User is null || itchConfigured || itchConnected); UpdateButton.IsEnabled = !AllBusy;
         if (!native.Register(OverlayToggle.IsOn && Games.Running.Length > 0, OverlayShortcut)) Notify(Locale.Error("SHORTCUT_INVALID"));
     }
     private async void ItchClick(object sender, RoutedEventArgs e)
     {
-        if (AllBusy) return; await accountGate.WaitAsync(); connecting = true; UpdateBusy();
+        if (AllBusy || !await RequireAccount()) return; await accountGate.WaitAsync(); connecting = true; UpdateBusy();
         try
         {
             var connection = await Api.Get("/integrations/itch");
@@ -662,7 +655,8 @@ public sealed partial class MainWindow : Window
                 combo.SelectedIndex = Locale.Language == "pt-BR" ? 0 : Locale.Language == "en" ? 1 : 2;
             Translate(Root);
             ExploreItem.Content = Locale.T("Explore"); LibraryItem.Content = Locale.T("Library"); DownloadsItem.Content = Locale.T("Downloads");
-            if (Shell.SettingsItem is NavigationViewItem settings) settings.Content = Locale.T("Settings");
+            SettingsNav.Content = Locale.T("Settings"); WishlistItem.Content = Locale.T("Wishlist"); NewsItem.Content = Locale.T("Newswire"); VideosItem.Content = Locale.T("Videos"); SupportItem.Content = Locale.T("Support");
+            SignInMenuItem.Text = Locale.T("Sign in"); AccountMenuItem.Text = Locale.T("My account"); UpdateAccount();
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");
             OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
@@ -728,7 +722,7 @@ public sealed partial class MainWindow : Window
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             var file = await updater.Download(update);
             updater.Install(file);
-            commandBusy = false; Close();
+            commandBusy = false; exiting = true; Close();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
         finally { commandBusy = false; UpdateBusy(); }
@@ -746,7 +740,7 @@ public sealed partial class MainWindow : Window
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         foreach (var j in downloads.Jobs) downloads.Cancel(j.Id);
         while (downloads.Jobs.Any(x => downloads.Busy(x.Id))) await Task.Delay(100);
-        Close();
+        exiting = true; Close();
         } finally { closeDialog = false; }
     }
     public void HandleActivation(AppActivationArguments args)

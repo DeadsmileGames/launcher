@@ -30,7 +30,7 @@ public sealed partial class AchievementWindow : Window
     internal FrameworkElement ValidationRoot => ToastRoot;
     internal bool ValidationSolid => ToastRoot.Background is SolidColorBrush brush && brush.Color.A == 255;
 #endif
-    public void ShowOn(IntPtr game)
+    public void ShowOn(IntPtr game, bool centered = false)
     {
         var monitor = NativeWindow.WorkAreaFor(game); var scale = NativeWindow.DpiScale(game, this);
         var margin = (int)Math.Round(20 * scale); var width = Math.Min((int)Math.Round(420 * scale), monitor.Right - monitor.Left - margin * 2);
@@ -48,6 +48,8 @@ public sealed partial class AchievementWindow : Window
                 Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
             NativeWindow.Place(this, rect);
         }
+        if (centered)
+        { var currentWidth = rect.Right - rect.Left; rect.Left = monitor.Left + (monitor.Right - monitor.Left - currentWidth) / 2; rect.Right = rect.Left + currentWidth; NativeWindow.Place(this, rect); }
         NativeWindow.ShowInactive(this); timer.Start();
     }
 }

@@ -25,9 +25,9 @@ public sealed partial class GameViewWindow : Window
     private Point dragOrigin, panelOrigin;
     private DateTime lastClock;
     public bool IsOpen { get; private set; }
-    private Border[] Widgets => [ProfilePanel, LibraryPanel, AchievementsPanel, CloudPanel];
-    private ToggleButton[] Toggles => [ProfileToggle, LibraryToggle, AchievementsToggle, CloudToggle];
-    private ToggleButton[] Pins => [ProfilePin, LibraryPin, AchievementsPin, CloudPin];
+    private Border[] Widgets => [ProfilePanel, LibraryPanel, AchievementsPanel, CloudPanel, CapturePanel];
+    private ToggleButton[] Toggles => [ProfileToggle, LibraryToggle, AchievementsToggle, CloudToggle, CaptureToggle];
+    private ToggleButton[] Pins => [ProfilePin, LibraryPin, AchievementsPin, CloudPin, CapturePin];
     public GameViewWindow(MainWindow main)
     {
         owner = main; InitializeComponent();
@@ -37,7 +37,7 @@ public sealed partial class GameViewWindow : Window
         NativeWindow.Overlay(this);
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(60);
         timer.Tick += (_, _) => Monitor(); timer.Start();
-        Closed += (_, _) => timer.Stop();
+        Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         ApplyPreferences(); ReloadLabels();
     }
@@ -64,15 +64,15 @@ public sealed partial class GameViewWindow : Window
     }
     public void Hide(bool force = false)
     {
-        request++; IsOpen = false; ToolbarPanel.Visibility = Visibility.Collapsed;
+        captureDialog?.Hide(); request++; IsOpen = false; ToolbarPanel.Visibility = Visibility.Collapsed;
         for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = !force && Pins[i].IsChecked == true && Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (force || Widgets.All(x => x.Visibility == Visibility.Collapsed)) AppWindow.Hide();
     }
     private void ReloadLabels()
     {
         ShortcutLabel.Text = owner.OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
-        var labels = new[] { "Profile", "Library", "Achievements", "Cloud saves" };
-        var headings = new[] { ProfileHeading, LibraryHeading, AchievementsHeading, CloudHeading };
+        var labels = new[] { "Profile", "Library", "Achievements", "Cloud saves", "Capture" };
+        var headings = new[] { ProfileHeading, LibraryHeading, AchievementsHeading, CloudHeading, CaptureHeading };
         for (var i = 0; i < labels.Length; i++)
         {
             headings[i].Text = owner.Locale.T(labels[i]);
@@ -84,6 +84,7 @@ public sealed partial class GameViewWindow : Window
         foreach (var (button, label) in new[] { (ReloadButton, "Refresh"), (LayoutButton, "Reset widget layout"), (CloseButton, "Close") })
         { AutomationProperties.SetName(button, owner.Locale.T(label)); ToolTipService.SetToolTip(button, owner.Locale.T(label)); }
         ClockLabel.Text = DateTime.Now.ToString("t");
+        CaptureButton.Content = owner.Locale.T("Take screenshot"); ShareCaptureButton.Content = owner.Locale.T("Share screenshot"); CaptureButton.IsEnabled = !capturing && GameCapture.Supported;
     }
     private void Monitor()
     {
@@ -96,7 +97,7 @@ public sealed partial class GameViewWindow : Window
         var point = NativeWindow.Cursor(this); var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
         point = new(point.X / scale, point.Y / scale);
         var panels = Widgets.Append(ToolbarPanel);
-        var interactive = dragging is not null || panels.Any(p =>
+        var interactive = captureDialog is not null || dragging is not null || panels.Any(p =>
         {
             if (p.Visibility != Visibility.Visible) return false;
             var rect = p.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, p.ActualWidth, p.ActualHeight));
@@ -127,7 +128,9 @@ public sealed partial class GameViewWindow : Window
         var top = 112d; var bottom = Math.Max(180, height - top - margin);
         ProfilePanel.Width = AchievementsPanel.Width = side; ProfilePanel.Height = Math.Min(200, bottom * 0.4);
         LibraryPanel.Width = center; LibraryPanel.Height = bottom;
-        CloudPanel.Width = side; CloudPanel.Height = Math.Min(360, bottom);
+        CloudPanel.Width = CapturePanel.Width = side; CloudPanel.Height = Math.Min(300, bottom * 0.52);
+        CapturePanel.Height = Math.Max(140, bottom - CloudPanel.Height - gap);
+        Canvas.SetLeft(CapturePanel, width - margin - side); Canvas.SetTop(CapturePanel, top + CloudPanel.Height + gap);
         AchievementsPanel.Height = Math.Max(120, bottom - ProfilePanel.Height - gap);
         Canvas.SetLeft(ProfilePanel, margin); Canvas.SetTop(ProfilePanel, top);
         Canvas.SetLeft(AchievementsPanel, margin); Canvas.SetTop(AchievementsPanel, top + ProfilePanel.Height + gap);
@@ -166,6 +169,7 @@ public sealed partial class GameViewWindow : Window
         try
         {
             ReloadLabels(); UserLabel.Text = owner.User.S("username"); ProfileAvatar.DisplayName = UserLabel.Text;
+            await MainWindow.SetProfilePicture(ProfileAvatar, owner.User.S("avatarUrl"));
             PlayingLabel.Text = string.Join(" · ", owner.Games.Running.Select(x => x.Game.Title));
             LibraryRows.Children.Clear();
             foreach (var game in owner.Catalog.Where(x => x.InLibrary))

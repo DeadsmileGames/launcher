@@ -17,6 +17,8 @@ public sealed class ApiClient : IDisposable
     public event Action? Invalidated;
     private static readonly Regex Routes = new(
         @"^(GET csrf|GET auth/me|POST auth/(mobile-login|verify-2fa|logout|resend-email)|GET games/[a-z0-9-]{1,120}|GET integrations/itch|POST integrations/itch/connect|DELETE integrations/itch|GET library(/catalog)?|POST library/sync|POST library/[0-9a-f-]{36}(/install-metadata)?|GET platform/achievements/[0-9a-f-]{36}|POST platform/achievements/[0-9a-f-]{36}/[a-z0-9_]{2,80}/unlock|GET platform/saves/[0-9a-f-]{36}(/default)?|PUT platform/saves/[0-9a-f-]{36}/default|POST platform/sessions|POST platform/sessions/[0-9a-f-]{36}/end|GET platform/live-ticket|GET platform/events(\?after=\d+&limit=100)?)$", RegexOptions.Compiled);
+    private static readonly Regex ContentRoutes = new(
+        @"^(GET games\?page=[1-9][0-9]{0,2}&limit=48|GET launcher|GET newswire\?limit=24&offset=[0-9]{1,5}|GET newswire/[a-z0-9-]{1,160}|GET videos\?limit=24|GET wishlist|POST wishlist|DELETE wishlist/[0-9a-f-]{36}|GET account|GET account/privacy|PUT account/privacy|GET account/sessions|GET account/totp/status)$", RegexOptions.Compiled);
 
     public ApiClient(Localization locale, CookieContainer? cookies = null, Action<CookieContainer>? persist = null,
         HttpMessageHandler? testHandler = null)
@@ -50,7 +52,7 @@ public sealed class ApiClient : IDisposable
         lifetime.CancelAfter(TimeSpan.FromSeconds(45));
         ct = lifetime.Token;
         path = path.TrimStart('/');
-        if (!Routes.IsMatch(method.Method + " " + path)) throw new LauncherException("BLOCKED_REQUEST");
+        if (!Routes.IsMatch(method.Method + " " + path) && !ContentRoutes.IsMatch(method.Method + " " + path)) throw new LauncherException("BLOCKED_REQUEST");
         var token = method != HttpMethod.Get && method != HttpMethod.Head ? await Csrf(ct) : null;
         using var req = new HttpRequestMessage(method, path);
         req.Headers.TryAddWithoutValidation("Accept", "application/json");

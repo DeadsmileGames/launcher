@@ -172,7 +172,8 @@
     "UPDATE_START_FAILED": "The updater could not start. Try again or use the official installer.",
     "UPDATE_SIGNATURE_INVALID": "The update signature could not be verified.",
     "GAME_INSTALL_BACKUP_EXISTS": "An installation backup requires recovery before updating.",
-    "UPDATE_CHECKSUM_MISSING": "The update is missing a verification hash."
+    "UPDATE_CHECKSUM_MISSING": "The update is missing a verification hash.",
+    "CAPTURE_UNAVAILABLE": "The game window cannot be captured right now."
   },
   "pt-BR": {
     "INTERNAL_ERROR": "Algo deu errado. Tente novamente mais tarde.",
@@ -347,7 +348,8 @@
     "UPDATE_START_FAILED": "Não foi possível iniciar o atualizador. Tente novamente ou use o instalador oficial.",
     "UPDATE_SIGNATURE_INVALID": "Não foi possível verificar a assinatura da atualização.",
     "GAME_INSTALL_BACKUP_EXISTS": "Um backup de instalação precisa ser recuperado antes da atualização.",
-    "UPDATE_CHECKSUM_MISSING": "A atualização não possui um hash de verificação."
+    "UPDATE_CHECKSUM_MISSING": "A atualização não possui um hash de verificação.",
+    "CAPTURE_UNAVAILABLE": "Não foi possível capturar a janela do jogo agora."
   },
   "es": {
     "INTERNAL_ERROR": "Algo salió mal. Inténtalo más tarde.",
@@ -522,6 +524,7 @@
     "UPDATE_START_FAILED": "No se pudo iniciar el actualizador. Inténtalo de nuevo o usa el instalador oficial.",
     "UPDATE_SIGNATURE_INVALID": "No se pudo verificar la firma de la actualización.",
     "GAME_INSTALL_BACKUP_EXISTS": "Se debe recuperar la copia de instalación antes de actualizar.",
-    "UPDATE_CHECKSUM_MISSING": "La actualización no tiene un hash de verificación."
+    "UPDATE_CHECKSUM_MISSING": "La actualización no tiene un hash de verificación.",
+    "CAPTURE_UNAVAILABLE": "No se puede capturar la ventana del juego ahora."
   }
 }

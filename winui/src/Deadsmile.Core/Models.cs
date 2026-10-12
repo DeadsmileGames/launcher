@@ -66,6 +66,15 @@ public sealed class Game(JsonNode data)
     public string ProductIcon => Urls.Image(Store.At("images").Items().Where(x => x.L("width") == x.L("height") &&
         System.Text.RegularExpressions.Regex.IsMatch(x.S("purpose"), "square|logo|tile", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
         .OrderByDescending(x => x.L("width")).FirstOrDefault().S("url")) ?? "";
+    public string Poster => Urls.Image(Store.At("images").Items()
+        .Where(x => Regex.IsMatch(x.S("purpose"), "poster|boxart|cover", RegexOptions.IgnoreCase))
+        .OrderBy(x => x.L("height") > x.L("width") ? 0 : 1).ThenByDescending(x => x.L("height"))
+        .FirstOrDefault().S("url")) ?? Cover;
+    public string BackgroundVideo => Store.At("trailers").Items().Select(x => x.S("url"))
+        .Concat(Data.At("videos").Items().Select(x => x.S("videoUrl", "video_url")))
+        .Prepend(Trailer).OrderBy(x => x == Trailer ? 1 : 0)
+        .FirstOrDefault(x => Urls.Https(x) is { } uri && (uri.AbsolutePath.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
+            uri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))) ?? "";
     public string[] Screenshots => Data.At("screenshots").Items()
         .Select(x => Urls.Image(x.S())).Where(x => x is not null).Select(x => x!).ToArray();
     public Game Merge(Game detail)

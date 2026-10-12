@@ -19,6 +19,7 @@ namespace Deadsmile.Launcher;
 internal sealed class UiValidationHandler : HttpMessageHandler
 {
     private bool authenticated;
+    internal static bool FailCatalog;
     internal const string GameId = "c24ddf96-8bea-46f5-9707-d6997d996c2b";
     internal static JsonObject GameData() => J.Obj(
         ("id", GameId), ("slug", "abbys-restless-heart"), ("title", "Abby's Restless Heart"),
@@ -32,7 +33,8 @@ internal sealed class UiValidationHandler : HttpMessageHandler
     {
         var path = request.RequestUri!.AbsolutePath;
         JsonNode? data = null; var status = 200;
-        if (path.EndsWith("/csrf")) data = J.Obj(("token", "ci-layout-token"));
+        if (FailCatalog && path.EndsWith("/games")) status = 503;
+        else if (path.EndsWith("/csrf")) data = J.Obj(("token", "ci-layout-token"));
         else if (path.EndsWith("/auth/mobile-login")) { authenticated = true; data = J.Obj(("id", "ci-layout")); }
         else if (path.EndsWith("/auth/me"))
         { if (authenticated) data = J.Obj(("id", "ci-layout"), ("username", "Conta de teste")); else status = 401; }
@@ -62,7 +64,7 @@ internal sealed class UiValidationHandler : HttpMessageHandler
         };
         else { status = 404; }
         var payload = status == 200 ? new JsonObject { ["data"] = data } :
-            new JsonObject { ["error"] = J.Obj(("code", status == 401 ? "UNAUTHENTICATED" : "NOT_FOUND")) };
+            new JsonObject { ["error"] = J.Obj(("code", status == 401 ? "UNAUTHENTICATED" : status == 503 ? "INTERNAL_ERROR" : "NOT_FOUND")) };
         return Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
         { Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json") });
     }
@@ -214,6 +216,13 @@ public sealed partial class MainWindow
             Check(storage.Read("winui-appearance.json", new Services.UiPreferences()).Theme == "dark", "Appearance preferences persist");
             foreach (var (item, expected) in new[] { (WishlistItem, "wishlist"), (NewsItem, "news"), (VideosItem, "videos"), (SupportItem, "support") })
             { Shell.SelectedItem = item; await Task.Delay(500); Check(page == expected && ContentPage.Visibility == Visibility.Visible && ContentRows.Children.Count > 0, "Connected native page: " + expected); await Capture("page-" + expected); }
+            page = "account"; selected = null; ShowPage(); await Task.Delay(500);
+            Check(ContentRows.Children.OfType<PersonPicture>().Any(), "Account page loads the profile through the authenticated API"); await Capture("page-account");
+            var reading = ShowNews(newsItems[0]); await Task.Delay(400);
+            Check(newsDialog is not null && newsDialog.Content is ScrollViewer, "Newswire uses a bounded native scrolling dialog");
+            await Capture("news-dialog", newsDialog!); newsDialog!.Hide(); await reading;
+            SearchSuggestions("Abby"); SearchBox.IsSuggestionListOpen = true; await Task.Delay(300);
+            Check(SearchBox.ItemsSource is SearchEntry[] results && results.Length == 1, "Native search popup presents game suggestions"); SearchBox.IsSuggestionListOpen = false;
             var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
             Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
             await Capture("15-game-view-widgets", widgetRoot);
@@ -232,6 +241,16 @@ public sealed partial class MainWindow
                 }
                 catch (Exception ex) { checks.Add("Native capture unavailable on this runner: " + ex.GetType().Name); }
             }
+            using (var systemTray = new Services.TrayService(this, native))
+            {
+                Check(systemTray.Available, "Windows notification area accepts the launcher icon"); tray = systemTray;
+                MinimizeToTray(); await Task.Delay(200); Check(!AppWindow.IsVisible, "Close-to-tray keeps the process alive and hides the window");
+                RestoreFromTray(); await Task.Delay(200); Check(AppWindow.IsVisible, "Tray restore returns the native window"); tray = null;
+            }
+            UiValidationHandler.FailCatalog = true; await StartBoot();
+            Check(Shell.Visibility == Visibility.Collapsed && BootErrorCode.Text.Contains("6799") && BootRetry.Visibility == Visibility.Visible,
+                "API failure prevents entry and displays a local error code with retry"); await Capture("boot-error");
+            UiValidationHandler.FailCatalog = false;
             await File.WriteAllTextAsync(Path.Combine(output, "results.json"), JsonSerializer.Serialize(new { passed = true, checks, screenshots = Directory.GetFiles(output, "*.png").Length }, new JsonSerializerOptions { WriteIndented = true }));
             Environment.Exit(0);
         }

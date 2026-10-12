@@ -29,6 +29,8 @@ public sealed partial class GameViewWindow
         finally { capturing = false; CaptureButton.IsEnabled = GameCapture.Supported; }
     }
     private async void ShareCaptureClick(object sender, RoutedEventArgs e)
+    { try { await ShowCaptureShare(); } catch (Exception ex) { CaptureStatus.Text = owner.Locale.Error(ex); } }
+    private async Task ShowCaptureShare()
     {
         if (lastCapture is null || captureDialog is not null) return;
         var file = lastCapture;

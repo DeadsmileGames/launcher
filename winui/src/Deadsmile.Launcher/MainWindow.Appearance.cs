@@ -67,7 +67,7 @@ public sealed partial class MainWindow
     }
     private void AppearanceLabels()
     {
-        ThemeChoice.Header = Locale.T("App theme"); NavigationChoice.Header = Locale.T("Navigation");
+        ThemeChoice.Header = null; NavigationChoice.Header = null;
         var themeLabels = new[] { "Dark", "Light", "Use system setting" };
         for (var i = 0; i < themeLabels.Length; i++) ((ComboBoxItem)ThemeChoice.Items[i]).Content = Locale.T(themeLabels[i]);
         ((ComboBoxItem)NavigationChoice.Items[0]).Content = Locale.T("Compact");
@@ -75,6 +75,6 @@ public sealed partial class MainWindow
         foreach (var (toggle, label) in new[] { (AnimationToggle, "Animations"), (BannerToggle, "Rotate featured images"),
             (MaterialsToggle, "Windows visual effects"), (ToastToggle, "Achievement notifications"),
             (TrayToggle, "Keep running when closed"), (NotificationsToggle, "Update and release notifications"), (VideoToggle, "Play video backgrounds") })
-        { toggle.Header = Locale.T(label); toggle.OnContent = Locale.T("On"); toggle.OffContent = Locale.T("Off"); }
+        { toggle.Header = null; toggle.OnContent = Locale.T("On"); toggle.OffContent = Locale.T("Off"); }
     }
 }

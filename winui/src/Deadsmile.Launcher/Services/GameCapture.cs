@@ -51,7 +51,7 @@ public static class GameCapture
         IntPtr dxgi = IntPtr.Zero, inspectable = IntPtr.Zero;
         try
         {
-            var iid = new Guid("54ec77fa-1377-44e6-8c32-88fd5f44c84c"); Marshal.ThrowExceptionForHR(Marshal.QueryInterface(device, ref iid, out dxgi));
+            var iid = new Guid("54ec77fa-1377-44e6-8c32-88fd5f44c84c"); Marshal.ThrowExceptionForHR(Marshal.QueryInterface(device, in iid, out dxgi));
             Marshal.ThrowExceptionForHR(CreateDirect3D11DeviceFromDXGIDevice(dxgi, out inspectable)); return MarshalInterface<IDirect3DDevice>.FromAbi(inspectable);
         }
         finally { if (inspectable != IntPtr.Zero) Marshal.Release(inspectable); if (dxgi != IntPtr.Zero) Marshal.Release(dxgi); if (context != IntPtr.Zero) Marshal.Release(context); if (device != IntPtr.Zero) Marshal.Release(device); }

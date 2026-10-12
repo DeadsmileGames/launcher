@@ -12,6 +12,7 @@ public sealed class ApiClient : IDisposable
     private readonly SemaphoreSlim csrfGate = new(1, 1);
     private readonly Action<CookieContainer>? saveCookies;
     private string? csrf;
+    private long authGeneration;
     public CookieContainer Cookies { get; }
     public Localization Locale { get; }
     public event Action? Invalidated;
@@ -53,6 +54,8 @@ public sealed class ApiClient : IDisposable
         ct = lifetime.Token;
         path = path.TrimStart('/');
         if (!Routes.IsMatch(method.Method + " " + path) && !ContentRoutes.IsMatch(method.Method + " " + path)) throw new LauncherException("BLOCKED_REQUEST");
+        var authMutation = method == HttpMethod.Post && Regex.IsMatch(path, "^auth/(mobile-login|verify-2fa|logout)$");
+        var generation = authMutation ? Interlocked.Increment(ref authGeneration) : Interlocked.Read(ref authGeneration);
         var token = method != HttpMethod.Get && method != HttpMethod.Head ? await Csrf(ct) : null;
         using var req = new HttpRequestMessage(method, path);
         req.Headers.TryAddWithoutValidation("Accept", "application/json");
@@ -88,15 +91,17 @@ public sealed class ApiClient : IDisposable
                 if (!Regex.IsMatch(code, "^[A-Z][A-Z0-9_]{1,79}$")) code = "UNKNOWN_ERROR";
                 if (response.StatusCode == HttpStatusCode.Forbidden && code == "CSRF_VALIDATION_FAILED" && retry)
                 { csrf = null; return await Request(method, "/" + path, body, ct, false); }
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response.StatusCode == HttpStatusCode.Unauthorized && generation == Interlocked.Read(ref authGeneration))
                 { csrf = null; Invalidated?.Invoke(); }
                 throw new LauncherException(code.Length > 0 ? code : "UNKNOWN_ERROR", (int)response.StatusCode);
             }
+            if (authMutation) Interlocked.CompareExchange(ref authGeneration, generation + 1, generation);
             return payload.At("data")?.DeepClone();
         }
     }
     public void ClearSession()
     {
+        Interlocked.Increment(ref authGeneration);
         csrf = null;
         foreach (Cookie c in Cookies.GetAllCookies()) c.Expired = true;
         saveCookies?.Invoke(Cookies);

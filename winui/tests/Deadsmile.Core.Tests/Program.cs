@@ -186,6 +186,57 @@ Async("Symlink installation is rejected", async () =>
     Check(InstallationService.ReadRecord(folder, id) is null);
     await Task.CompletedTask;
 });
+Async("Visitor catalog uses public endpoints and does not request a private library", async () =>
+{
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req =>
+    {
+        Check(req.RequestUri!.AbsolutePath.EndsWith("/games"));
+        Check(req.RequestUri.Query == "?page=1&limit=48");
+        return Reply(200, new JsonObject { ["data"] = J.Obj(("items", new[] { J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "free")) }), ("pagination", J.Obj(("totalPages", 1)))) }.ToJsonString());
+    }));
+    var games = await PublicCatalog.Load(api, false); Check(games.Length == 1 && !games[0].InLibrary && !games[0].CanLaunch);
+});
+Async("Authenticated catalog merges ownership without mutating public data", async () =>
+{
+    var source = J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "paid"));
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req => Reply(200,
+        new JsonObject { ["data"] = req.RequestUri!.AbsolutePath.EndsWith("/games") ?
+            J.Obj(("items", new[] { source }), ("pagination", J.Obj(("totalPages", 1)))) :
+            J.Obj(("items", new[] { J.Obj(("id", id), ("owned", true), ("inLibrary", true)) })) }.ToJsonString())));
+    var games = await PublicCatalog.Load(api, true); Check(games[0].Owned && games[0].InLibrary && games[0].CanLaunch); Check(source.At("owned") is null);
+});
+Add("Store poster, product icon and direct trailer remain distinct", () =>
+{
+    var game = new Game(J.Obj(("coverImage", "https://example.com/fallback.png"), ("microsoftStore", J.Obj(
+        ("images", new[] { J.Obj(("purpose", "logo"), ("width", 150), ("height", 150), ("url", "https://example.com/icon.png")),
+            J.Obj(("purpose", "Poster"), ("width", 1440), ("height", 2160), ("url", "https://example.com/cover.png")) }),
+        ("trailers", new[] { J.Obj(("url", "https://example.com/trailer.mpd")) })))));
+    Check(game.Poster.EndsWith("cover.png") && game.ProductIcon.EndsWith("icon.png") && game.BackgroundVideo.EndsWith("trailer.mpd"));
+    Check(new Game(J.Obj(("coverImage", "https://example.com/fallback.png"))).Poster.EndsWith("fallback.png"));
+});
+Add("Boot error codes stay local and independent of sensitive exception messages", () =>
+{
+    Check(LauncherErrors.Number(new LauncherException("NETWORK_ERROR")) == 6794);
+    Check(LauncherErrors.Number(new Exception("sensitive message")) == 6802);
+});
+Async("Public content routes reject arbitrary query strings and non-local paths", async () =>
+{
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(_ => throw new Exception("Must not send")));
+    await RejectAsync(() => api.Get("/games?page=1&limit=48&url=https://evil.invalid"));
+    await RejectAsync(() => api.Get("/newswire/../account"));
+    await RejectAsync(() => api.Put("/account/sessions", new { }));
+});
+Async("A stale unauthorized response cannot invalidate a newer login", async () =>
+{
+    var pending = new TaskCompletionSource<HttpResponseMessage>();
+    using var api = new ApiClient(new Localization(), testHandler: new AsyncFakeHttp(req =>
+        req.RequestUri!.AbsolutePath.EndsWith("/auth/me") ? pending.Task :
+        Task.FromResult(Reply(200, req.RequestUri.AbsolutePath.EndsWith("/csrf") ? "{\"data\":{\"token\":\"csrf\"}}" : "{\"data\":{\"id\":\"new-session\"}}"))));
+    var invalidated = false; api.Invalidated += () => invalidated = true;
+    var stale = api.Get("/auth/me"); await api.Post("/auth/mobile-login", new { email = "fixture", password = "fixture" });
+    pending.SetResult(Reply(401, "{\"error\":{\"code\":\"UNAUTHENTICATED\"}}"));
+    await RejectAsync(async () => await stale); Check(!invalidated);
+});
 var failed = 0;
 try
 {
@@ -203,3 +254,8 @@ sealed class FakeHttp(Func<HttpRequestMessage, HttpResponseMessage> respond) : H
         Task.FromResult(respond(request));
 }
 
+
+sealed class AsyncFakeHttp(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => respond(request);
+}

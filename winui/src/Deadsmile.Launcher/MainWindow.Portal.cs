@@ -21,6 +21,7 @@ public sealed partial class MainWindow
     private bool booting = true;
     private ContentDialog? loginDialog;
     private ContentDialog? accountDialog;
+    private ContentDialog? newsDialog;
     private readonly Stack<(string Page, Game? Game)> history = new();
     private JsonNode[] newsItems = [];
     private readonly List<SearchEntry> searchResults = new();
@@ -76,7 +77,7 @@ public sealed partial class MainWindow
         content.Children.Add(new Border { CornerRadius = new CornerRadius(8), Child = picture });
         content.Children.Add(Text(Locale.T("Keep your library together, sync supported saves and achievements, and manage your games with a Deadsmile Games account.")));
         var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme,
-            Title = Locale.T("Your next adventure starts here"), Content = new ScrollViewer { Content = content, MaxHeight = Math.Max(140, Root.XamlRoot.Size.Height - 200) }, PrimaryButtonText = Locale.T("Sign in"), CloseButtonText = Locale.T("Cancel") };
+            DefaultButton = ContentDialogButton.Primary, Title = Locale.T("Your next adventure starts here"), Content = new ScrollViewer { Content = content, MaxHeight = Math.Max(140, Root.XamlRoot.Size.Height - 200) }, PrimaryButtonText = Locale.T("Sign in"), CloseButtonText = Locale.T("Cancel") };
         accountDialog = dialog;
         ContentDialogResult choice;
         try { choice = await dialog.ShowAsync(); } finally { accountDialog = null; }
@@ -179,9 +180,10 @@ public sealed partial class MainWindow
             body.Children.Add(game);
             ContentDialog? current = null;
             game.Click += async (_, _) => { current?.Hide(); await Task.Delay(80); await Guard(() => LoadDetail(related)); };
-            var viewer = NewsDialog(body, width); current = viewer; await viewer.ShowAsync(); return;
+            var viewer = NewsDialog(body, width); current = viewer; newsDialog = viewer;
+            try { await viewer.ShowAsync(); } finally { newsDialog = null; } return;
         }
-        await NewsDialog(body, width).ShowAsync();
+        newsDialog = NewsDialog(body, width); try { await newsDialog.ShowAsync(); } finally { newsDialog = null; }
     }
     private ContentDialog NewsDialog(StackPanel body, double width)
     {

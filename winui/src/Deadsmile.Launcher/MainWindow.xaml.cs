@@ -274,8 +274,8 @@ public sealed partial class MainWindow : Window
             else { itchConfigured = itchConnected = false; ItchStatus.Text = Locale.T("Sign in to manage your account."); ItchButton.Content = Locale.T("Sign in"); }
             var catalog = await PublicCatalog.Load(Api, User is not null);
             if (User.S("id") != user) return;
-            if (User is not null) await DetectLegacyFreeInstallations(catalog);
-            await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id), User is not null);
+            var legacyReady = User is not null && await DetectLegacyFreeInstallations(catalog);
+            await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id), legacyReady);
             Catalog = catalog; RenderCatalog();
             if (User is not null)
             {
@@ -293,8 +293,9 @@ public sealed partial class MainWindow : Window
         finally { refreshing = false; BusyRing.IsActive = false; UpdateBusy();
             if (refreshAgain) { refreshAgain = false; UI(Refresh); } }
     }
-    private async Task DetectLegacyFreeInstallations(IEnumerable<Game> catalog)
+    private async Task<bool> DetectLegacyFreeInstallations(IEnumerable<Game> catalog)
     {
+        var canMigrateLegacyFolders = true;
         foreach (var game in catalog)
         {
             if (!game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
@@ -306,11 +307,20 @@ public sealed partial class MainWindow : Window
                 if (!Directory.Exists(legacyFolder) || InstallationService.FindExe(legacyFolder) is null) continue;
                 if (!game.InLibrary)
                 {
-                    await Api.Post("/library/" + Urls.Id(game.Id), new { });
-                    if (game.Data is JsonObject data)
+                    try
                     {
-                        data["owned"] = true;
-                        data["inLibrary"] = true;
+                        await Api.Post("/library/" + Urls.Id(game.Id), new { });
+                        if (game.Data is JsonObject data)
+                        {
+                            data["owned"] = true;
+                            data["inLibrary"] = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        canMigrateLegacyFolders = false;
+                        storage.Log(ex is LauncherException failure ? failure.Code : "EXTERNAL_FREE_GAME_CLAIM_FAILED");
+                        continue;
                     }
                 }
                 DesktopNotice(Locale.T("Free game installation detected"), game.Title + " · " + Locale.T("Added to library."),
@@ -321,6 +331,7 @@ public sealed partial class MainWindow : Window
                 storage.Log(ex is LauncherException failure ? failure.Code : "EXTERNAL_FREE_GAME_DETECTION_FAILED");
             }
         }
+        return canMigrateLegacyFolders;
     }
     private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(Refresh);
     private void NavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

@@ -85,6 +85,17 @@ public sealed class NativeWindow : IDisposable
         var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
         return GetMonitorInfo(MonitorFromWindow(game, 2), ref info) ? info.Work : MonitorFor(game);
     }
+    public static (int X, int Y) CursorScreen()
+    {
+        GetCursorPos(out var point);
+        return (point.X, point.Y);
+    }
+    public static Rect WorkAreaAt(int x, int y)
+    {
+        var point = new Point { X = x, Y = y };
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        return GetMonitorInfo(MonitorFromPoint(point, 2), ref info) ? info.Work : new Rect { Right = 1271, Bottom = 796 };
+    }
     public static double DpiScale(IntPtr game, Window fallback)
     {
         var dpi = GetDpiForWindow(game);
@@ -125,6 +136,7 @@ public sealed class NativeWindow : IDisposable
     [DllImport("user32.dll")] private static extern bool ScreenToClient(IntPtr h, ref Point point);
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr h);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
     [DllImport("dwmapi.dll")] private static extern int DwmExtendFrameIntoClientArea(IntPtr h, ref Margins margins);
 }

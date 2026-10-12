@@ -33,15 +33,56 @@ public sealed partial class MainWindow
 #endif
     }
     private bool Foreground => AppWindow.IsVisible && GetForegroundWindow() == WinRT.Interop.WindowNative.GetWindowHandle(this);
-    private void DesktopNotice(string title, string text)
+    private void DesktopNotice(string title, string text, string kind = "", string? entityId = null, string? slug = null)
     {
         if (!Preferences.Notifications) return;
-        if (Foreground) { Notify(title + ": " + text, InfoBarSeverity.Informational); return; }
+        AddLocalNotification(title, text, kind, entityId, slug);
+        if (AppWindow.IsVisible) { ShowInAppToast(title, text); return; }
         if (notifications?.Show(title, text) != true) tray?.Notify(title, text);
+    }
+    private void AddLocalNotification(string title, string message, string kind, string? entityId, string? slug)
+    {
+        localNotifications.Insert(0, new LauncherNotification(title, message, kind, entityId, slug, DateTimeOffset.Now));
+        if (localNotifications.Count > 50) localNotifications.RemoveRange(50, localNotifications.Count - 50);
+        notificationsUnread = true;
+        RefreshNotificationMenu();
+    }
+    private void RefreshNotificationMenu()
+    {
+        NotificationMenu.Items.Clear();
+        if (localNotifications.Count == 0)
+            NotificationMenu.Items.Add(new MenuFlyoutItem { Text = Locale.T("You're all caught up."), IsEnabled = false });
+        foreach (var notification in localNotifications.Take(12))
+        {
+            var item = new MenuFlyoutItem
+            {
+                Text = notification.Title + " · " + FormatDate(notification.CreatedAt.ToString("O"), true),
+                IsEnabled = notification.Kind is "game" or "news",
+                Tag = notification
+            };
+            item.Click += async (_, _) =>
+            {
+                if (notification.Kind == "game" &&
+                    Catalog.FirstOrDefault(game => game.Id.Equals(notification.EntityId, StringComparison.OrdinalIgnoreCase) || game.Slug == notification.Slug) is { } game)
+                    await Guard(() => LoadDetail(game));
+                else if (notification.Kind == "news" && newsItems.FirstOrDefault(story => story.S("slug") == notification.Slug) is { } story)
+                    await Guard(() => ShowNews(story));
+                notificationsUnread = false;
+                NotificationBadge.Visibility = Visibility.Collapsed;
+            };
+            NotificationMenu.Items.Add(item);
+        }
+        NotificationBadge.Value = Math.Min(99, localNotifications.Count);
+        NotificationBadge.Visibility = notificationsUnread && localNotifications.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+    private void NotificationsClick(object sender, RoutedEventArgs e)
+    {
+        notificationsUnread = false;
+        RefreshNotificationMenu();
     }
     private void MinimizeToTray()
     {
-        AppWindow.Hide(); bannerPlayer?.Pause();
+        AppWindow.Hide(); bannerPlayer?.Pause(); homeBannerPlayer?.Pause();
         if (!storage.Read("winui-tray-tip.json", false))
         {
             var message = Locale.T("The launcher is still running in the notification area. Click its icon to return. You can change this in Settings.");
@@ -50,7 +91,14 @@ public sealed partial class MainWindow
         }
     }
     private void RestoreFromTray()
-    { AppWindow.Show(); Activate(); if (Preferences.VideoBackgrounds && MotionEnabled) bannerPlayer?.Play(); }
+    {
+        AppWindow.Show(); Activate();
+        if (Preferences.VideoBackgrounds && MotionEnabled)
+        {
+            bannerPlayer?.Play();
+            if (page == "explore" && !homeHeroPaused) homeBannerPlayer?.Play();
+        }
+    }
     private void OpenTrayMenu()
     {
         // The tray menu itself is XAML/WinUI rather than a second UI framework.
@@ -64,8 +112,14 @@ public sealed partial class MainWindow
         root.Children.Add(open); root.Children.Add(exit);
         if (menu.AppWindow.Presenter is OverlappedPresenter p) { p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(menu); NativeWindow.RoundCorners(menu);
-        var area = NativeWindow.WorkAreaFor(IntPtr.Zero); var scale = NativeWindow.DpiScale(IntPtr.Zero, this);
-        NativeWindow.Place(menu, new NativeWindow.Rect { Left = area.Right - (int)(236 * scale), Top = area.Bottom - (int)(104 * scale), Right = area.Right - (int)(16 * scale), Bottom = area.Bottom - (int)(16 * scale) });
+        var cursor = NativeWindow.CursorScreen();
+        var area = NativeWindow.WorkAreaAt(cursor.X, cursor.Y); var scale = NativeWindow.DpiScale(IntPtr.Zero, this);
+        var width = (int)Math.Round(236 * scale); var height = (int)Math.Round(104 * scale); var margin = (int)Math.Round(8 * scale);
+        var left = Math.Clamp(cursor.X - width + margin, area.Left + margin, Math.Max(area.Left + margin, area.Right - width - margin));
+        var top = cursor.Y - height - margin;
+        if (top < area.Top + margin) top = Math.Min(area.Bottom - height - margin, cursor.Y + margin);
+        top = Math.Clamp(top, area.Top + margin, Math.Max(area.Top + margin, area.Bottom - height - margin));
+        NativeWindow.Place(menu, new NativeWindow.Rect { Left = left, Top = top, Right = left + width, Bottom = top + height });
         menu.Activate(); var timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromSeconds(5); timer.Tick += (_, _) => { timer.Stop(); menu.Close(); };
         menu.Closed += (_, _) => timer.Stop(); timer.Start();
     }
@@ -80,10 +134,14 @@ public sealed partial class MainWindow
     {
         var id = item.L("id"); if (id <= 0 || !notifiedEvents.Add(id)) return;
         if (notifiedEvents.Count > 1000) { var keep = notifiedEvents.OrderDescending().Take(500).ToArray(); notifiedEvents.Clear(); foreach (var key in keep) notifiedEvents.Add(key); }
-        var type = item.S("event_type"); var title = item.At("payload").S("title");
-        if (type == "game.published") DesktopNotice(Locale.T("New game available"), title.Length > 0 ? title : Locale.T("Explore the latest games."));
-        else if (type == "game.updated") DesktopNotice(Locale.T("A game has been updated"), title.Length > 0 ? title : Locale.T("Check your library for updates."));
-        else if (type == "news.updated") DesktopNotice("Newswire", title.Length > 0 ? title : Locale.T("A new story is available."));
+        var type = item.S("event_type");
+        var payload = item.At("payload");
+        var title = payload.S("title");
+        var entityId = payload.S("gameId", "game_id", "id");
+        var slug = payload.S("slug", "game_slug", "gameSlug", "newsSlug");
+        if (type == "game.published") DesktopNotice(Locale.T("New game available"), title.Length > 0 ? title : Locale.T("Explore the latest games."), "game", entityId, slug);
+        else if (type == "game.updated") DesktopNotice(Locale.T("A game has been updated"), title.Length > 0 ? title : Locale.T("Check your library for updates."), "game", entityId, slug);
+        else if (type == "news.updated") DesktopNotice("Newswire", title.Length > 0 ? title : Locale.T("A new story is available."), "news", null, slug);
     }
     private void GameStartedHint()
     {

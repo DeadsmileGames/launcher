@@ -14,7 +14,6 @@ public sealed record UiPreferences
     public bool Notifications { get; init; } = true;
     public bool VideoBackgrounds { get; init; } = true;
     public bool ShowNewswireOnHome { get; init; } = true;
-    public bool ShowNewswireOnHome { get; init; } = true;
     [System.Text.Json.Serialization.JsonIgnore]
     public ElementTheme ElementTheme => Theme switch { "light" => Microsoft.UI.Xaml.ElementTheme.Light, "system" => Microsoft.UI.Xaml.ElementTheme.Default, _ => Microsoft.UI.Xaml.ElementTheme.Dark };
 }

@@ -78,7 +78,7 @@
   <NavigationView x:Name="Shell" Grid.Row="1" Visibility="Collapsed" PaneDisplayMode="LeftCompact"
    CompactPaneLength="72" OpenPaneLength="280" IsPaneOpen="False" IsPaneToggleButtonVisible="False"
    IsBackButtonVisible="Collapsed" IsSettingsVisible="False" AlwaysShowHeader="False"
-   Background="{ThemeResource SidebarBrush}" SelectionChanged="NavigationChanged" ItemInvoked="NavigationInvoked">
+   Background="{ThemeResource SidebarBrush}" IsSettingsVisible="False" SelectionChanged="NavigationChanged" ItemInvoked="NavigationInvoked">
    <NavigationView.MenuItems>
     <NavigationViewItem x:Name="ExploreItem" Content="Explore" Tag="explore" AutomationProperties.AutomationId="ExploreNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon></NavigationViewItem>
     <NavigationViewItem x:Name="LibraryItem" Content="Library" Tag="library" AutomationProperties.AutomationId="LibraryNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Library"/></NavigationViewItem.Icon></NavigationViewItem>

@@ -27,7 +27,8 @@ public sealed class InstallationService(Storage storage)
                 PathGuard.RequireInside(Storage.Games, backup);
                 if (!busy(id) && !Directory.Exists(folder) && Directory.Exists(backup) && ReadRecord(backup, id) is not null)
                     Directory.Move(backup, folder);
-                if (allowLegacyDetection && !Directory.Exists(folder) && !busy(id) && !string.IsNullOrEmpty(game.Slug))
+                if (allowLegacyDetection && !Directory.Exists(folder) && !busy(id) && !string.IsNullOrEmpty(game.Slug) &&
+                    (!game.Data.S("accessType").Equals("paid", StringComparison.OrdinalIgnoreCase) || (game.Owned && game.InLibrary)))
                 {
                     var legacy = Path.Combine(Storage.Games, Urls.Slug(game.Slug));
                     PathGuard.RequireInside(Storage.Games, legacy);

@@ -741,7 +741,7 @@ public sealed partial class MainWindow : Window
             else if (job.Status == "complete")
             {
                 cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(150, 0, 0, 0)) });
-                var check = new TextBlock { Text = "✓", FontSize = 60, Foreground = new SolidColorBrush(Windows.UI.Colors.White),
+                var check = new TextBlock { Text = "✓", FontSize = 60, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
                 cover.Children.Add(check);
                 if (MotionEnabled)
@@ -817,6 +817,9 @@ public sealed partial class MainWindow : Window
     private async Task LaunchWithSequence(Game game)
     {
         if (Games.Busy(game.Id) || !await RequireAccount()) return;
+        if (!AppWindow.IsVisible || NativeWindow.Minimized(WinRT.Interop.WindowNative.GetWindowHandle(this)))
+            RestoreFromTray();
+        else Activate();
         var revision = ++launchSequenceRevision;
         LaunchSequenceTitle.Text = game.Title;
         LaunchShip.Opacity = 1;

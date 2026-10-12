@@ -214,7 +214,7 @@ public sealed partial class GameViewWindow : Window
             var saves = await owner.Api.Get("/platform/saves/" + id);
             if (revision != request) return;
             foreach (var item in saves.Items())
-                CloudRows.Children.Add(new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") + "\n" + item.S("updated_at", "updatedAt"), TextWrapping = TextWrapping.Wrap });
+                CloudRows.Children.Add(new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") + "\n" + owner.FormatDate(item.S("updated_at", "updatedAt"), true), TextWrapping = TextWrapping.Wrap });
             if (CloudRows.Children.Count == 0) CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("No cloud saves found.") });
         }
         catch (Exception ex) { if (revision == request) PlayingLabel.Text = owner.Locale.Error(ex); }

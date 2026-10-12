@@ -6,6 +6,7 @@ using Deadsmile.Core;
 using Deadsmile.Launcher.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -204,7 +205,11 @@ public sealed partial class MainWindow
     {
         RememberPage(); selected = null; page = "settings"; profileLoaded = false; ShowPage();
         if (User is null) await RequireAccount();
-        if (User is not null) await LoadProfileSettings();
+        if (User is not null)
+        {
+            await LoadProfileSettings();
+            ProfileSettingsSection.StartBringIntoView();
+        }
     }
     private async Task RenderContentPage()
     {

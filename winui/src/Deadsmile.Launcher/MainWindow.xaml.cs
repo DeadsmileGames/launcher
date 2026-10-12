@@ -57,6 +57,9 @@ public sealed partial class MainWindow : Window
     private int downloadDirty = 1, detailRevision;
     private string? pendingLaunch;
     private Image? heroImage;
+    private Windows.Media.Playback.MediaPlayer? homeBannerPlayer;
+    private string? homeVideoGameId;
+    private int homeMediaRevision;
     private string[] heroImages = [];
     private int heroIndex;
     private bool heroPaused;
@@ -139,7 +142,7 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
-            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); updateTimer?.Stop(); bannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
+            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); updateTimer?.Stop(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
             downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
@@ -239,7 +242,8 @@ public sealed partial class MainWindow : Window
         try
         {
             if (AllBusy) return;
-            await Api.Post("/auth/logout"); Api.ClearSession(); User = null; live.Stop(); achievements.Stop(); Catalog = []; GameGrid.ItemsSource = null; await Enter();
+            await Api.Post("/auth/logout"); Api.ClearSession(); User = null; profileLoaded = false; privacyLoaded = false; wishlistIds.Clear();
+            live.Stop(); achievements.Stop(); Catalog = []; GameGrid.ItemsSource = null; await Enter();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
         finally { accountGate.Release(); }
@@ -262,6 +266,18 @@ public sealed partial class MainWindow : Window
             if (User.S("id") != user) return;
             await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id));
             Catalog = catalog; RenderCatalog();
+            if (User is not null)
+            {
+                try
+                {
+                    var wishlist = await Api.Get("/wishlist");
+                    wishlistIds.Clear();
+                    foreach (var item in wishlist.Items())
+                        if (Guid.TryParse(item.S("id", "gameId"), out var wishlistId)) wishlistIds.Add(wishlistId.ToString());
+                }
+                catch (Exception) { }
+            }
+            RefreshGameActions();
         }
         finally { refreshing = false; BusyRing.IsActive = false; UpdateBusy();
             if (refreshAgain) { refreshAgain = false; UI(Refresh); } }
@@ -280,6 +296,7 @@ public sealed partial class MainWindow : Window
     private void ShowPage()
     {
         if (selected is null) { heroImage = null; heroImages = []; bannerPlayer?.Dispose(); bannerPlayer = null; }
+        if (selected is not null || page != "explore") StopHomeVideo();
         CatalogPanel.Visibility = selected is null && (page is "explore" or "library") ? Visibility.Visible : Visibility.Collapsed;
         DetailPanel.Visibility = selected is not null ? Visibility.Visible : Visibility.Collapsed;
         DownloadsPanel.Visibility = selected is null && page == "downloads" ? Visibility.Visible : Visibility.Collapsed;
@@ -321,14 +338,16 @@ public sealed partial class MainWindow : Window
             (!(InstalledFilter.IsChecked ?? false) || installs.Installed.ContainsKey(x.Id)) &&
             (x.Title + " " + x.Genres + " " + x.Data.S("developer", "publisher")).Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
         GameGrid.ItemsSource = items;
-        featuredGame = page == "explore" && query.Length == 0 && !(InstalledFilter.IsChecked ?? false) && items.Length > 0
+        featuredGame = page == "explore" && selected is null && query.Length == 0 && !(InstalledFilter.IsChecked ?? false) && items.Length > 0
             ? items[homeSlideIndex % items.Length] : null;
+        if (featuredGame is null) StopHomeVideo();
         if (featuredGame is not null)
         {
             FeaturedImage.Source = null;
             SetImage(FeaturedImage, featuredGame.HeroImages.FirstOrDefault() ?? featuredGame.Cover);
             FeaturedTitle.Text = featuredGame.Title; FeaturedGenres.Text = featuredGame.Genres;
             FeaturedButton.Content = Locale.T("View details");
+            if (selected is null && page == "explore") _ = ConfigureHomeVideo(featuredGame);
         }
         var featureImages = new[] { SecondaryFeaturedImage, ThirdFeaturedImage, FourthFeaturedImage };
         var featureTitles = new[] { SecondaryFeaturedTitle, ThirdFeaturedTitle, FourthFeaturedTitle };
@@ -457,10 +476,11 @@ public sealed partial class MainWindow : Window
         heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
         SetImage(heroImage, game.Cover); hero.Children.Add(heroImage);
+        var accent = GameAccent(game);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
-        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(245, 39, 39, 39), Offset = 0 });
-        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 39, 39, 39), Offset = 0.4 });
-        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(70, 39, 39, 39), Offset = 1 });
+        shade.GradientStops.Add(new GradientStop { Color = accent, Offset = 0 });
+        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 22, 22, 22), Offset = 0.48 });
+        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(45, 15, 15, 15), Offset = 1 });
         hero.Children.Add(new Border { Background = shade, CornerRadius = new CornerRadius(8) });
         var contents = new StackPanel { Spacing = 16, Padding = new Thickness(24), MaxWidth = 640, RequestedTheme = ElementTheme.Dark,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
@@ -517,14 +537,18 @@ public sealed partial class MainWindow : Window
             AutomationProperties.SetName(more, Locale.T("More options")); buttons.Add(more);
         }
         if (buttons.Count == 0) { var unavailable = Action("Unavailable", () => Task.CompletedTask); unavailable.IsEnabled = false; buttons.Add(unavailable); }
-        buttons.Add(Action("Wishlist", () => ToggleWishlist(game)));
+        var inWishlist = wishlistIds.Contains(Urls.Id(game.Id));
+        var wishlistButton = Action(inWishlist ? "Already in wishlist" : "Add to wishlist", () => ToggleWishlist(game));
+        wishlistButton.IsEnabled = !inWishlist;
+        buttons.Add(wishlistButton);
         contents.Children.Add(WrapActions(buttons)); hero.Children.Add(contents);
         hero.SizeChanged += (_, _) =>
         {
             banner.Width = Math.Max(0, hero.ActualWidth);
             banner.MaxWidth = banner.Width;
             banner.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
-            contents.Width = Math.Min(640, hero.ActualWidth);
+            var video = hero.Children.OfType<MediaPlayerElement>().FirstOrDefault(element => element.Visibility == Visibility.Visible);
+            contents.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - (video is null ? 0 : video.Width + 36)));
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };
         AddVideoBackground(game, hero, banner);
@@ -660,18 +684,20 @@ public sealed partial class MainWindow : Window
             if (job.Status is not ("complete" or "cancelled" or "failed"))
             {
                 cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(190, 0, 0, 0)) });
-                var ring = new Grid { Width = 76, Height = 76, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                ring.Children.Add(new ProgressRing { IsActive = true, Width = 76, Height = 76, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
                 var percent = job.Status is "extracting" or "committing" ? 96 : (int)Math.Clamp(job.Percent, 0, 95);
-                ring.Children.Add(new TextBlock { Text = percent + "%", FontSize = 17, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-                cover.Children.Add(ring);
+                cover.Children.Add(CircularProgress(percent));
             }
             else if (job.Status == "complete")
             {
                 cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(150, 0, 0, 0)) });
-                cover.Children.Add(new TextBlock { Text = "✓", FontSize = 60, Foreground = new SolidColorBrush(Windows.UI.Colors.White),
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                var check = new TextBlock { Text = "✓", FontSize = 60, Foreground = new SolidColorBrush(Windows.UI.Colors.White),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                cover.Children.Add(check);
+                if (MotionEnabled)
+                {
+                    var appear = new FadeInThemeAnimation(); Storyboard.SetTarget(appear, check);
+                    var animation = new Storyboard(); animation.Children.Add(appear); animation.Begin();
+                }
             }
             card.Children.Add(cover);
             var content = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
@@ -690,6 +716,47 @@ public sealed partial class MainWindow : Window
             DownloadRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = card });
         }
     }
+    private Grid CircularProgress(int value)
+    {
+        value = Math.Clamp(value, 0, 99);
+        const double size = 76, center = 38, radius = 33;
+        var canvas = new Grid { Width = size, Height = size, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        canvas.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse
+        {
+            Width = size, Height = size, StrokeThickness = 4,
+            Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(110, 255, 255, 255)),
+            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
+        });
+        if (value > 0)
+        {
+            var angle = value / 100d * 2 * Math.PI;
+            var end = new Point(center + radius * Math.Sin(angle), center - radius * Math.Cos(angle));
+            var figure = new Microsoft.UI.Xaml.Media.PathFigure { StartPoint = new Point(center, center - radius), IsClosed = false };
+            figure.Segments.Add(new Microsoft.UI.Xaml.Media.ArcSegment
+            {
+                Point = end, Size = new Size(radius, radius), IsLargeArc = value > 50,
+                SweepDirection = Microsoft.UI.Xaml.Media.SweepDirection.Clockwise
+            });
+            var geometry = new Microsoft.UI.Xaml.Media.PathGeometry(); geometry.Figures.Add(figure);
+            canvas.Children.Add(new Microsoft.UI.Xaml.Shapes.Path
+            {
+                Data = geometry, StrokeThickness = 5,
+                StrokeStartLineCap = Microsoft.UI.Xaml.Media.PenLineCap.Round,
+                StrokeEndLineCap = Microsoft.UI.Xaml.Media.PenLineCap.Round,
+                Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 132, 216, 0))
+            });
+        }
+        canvas.Children.Add(new TextBlock { Text = value + "%", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+        return canvas;
+    }
+    private static Windows.UI.Color GameAccent(Game game)
+    {
+        var value = game.Data.S("accentColor", "accent_color", "themeColor", "theme_color").Trim().TrimStart('#');
+        if (value.Length == 6 && uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+            return Windows.UI.Color.FromArgb(232, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+        return Windows.UI.Color.FromArgb(232, 105, 171, 0);
+    }
     internal string FormatDate(string value, bool includeTime = false)
     {
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date)) return value;
@@ -699,7 +766,46 @@ public sealed partial class MainWindow : Window
     private async Task LaunchWithSequence(Game game)
     {
         if (Games.Busy(game.Id) || !await RequireAccount()) return;
-        await Guard(() => Games.Launch(game));
+        var revision = ++launchSequenceRevision;
+        LaunchSequenceTitle.Text = game.Title;
+        LaunchShip.Opacity = 1;
+        LaunchShipTransform.Y = 0;
+        LaunchSequenceOverlay.IsHitTestVisible = true;
+        LaunchSequenceOverlay.Visibility = Visibility.Visible;
+        try
+        {
+            await Task.Delay(1500);
+            if (revision != launchSequenceRevision) return;
+            if (MotionEnabled)
+            {
+                var fly = new DoubleAnimation
+                {
+                    From = 0, To = -Math.Max(600, Root.ActualHeight + 220),
+                    Duration = new Duration(TimeSpan.FromMilliseconds(500)),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+                };
+                Storyboard.SetTarget(fly, LaunchShipTransform);
+                Storyboard.SetTargetProperty(fly, "Y");
+                var fade = new DoubleAnimation { From = 1, To = 0, Duration = new Duration(TimeSpan.FromMilliseconds(420)) };
+                Storyboard.SetTarget(fade, LaunchShip);
+                Storyboard.SetTargetProperty(fade, "Opacity");
+                var launch = new Storyboard();
+                launch.Children.Add(fly); launch.Children.Add(fade); launch.Begin();
+                await Task.Delay(520);
+            }
+            else await Task.Delay(500);
+            if (revision != launchSequenceRevision) return;
+        }
+        finally
+        {
+            if (revision == launchSequenceRevision)
+            {
+                LaunchSequenceOverlay.Visibility = Visibility.Collapsed;
+                LaunchShip.Opacity = 1;
+                LaunchShipTransform.Y = 0;
+            }
+        }
+        if (revision == launchSequenceRevision) await Guard(() => Games.Launch(game));
     }
     private static string Bytes(long value) => value >= 1073741824 ? (value / 1073741824.0).ToString("0.0") + " GB" :
         value >= 1048576 ? (value / 1048576.0).ToString("0.0") + " MB" : value >= 1024 ? (value / 1024.0).ToString("0") + " KB" : value + " B";

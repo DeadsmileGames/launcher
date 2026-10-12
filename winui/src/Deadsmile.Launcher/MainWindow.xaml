@@ -388,7 +388,7 @@
     </Grid>
    </Border>
   </Grid>
-  <Grid x:Name="LaunchSequenceOverlay" Grid.RowSpan="2" Background="#E9080808" Visibility="Collapsed" IsHitTestVisible="False">
+  <Grid x:Name="LaunchSequenceOverlay" Grid.RowSpan="2" Background="#E9080808" Visibility="Collapsed" IsHitTestVisible="True">
    <Grid RowSpacing="20" Padding="32"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
      <TextBlock x:Name="LaunchShip" Text="🚀" FontSize="92" HorizontalAlignment="Center"><TextBlock.RenderTransform><TranslateTransform x:Name="LaunchShipTransform"/></TextBlock.RenderTransform></TextBlock>

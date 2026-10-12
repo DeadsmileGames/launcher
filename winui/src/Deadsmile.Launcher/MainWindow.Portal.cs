@@ -285,6 +285,8 @@ public sealed partial class MainWindow
     private void HomeHeroPauseClick(object sender, RoutedEventArgs e)
     {
         homeHeroPaused = !homeHeroPaused;
+        if (homeHeroPaused) homeBannerPlayer?.Pause();
+        else if (Preferences.VideoBackgrounds && MotionEnabled) homeBannerPlayer?.Play();
         HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
         AutomationProperties.SetName(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
     }
@@ -295,6 +297,47 @@ public sealed partial class MainWindow
         RememberPage(); selected = null; page = "settings"; ShowPage();
         _ = LoadProfileSettings(); NewswireToggle.StartBringIntoView();
         Notify(Locale.T("Turn off Show Newswire on Home in settings."), InfoBarSeverity.Informational);
+    }
+    private void StopHomeVideo()
+    {
+        homeMediaRevision++;
+        homeVideoGameId = null;
+        homeBannerPlayer?.Dispose();
+        homeBannerPlayer = null;
+        FeaturedVideo.Visibility = Visibility.Collapsed;
+    }
+    private async Task ConfigureHomeVideo(Game game)
+    {
+#if UI_VALIDATION
+        return;
+#else
+        if (homeVideoGameId == game.Id && homeBannerPlayer is not null) return;
+        var revision = ++homeMediaRevision;
+        homeVideoGameId = game.Id;
+        homeBannerPlayer?.Dispose(); homeBannerPlayer = null;
+        FeaturedVideo.Visibility = Visibility.Collapsed;
+        if (!Preferences.VideoBackgrounds || !MotionEnabled || game.BackgroundVideo.Length == 0) return;
+        try
+        {
+            if (!Uri.TryCreate(game.BackgroundVideo, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return;
+            MediaSource? source;
+            if (uri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
+            {
+                var adaptive = await AdaptiveMediaSource.CreateFromUriAsync(uri);
+                if (revision != homeMediaRevision || adaptive.Status != AdaptiveMediaSourceCreationStatus.Success) return;
+                source = MediaSource.CreateFromAdaptiveMediaSource(adaptive.MediaSource);
+            }
+            else source = MediaSource.CreateFromUri(uri);
+            if (revision != homeMediaRevision) { source.Dispose(); return; }
+            var player = new MediaPlayer { Source = source, IsMuted = true, IsLoopingEnabled = true };
+            homeBannerPlayer = player; FeaturedVideo.SetMediaPlayer(player);
+            FeaturedVideo.Visibility = Visibility.Visible;
+            FeaturedVideo.Width = HomeHeroSurface.ActualWidth;
+            FeaturedVideo.Height = HomeHeroSurface.ActualHeight;
+            player.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+            { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; });
+            player.Play();
+#endif
     }
     private async void AddVideoBackground(Game game, Grid hero, Image fallback)
     {
@@ -313,9 +356,26 @@ public sealed partial class MainWindow
             else source = MediaSource.CreateFromUri(uri);
             if (revision != detailRevision) { source.Dispose(); return; }
             var player = new MediaPlayer { Source = source, IsMuted = true, IsLoopingEnabled = true }; bannerPlayer = player;
-            var video = new MediaPlayerElement { Stretch = Stretch.UniformToFill, AreTransportControlsEnabled = false, Height = 360, MaxHeight = 360 };
+            var video = new MediaPlayerElement
+            {
+                Stretch = Stretch.UniformToFill, AreTransportControlsEnabled = false,
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
             video.SetMediaPlayer(player); hero.Children.Insert(1, video);
-            hero.SizeChanged += (_, _) => { video.Width = hero.ActualWidth; video.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, hero.ActualWidth, 360) }; };
+            var contentStack = hero.Children.OfType<StackPanel>().FirstOrDefault(stack => stack.MaxWidth == 640);
+            void LayoutVideo()
+            {
+                var available = Math.Max(0, hero.ActualWidth - 24);
+                video.Width = Math.Min(640, Math.Min(available, hero.ActualWidth * 0.52));
+                video.Height = Math.Min(360, video.Width * 9 / 16);
+                video.MaxHeight = video.Height;
+                video.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, video.Width, video.Height) };
+                if (contentStack is not null)
+                    contentStack.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - video.Width - 36));
+            }
+            hero.SizeChanged += (_, _) => LayoutVideo();
+            LayoutVideo();
             player.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() => { if (revision == detailRevision) video.Visibility = Visibility.Collapsed; });
             var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16) };
             var pause = new Button { Content = new SymbolIcon(Symbol.Pause) }; pause.Click += (_, _) => { if (player.PlaybackSession.PlaybackState == MediaPlaybackState.Playing) { player.Pause(); pause.Content = new SymbolIcon(Symbol.Play); } else { player.Play(); pause.Content = new SymbolIcon(Symbol.Pause); } };

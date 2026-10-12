@@ -12,7 +12,7 @@
  <Applications><Application Id="DeadsmileGamesLauncher" Executable="Deadsmile.Launcher.exe" EntryPoint="Windows.FullTrustApplication"
    uap10:RuntimeBehavior="packagedClassicApp" uap10:TrustLevel="mediumIL">
   <uap:VisualElements DisplayName="Deadsmile Games Launcher" Description="Discover, download and manage Deadsmile Games"
-    BackgroundColor="#0F0F0F" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+    BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
    <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/><uap:SplashScreen Image="Assets\SplashScreen.png"/>
   </uap:VisualElements>
   <Extensions><uap3:Extension Category="windows.protocol"><uap3:Protocol Name="deadsmile" Parameters="&quot;%1&quot;"/></uap3:Extension></Extensions>

@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Deadsmile.Launcher.Views;
 
 namespace Deadsmile.Launcher;
 
@@ -77,21 +78,22 @@ public sealed partial class MainWindow
         }
         async Task Resize(int width, int height)
         { AppWindow.Resize(new Windows.Graphics.SizeInt32(width, height)); await Task.Delay(700); Root.UpdateLayout(); }
-        async Task Capture(string name)
+        async Task Capture(string name, FrameworkElement? surface = null)
         {
+            surface ??= Root;
             void UseLocalArtwork(DependencyObject node)
             {
                 if (node is Image { Source: BitmapImage { UriSource: { Host: "fixture.invalid" } } } image)
                     image.Source = new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
                 for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) UseLocalArtwork(VisualTreeHelper.GetChild(node, i));
             }
-            UseLocalArtwork(Root);
-            await Task.Delay(500); Root.UpdateLayout();
-            var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync(Root);
+            UseLocalArtwork(surface);
+            await Task.Delay(500); surface.UpdateLayout();
+            var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync(surface);
             var buffer = await bitmap.GetPixelsAsync(); var bytes = new byte[buffer.Length];
             using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(bytes);
             Check(bitmap.PixelWidth > 0 && bitmap.PixelHeight > 0 && bytes.Any(x => x != 0), "Rendered " + name);
-            if (Shell.Visibility == Visibility.Visible && !Shell.IsPaneOpen)
+            if (surface == Root && Root.RequestedTheme == ElementTheme.Dark && Shell.Visibility == Visibility.Visible && !Shell.IsPaneOpen)
             {
                 var scale = bitmap.PixelWidth / Root.ActualWidth;
                 void Pixel(int x, int y, byte value, string label)
@@ -135,9 +137,24 @@ public sealed partial class MainWindow
             Check(GameGrid.Items.Count == 1, "Title-bar search filters the library"); SearchBox.Text = ""; await Task.Delay(200); RenderCatalog();
             await LoadDetail(Catalog[0]); await Task.Delay(300);
             Check(DetailPanel.Visibility == Visibility.Visible && AppTitleBar.IsBackButtonEnabled, "Game details enable native back navigation");
-            Check(((FrameworkElement)DetailContent.Children[0]).ActualHeight <= 420, "Product hero leaves room for Store content below it");
+            Check(((FrameworkElement)DetailContent.Children[0]).ActualHeight == 360 && heroImage?.ActualHeight == 360, "Product hero and image are limited to a 360 DIP strip");
+            Check(((Grid)DetailContent.Children[0]).Clip is RectangleGeometry, "Product image is clipped to its banner container");
             await Capture("06-game-details-1280");
+            async Task GalleryCheck(string name, bool portrait)
+            {
+                var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
+                var content = (Grid)dialog.Content; var full = (Image)content.Children[0];
+                // Extreme source aspect ratios expose oversized natural-size image layout.
+                full.Source = new WriteableBitmap(portrait ? 600 : 4096, portrait ? 4096 : 600);
+                var showing = dialog.ShowAsync(); await Task.Delay(600); content.UpdateLayout();
+                var bounds = full.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, full.ActualWidth, full.ActualHeight));
+                Check(full.Stretch == Stretch.Uniform && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
+                    "Entire " + (portrait ? "portrait" : "panoramic") + " screenshot fits the native dialog in " + name);
+                await Capture(name); dialog.Hide(); await showing;
+            }
+            await GalleryCheck("12-gallery-wide-1280", false);
             await Resize(800, 600); await Capture("07-game-details-800");
+            await GalleryCheck("13-gallery-portrait-800", true);
             TitleBackRequested(AppTitleBar, new object());
             Check(DetailPanel.Visibility == Visibility.Collapsed && !AppTitleBar.IsBackButtonEnabled, "Native back restores the library");
             await Resize(1280, 800); Shell.SelectedItem = DownloadsItem; await Task.Delay(200);
@@ -146,8 +163,28 @@ public sealed partial class MainWindow
             Shell.SelectedItem = Shell.SettingsItem; await Task.Delay(200);
             Check(page == "settings" && SettingsPanel.Visibility == Visibility.Visible, "Native settings selection navigates");
             await Capture("09-settings-1280");
-            await Resize(800, 600); Fits(SettingsLanguage, "Language setting fits at 800x600"); await Capture("10-settings-800");
-            await Resize(640, 480); Fits(SettingsLanguage, "Language setting fits at minimum width"); await Capture("11-settings-640");
+            Check(ThemeChoice.Items.Count == 3 && AnimationToggle.IsOn && MaterialsToggle.IsOn, "Native appearance preferences are available");
+            await Resize(800, 600); ThemeChoice.StartBringIntoView(); await Task.Delay(300); Fits(ThemeChoice, "Theme setting fits at 800x600"); await Capture("10-settings-800");
+            SettingsLanguage.StartBringIntoView(); await Task.Delay(300); Fits(SettingsLanguage, "Language setting fits at 800x600");
+            await Resize(640, 480); SettingsLanguage.StartBringIntoView(); await Task.Delay(300); Fits(SettingsLanguage, "Language setting fits at minimum width"); await Capture("11-settings-640");
+            await Resize(1280, 800); ThemeChoice.SelectedIndex = 1; SettingsPanel.ChangeView(null, 0, null, true); await Task.Delay(300);
+            Check(Root.RequestedTheme == ElementTheme.Light && ((SolidColorBrush)Root.Background).Color.R > 240, "Light theme applies immediately with native resources");
+            await Capture("14-settings-light");
+            AnimationToggle.IsOn = false;
+            Check(!MotionEnabled && DetailContent.ChildrenTransitions is null, "Reduced motion removes native application transitions");
+            AnimationToggle.IsOn = true; ThemeChoice.SelectedIndex = 0;
+            NavigationChoice.SelectedIndex = 1;
+            Check(Shell.PaneDisplayMode == NavigationViewPaneDisplayMode.Left, "Expanded navigation preference applies");
+            NavigationChoice.SelectedIndex = 0;
+            Check(storage.Read("winui-appearance.json", new Services.UiPreferences()).Theme == "dark", "Appearance preferences persist");
+            var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
+            Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
+            await Capture("15-game-view-widgets", widgetRoot);
+            view.ValidationPinAndHide(); Check(view.ValidationPinned, "Pinned widget remains visible when Game View closes"); view.Close();
+            var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), "Uma conquista com um título longo, para conferir a leitura do aviso", forceSolid: true);
+            toast.ShowOn(IntPtr.Zero); await Task.Delay(300);
+            Check(toast.ValidationSolid, "Windows 10 achievement fallback always has an opaque background");
+            await Capture("16-achievement-solid", toast.ValidationRoot); toast.Close();
             await File.WriteAllTextAsync(Path.Combine(output, "results.json"), JsonSerializer.Serialize(new { passed = true, checks, screenshots = Directory.GetFiles(output, "*.png").Length }, new JsonSerializerOptions { WriteIndented = true }));
             Environment.Exit(0);
         }

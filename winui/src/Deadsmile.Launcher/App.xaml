@@ -12,6 +12,17 @@
      <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#202020"/>
      <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#202020"/>
      <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#272727"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="#272727"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#202020"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+     <SolidColorBrush x:Key="SidebarBrush" Color="#F3F3F3"/>
+     <SolidColorBrush x:Key="BaseBrush" Color="#FAFAFA"/>
+     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#F3F3F3"/>
+     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#F3F3F3"/>
+     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FAFAFA"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="#FAFAFA"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#F3F3F3"/>
     </ResourceDictionary>
     <ResourceDictionary x:Key="HighContrast">
      <SolidColorBrush x:Key="SidebarBrush" Color="{ThemeResource SystemColorWindowColor}"/>
@@ -19,6 +30,8 @@
      <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="{ThemeResource SystemColorWindowColor}"/>
      <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="{ThemeResource SystemColorWindowColor}"/>
      <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="{ThemeResource SystemColorWindowColor}"/>
     </ResourceDictionary>
    </ResourceDictionary.ThemeDictionaries>
    <Style x:Key="Panel" TargetType="Border">

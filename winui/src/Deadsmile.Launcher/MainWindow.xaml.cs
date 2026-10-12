@@ -14,6 +14,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.Windows.AppLifecycle;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -56,6 +57,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         storage = new Storage();
+        Preferences = storage.Read("winui-appearance.json", new UiPreferences());
         Locale.Language = storage.Read("winui-language.json", "pt-BR");
         if (Locale.Language is not ("pt-BR" or "en" or "es")) Locale.Language = "pt-BR";
         var sessions = new SessionStore(storage);
@@ -92,9 +94,10 @@ public sealed partial class MainWindow : Window
         heroTimer = DispatcherQueue.CreateTimer(); heroTimer.Interval = TimeSpan.FromSeconds(5);
         heroTimer.Tick += (_, _) =>
         {
-            if (heroPaused || heroImages.Length < 2 || heroImage is null || !AppWindow.IsVisible ||
-                !new Windows.UI.ViewManagement.UISettings().AnimationsEnabled) return;
+            if (heroPaused || !Preferences.RotateBanners || !MotionEnabled || heroImages.Length < 2 || heroImage is null || !AppWindow.IsVisible) return;
             heroIndex = (heroIndex + 1) % heroImages.Length; SetImage(heroImage, heroImages[heroIndex]);
+            var animation = new FadeInThemeAnimation(); Storyboard.SetTarget(animation, heroImage);
+            var storyboard = new Storyboard(); storyboard.Children.Add(animation); storyboard.Begin();
         };
         heroTimer.Start();
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Icon.ico"));
@@ -110,13 +113,16 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) =>
         {
             live.Dispose(); achievements.Stop(); downloads.Dispose(); native.Dispose(); overlay?.Close();
-            downloadTimer.Stop(); heroTimer.Stop(); Api.Dispose();
+            downloadTimer.Stop(); heroTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
         Root.SizeChanged += (_, _) => AdjustLayout();
         GameGrid.SizeChanged += (_, _) => AdjustLayout();
         Shell.SelectedItem = ExploreItem;
         ready = true;
+        ApplyAppearance();
+        Root.ActualThemeChanged += (_, _) => ApplyCaptionColors();
+        systemUi.ColorValuesChanged += SystemColorsChanged;
         OverlayShortcut = storage.Read("game-view.json", new JsonObject()).S("shortcut");
         if (string.IsNullOrWhiteSpace(OverlayShortcut)) OverlayShortcut = "Control+D";
         OverlayToggle.IsOn = storage.Read("game-view.json", new JsonObject()).B("enabled") ||
@@ -405,15 +411,17 @@ public sealed partial class MainWindow : Window
     private void RenderDetail(Game game)
     {
         DetailContent.Children.Clear(); heroImages = game.HeroImages; heroIndex = 0;
-        var hero = new Grid { Height = 400, MinHeight = 360, CornerRadius = new CornerRadius(8), Background = (Brush)Application.Current.Resources["BaseBrush"] };
-        heroImage = new Image { Stretch = Stretch.UniformToFill };
+        var hero = new Grid { Height = 360, MaxHeight = 360, CornerRadius = new CornerRadius(8) };
+        hero.Background = Root.Background;
+        heroImage = new Image { Height = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var banner = heroImage;
         SetImage(heroImage, heroImages.FirstOrDefault() ?? ""); hero.Children.Add(heroImage);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(245, 39, 39, 39), Offset = 0 });
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 39, 39, 39), Offset = 0.4 });
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(70, 39, 39, 39), Offset = 1 });
         hero.Children.Add(new Border { Background = shade, CornerRadius = new CornerRadius(8) });
-        var contents = new StackPanel { Spacing = 16, Padding = new Thickness(32), MaxWidth = 640,
+        var contents = new StackPanel { Spacing = 16, Padding = new Thickness(24), MaxWidth = 640, RequestedTheme = ElementTheme.Dark,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         var identity = new Grid { ColumnSpacing = 24 };
         identity.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -427,7 +435,7 @@ public sealed partial class MainWindow : Window
         if (game.Genres.Length > 0) heading.Children.Add(Text(game.Genres));
         Grid.SetColumn(heading, 1); identity.Children.Add(heading); contents.Children.Add(identity);
         if (game.Description.Length > 0)
-        { var summary = Text(game.Description); summary.MaxLines = 3; summary.TextTrimming = TextTrimming.CharacterEllipsis; contents.Children.Add(summary); }
+        { var summary = Text(game.Description); summary.MaxLines = 2; summary.TextTrimming = TextTrimming.CharacterEllipsis; contents.Children.Add(summary); }
         var buttons = new List<Button>(); var options = new MenuFlyout();
         var busy = Games.Busy(game.Id) || downloads.Busy(game.Id) || commandBusy;
         if (installs.Installed.ContainsKey(game.Id) && game.CanLaunch)
@@ -463,6 +471,12 @@ public sealed partial class MainWindow : Window
         }
         if (buttons.Count == 0) { var unavailable = Action("Unavailable", () => Task.CompletedTask); unavailable.IsEnabled = false; buttons.Add(unavailable); }
         contents.Children.Add(WrapActions(buttons)); hero.Children.Add(contents);
+        hero.SizeChanged += (_, _) =>
+        {
+            banner.Width = Math.Max(0, hero.ActualWidth);
+            contents.Width = Math.Min(640, hero.ActualWidth);
+            hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
+        };
         if (heroImages.Length > 1)
         {
             var pause = new Button { Content = new SymbolIcon(heroPaused ? Symbol.Play : Symbol.Pause), Margin = new Thickness(16),
@@ -556,20 +570,12 @@ public sealed partial class MainWindow : Window
     }
     private async Task Gallery(string[] images, int index)
     {
-        var image = new Image { Stretch = Stretch.Uniform, MaxHeight = Math.Max(200, Root.XamlRoot.Size.Height - 200) };
-        SetImage(image, images[index]);
-        var panel = new StackPanel { Spacing = 16, Width = Math.Max(300, Math.Min(1000, Root.XamlRoot.Size.Width - 150)) };
-        panel.Children.Add(image);
-        var commands = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, HorizontalAlignment = HorizontalAlignment.Center };
-        foreach (var (title, delta) in new[] { ("Previous", -1), ("Next", 1) })
-            commands.Children.Add(Action(title, () => { index = (index + delta + images.Length) % images.Length; SetImage(image, images[index]); return Task.CompletedTask; }));
-        panel.Children.Add(commands);
-        await new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = ElementTheme.Dark, Content = panel,
-            CloseButtonText = Locale.T("Close") }.ShowAsync();
+        var viewer = CreateGallery(images, index);
+        await viewer.ShowAsync();
     }
     private async Task Uninstall(Game game)
     {
-        var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = ElementTheme.Dark,
+        var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.RequestedTheme,
             Title = Locale.T("Uninstall") + " " + game.Title, Content = Locale.T("Uninstall this game?"),
             PrimaryButtonText = Locale.T("Uninstall"), CloseButtonText = Locale.T("Cancel") };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -659,6 +665,7 @@ public sealed partial class MainWindow : Window
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");
             OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
+            AppearanceLabels();
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
             EmailBox.Header = Locale.T("Email or username"); PasswordBox.Header = Locale.T("Password");
             CodeBox.Header = Locale.T("Authentication code"); SearchBox.PlaceholderText = Locale.T("Search games");
@@ -683,7 +690,7 @@ public sealed partial class MainWindow : Window
     {
         if (!ready) return;
         storage.Write("game-view.json", new { enabled = OverlayToggle.IsOn, shortcut = OverlayShortcut });
-        if (!OverlayToggle.IsOn) overlay?.Hide(); UpdateBusy();
+        if (!OverlayToggle.IsOn) overlay?.Hide(true); UpdateBusy();
     }
     private void ToggleOverlay()
     {
@@ -691,14 +698,15 @@ public sealed partial class MainWindow : Window
         {
             if (!OverlayToggle.IsOn || Games.Running.Length == 0) return;
             overlay ??= new GameViewWindow(this);
-            if (overlay.AppWindow.IsVisible) overlay.Hide(); else overlay.Show();
+            if (overlay.IsOpen) overlay.Hide(); else overlay.Show();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log("OVERLAY_UNAVAILABLE"); }
     }
     private void ShowAchievement(JsonNode achievement)
     {
         Notify(Locale.T("Achievement unlocked") + ": " + achievement.S("title"), InfoBarSeverity.Success);
-        var toast = new AchievementWindow(Locale.T("Achievement unlocked"), achievement.S("title"));
+        if (!Preferences.AchievementToasts) return;
+        var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), achievement.S("title"));
         toast.ShowOn(Games.Running.FirstOrDefault()?.Process.MainWindowHandle ?? IntPtr.Zero);
     }
     private void OpenGamesClick(object sender, RoutedEventArgs e) =>
@@ -713,7 +721,7 @@ public sealed partial class MainWindow : Window
             { Notify(Locale.T("Updates are managed by App Installer or Microsoft Store."), InfoBarSeverity.Informational); return; }
             var update = await updater.Check();
             if (update is null) { Notify(Locale.T("No update available."), InfoBarSeverity.Informational); return; }
-            var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = ElementTheme.Dark,
+            var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.RequestedTheme,
                 Title = Locale.T("Update available") + " " + update.Version, Content = update.Notes,
                 PrimaryButtonText = Locale.T("Update"), CloseButtonText = Locale.T("Cancel") };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -731,7 +739,7 @@ public sealed partial class MainWindow : Window
         {
         if (Games.AnyBusy || commandBusy)
         { Notify(Locale.T("Close running games before exiting the launcher.")); return; }
-        var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = ElementTheme.Dark,
+        var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.RequestedTheme,
             Title = Locale.T("Downloads in progress"), Content = Locale.T("Cancel downloads and exit?"),
             PrimaryButtonText = Locale.T("Exit"), CloseButtonText = Locale.T("Cancel") };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;

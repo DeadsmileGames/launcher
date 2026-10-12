@@ -64,6 +64,12 @@ public sealed class NativeWindow : IDisposable
         var ex = GetWindowLongPtr(h, -20).ToInt64();
         SetWindowLongPtr(h, -20, new IntPtr(pass ? ex | 0x20 : ex & ~0x20));
     }
+    public static void RoundCorners(Window window)
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
+        var preference = 2; // DWMWCP_ROUND, available in Windows 11.
+        DwmSetWindowAttribute(WinRT.Interop.WindowNative.GetWindowHandle(window), 33, ref preference, sizeof(int));
+    }
     public static Rect MonitorFor(IntPtr game)
     {
         var monitor = MonitorFromWindow(game, 2); var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
@@ -91,6 +97,7 @@ public sealed class NativeWindow : IDisposable
     [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate IntPtr WndProc(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)] private static extern IntPtr SetWindowLongPtr(IntPtr h, int index, IntPtr value);
+    [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr h, int attribute, ref int value, int size);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
     [DllImport("user32.dll", EntryPoint = "CallWindowProcW")] private static extern IntPtr CallWindowProc(IntPtr proc, IntPtr h, uint msg, IntPtr wp, IntPtr lp);
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint key);

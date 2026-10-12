@@ -155,6 +155,21 @@
      <ScrollViewer x:Name="SettingsPanel" Visibility="Collapsed">
       <StackPanel Spacing="24" MaxWidth="1000" HorizontalAlignment="Stretch" Padding="0,0,8,24">
        <StackPanel Spacing="12">
+        <TextBlock Text="Appearance" Tag="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}"><StackPanel Spacing="20">
+         <ComboBox x:Name="ThemeChoice" Header="App theme" HorizontalAlignment="Stretch" SelectionChanged="AppearanceChanged">
+          <ComboBoxItem Content="Dark" Tag="dark"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Use system setting" Tag="system"/>
+         </ComboBox>
+         <ComboBox x:Name="NavigationChoice" Header="Navigation" HorizontalAlignment="Stretch" SelectionChanged="AppearanceChanged">
+          <ComboBoxItem Content="Compact" Tag="compact"/><ComboBoxItem Content="Expanded" Tag="expanded"/>
+         </ComboBox>
+         <ToggleSwitch x:Name="AnimationToggle" Header="Animations" Toggled="AppearanceToggled"/>
+         <ToggleSwitch x:Name="BannerToggle" Header="Rotate featured images" Toggled="AppearanceToggled"/>
+         <ToggleSwitch x:Name="MaterialsToggle" Header="Windows visual effects" Toggled="AppearanceToggled"/>
+         <ToggleSwitch x:Name="ToastToggle" Header="Achievement notifications" Toggled="AppearanceToggled"/>
+        </StackPanel></Border>
+       </StackPanel>
+       <StackPanel Spacing="12">
         <TextBlock Text="Language" Tag="Language" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}"><Grid ColumnSpacing="24">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

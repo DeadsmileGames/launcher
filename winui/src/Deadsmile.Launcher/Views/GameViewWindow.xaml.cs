@@ -1,11 +1,16 @@
 using Deadsmile.Core;
 using Deadsmile.Launcher.Services;
-using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 
 namespace Deadsmile.Launcher.Views;
 
@@ -15,6 +20,14 @@ public sealed partial class GameViewWindow : Window
     private readonly DispatcherQueueTimer timer;
     private string? selected;
     private int request;
+    private bool positioned;
+    private Border? dragging;
+    private Point dragOrigin, panelOrigin;
+    private DateTime lastClock;
+    public bool IsOpen { get; private set; }
+    private Border[] Widgets => [ProfilePanel, LibraryPanel, AchievementsPanel, CloudPanel];
+    private ToggleButton[] Toggles => [ProfileToggle, LibraryToggle, AchievementsToggle, CloudToggle];
+    private ToggleButton[] Pins => [ProfilePin, LibraryPin, AchievementsPin, CloudPin];
     public GameViewWindow(MainWindow main)
     {
         owner = main; InitializeComponent();
@@ -25,7 +38,14 @@ public sealed partial class GameViewWindow : Window
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(60);
         timer.Tick += (_, _) => Monitor(); timer.Start();
         Closed += (_, _) => timer.Stop();
-        ReloadLabels();
+        OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
+        ApplyPreferences(); ReloadLabels();
+    }
+    public void ApplyPreferences()
+    {
+        OverlayRoot.RequestedTheme = owner.UiTheme;
+        foreach (var widget in Widgets)
+            widget.Transitions = owner.MotionEnabled ? new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 16, IsStaggeringEnabled = false } } : null;
     }
     public void Show()
     {
@@ -33,45 +53,139 @@ public sealed partial class GameViewWindow : Window
         if (game is null) return;
         selected ??= game.Game.Id;
         NativeWindow.Place(this, NativeWindow.MonitorFor(game.Process.MainWindowHandle));
-        NativeWindow.ShowInactive(this); _ = Reload();
+        OpenWidgets(); NativeWindow.ShowInactive(this); _ = Reload();
     }
-    public void Hide() { request++; AppWindow.Hide(); }
+    private void OpenWidgets()
+    {
+        IsOpen = true; ToolbarPanel.Visibility = Visibility.Visible;
+        for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        ApplyPreferences(); if (!positioned) ResetLayout(); ReloadLabels();
+    }
+    public void Hide(bool force = false)
+    {
+        request++; IsOpen = false; ToolbarPanel.Visibility = Visibility.Collapsed;
+        for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = !force && Pins[i].IsChecked == true && Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (force || Widgets.All(x => x.Visibility == Visibility.Collapsed)) AppWindow.Hide();
+    }
     private void ReloadLabels()
     {
-        ShortcutLabel.Text = owner.OverlayShortcut; ProfileHeading.Text = owner.Locale.T("Profile"); LibraryHeading.Text = owner.Locale.T("Library");
-        AchievementsHeading.Text = owner.Locale.T("Achievements"); CloudHeading.Text = owner.Locale.T("Cloud saves");
-        ReloadButton.Content = owner.Locale.T("Refresh"); CloseButton.Content = owner.Locale.T("Close");
+        ShortcutLabel.Text = owner.OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
+        var labels = new[] { "Profile", "Library", "Achievements", "Cloud saves" };
+        var headings = new[] { ProfileHeading, LibraryHeading, AchievementsHeading, CloudHeading };
+        for (var i = 0; i < labels.Length; i++)
+        {
+            headings[i].Text = owner.Locale.T(labels[i]);
+            AutomationProperties.SetName(Toggles[i], owner.Locale.T(labels[i])); ToolTipService.SetToolTip(Toggles[i], owner.Locale.T(labels[i]));
+            AutomationProperties.SetName(Pins[i], owner.Locale.T("Pin widget")); ToolTipService.SetToolTip(Pins[i], owner.Locale.T("Pin widget"));
+            if (Widgets[i].Child is Grid root && root.Children[0] is Grid header && header.Children.LastOrDefault() is Button close)
+            { AutomationProperties.SetName(close, owner.Locale.T("Close widget")); ToolTipService.SetToolTip(close, owner.Locale.T("Close widget")); }
+        }
+        foreach (var (button, label) in new[] { (ReloadButton, "Refresh"), (LayoutButton, "Reset widget layout"), (CloseButton, "Close") })
+        { AutomationProperties.SetName(button, owner.Locale.T(label)); ToolTipService.SetToolTip(button, owner.Locale.T(label)); }
+        ClockLabel.Text = DateTime.Now.ToString("t");
     }
     private void Monitor()
     {
         if (!AppWindow.IsVisible) return;
+#if !UI_VALIDATION
         if (owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
-        { Hide(); return; }
+        { Hide(true); return; }
+#endif
+        if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
         var point = NativeWindow.Cursor(this); var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
         point = new(point.X / scale, point.Y / scale);
-        var panels = new[] { ToolbarPanel, ProfilePanel, AchievementsPanel, LibraryPanel, CloudPanel };
-        var interactive = panels.Any(p =>
+        var panels = Widgets.Append(ToolbarPanel);
+        var interactive = dragging is not null || panels.Any(p =>
         {
-            var rect = p.TransformToVisual(OverlayRoot).TransformBounds(new Windows.Foundation.Rect(0, 0, p.ActualWidth, p.ActualHeight));
+            if (p.Visibility != Visibility.Visible) return false;
+            var rect = p.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, p.ActualWidth, p.ActualHeight));
             return rect.Contains(point);
         });
         NativeWindow.PassClicks(this, !interactive);
     }
+    private Border Widget(string name) => Widgets.First(x => x.Tag?.ToString() == name);
+    private void WidgetToggled(object sender, RoutedEventArgs e)
+    {
+        var button = (ToggleButton)sender;
+        Widget(button.Tag.ToString()!).Visibility = button.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+    private void CloseWidget(object sender, RoutedEventArgs e)
+    {
+        var name = ((Button)sender).Tag.ToString(); var i = Array.FindIndex(Widgets, x => x.Tag.ToString() == name);
+        Pins[i].IsChecked = false; Toggles[i].IsChecked = false; Widgets[i].Visibility = Visibility.Collapsed;
+    }
+    private void ResetLayoutClick(object sender, RoutedEventArgs e) => ResetLayout();
+    private void ResetLayout()
+    {
+        var width = OverlayRoot.ActualWidth; var height = OverlayRoot.ActualHeight;
+        if (width < 100 || height < 100) return;
+        var margin = width < 1000 ? 16d : 24d;
+        var gap = width < 1000 ? 12d : 24d;
+        var available = width - margin * 2 - gap * 2;
+        var side = Math.Min(300, available * 0.29); var center = Math.Min(480, available - side * 2);
+        var top = 112d; var bottom = Math.Max(180, height - top - margin);
+        ProfilePanel.Width = AchievementsPanel.Width = side; ProfilePanel.Height = Math.Min(200, bottom * 0.4);
+        LibraryPanel.Width = center; LibraryPanel.Height = bottom;
+        CloudPanel.Width = side; CloudPanel.Height = Math.Min(360, bottom);
+        AchievementsPanel.Height = Math.Max(120, bottom - ProfilePanel.Height - gap);
+        Canvas.SetLeft(ProfilePanel, margin); Canvas.SetTop(ProfilePanel, top);
+        Canvas.SetLeft(AchievementsPanel, margin); Canvas.SetTop(AchievementsPanel, top + ProfilePanel.Height + gap);
+        Canvas.SetLeft(LibraryPanel, margin + side + gap); Canvas.SetTop(LibraryPanel, top);
+        Canvas.SetLeft(CloudPanel, width - margin - side); Canvas.SetTop(CloudPanel, top);
+        positioned = true; ClampWidgets();
+    }
+    private void ClampWidgets()
+    {
+        foreach (var widget in Widgets)
+        {
+            widget.Width = Math.Min(widget.Width, Math.Max(120, OverlayRoot.ActualWidth - 32));
+            widget.Height = Math.Min(widget.Height, Math.Max(120, OverlayRoot.ActualHeight - 112));
+            Canvas.SetLeft(widget, Math.Clamp(Canvas.GetLeft(widget), 16, Math.Max(16, OverlayRoot.ActualWidth - widget.Width - 16)));
+            Canvas.SetTop(widget, Math.Clamp(Canvas.GetTop(widget), 96, Math.Max(96, OverlayRoot.ActualHeight - widget.Height - 16)));
+        }
+    }
+    private void WidgetPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(OverlayRoot).Properties.IsLeftButtonPressed) return;
+        var header = (Grid)sender; dragging = Widget(header.Tag.ToString()!);
+        dragOrigin = e.GetCurrentPoint(OverlayRoot).Position; panelOrigin = new(Canvas.GetLeft(dragging), Canvas.GetTop(dragging));
+        header.CapturePointer(e.Pointer); NativeWindow.PassClicks(this, false); e.Handled = true;
+    }
+    private void WidgetPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (dragging is null) return; var point = e.GetCurrentPoint(OverlayRoot).Position;
+        Canvas.SetLeft(dragging, panelOrigin.X + point.X - dragOrigin.X); Canvas.SetTop(dragging, panelOrigin.Y + point.Y - dragOrigin.Y);
+        ClampWidgets(); e.Handled = true;
+    }
+    private void WidgetPointerReleased(object sender, PointerRoutedEventArgs e)
+    { dragging = null; ((Grid)sender).ReleasePointerCaptures(); }
     private async Task Reload()
     {
         var revision = ++request;
         try
         {
-            ReloadLabels(); UserLabel.Text = owner.User.S("username");
+            ReloadLabels(); UserLabel.Text = owner.User.S("username"); ProfileAvatar.DisplayName = UserLabel.Text;
             PlayingLabel.Text = string.Join(" · ", owner.Games.Running.Select(x => x.Game.Title));
             LibraryRows.Children.Clear();
             foreach (var game in owner.Catalog.Where(x => x.InLibrary))
             {
-                var button = new Button { Content = game.Title, HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Left };
-                button.Click += async (_, _) => { selected = game.Id; await Reload(); };
+                var row = new Grid { ColumnSpacing = 12 }; row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); row.ColumnDefinitions.Add(new ColumnDefinition());
+                var picture = new Image { Width = 48, Height = 48, Stretch = Stretch.UniformToFill };
+                var url = game.ProductIcon.Length > 0 ? game.ProductIcon : game.Cover;
+#if UI_VALIDATION
+                if (url.Contains("fixture.invalid")) picture.Source = new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
+                else
+#endif
+                if (Urls.Https(url) is { } uri) picture.Source = new BitmapImage(uri);
+                row.Children.Add(picture);
+                var title = new TextBlock { Text = game.Title, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(title, 1); row.Children.Add(title);
+                var button = new Button { Content = row, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+                AutomationProperties.SetName(button, game.Title); button.Click += async (_, _) => { selected = game.Id; await Reload(); };
+                if (selected == game.Id) button.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
                 LibraryRows.Children.Add(button);
             }
+            if (LibraryRows.Children.Count == 0) LibraryRows.Children.Add(new TextBlock { Text = owner.Locale.T("Your library is empty."), TextWrapping = TextWrapping.Wrap });
             if (selected is null) return;
             var id = Urls.Id(selected);
             var achievements = await owner.Api.Get("/platform/achievements/" + id);
@@ -79,31 +193,35 @@ public sealed partial class GameViewWindow : Window
             AchievementRows.Children.Clear();
             foreach (var a in achievements.Items())
             {
-                var unlocked = a.At("unlocked_at", "unlockedAt") is not null;
-                var hidden = a.B("hidden") && !unlocked;
-                AchievementRows.Children.Add(new Border
-                {
-                    Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16),
-                    BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-                    Child = new TextBlock { Text = (hidden ? owner.Locale.T("Hidden achievement") : a.S("title")) +
-                        "\n" + owner.Locale.T(unlocked ? "Unlocked" : "Locked") }
-                });
+                var unlocked = a.At("unlocked_at", "unlockedAt") is not null; var hidden = a.B("hidden") && !unlocked;
+                var row = new StackPanel { Spacing = 4 };
+                row.Children.Add(new TextBlock { Text = hidden ? owner.Locale.T("Hidden achievement") : a.S("title"), Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], TextWrapping = TextWrapping.Wrap });
+                row.Children.Add(new TextBlock { Text = owner.Locale.T(unlocked ? "Unlocked" : "Locked") + " · " + a.L("points"), TextWrapping = TextWrapping.Wrap });
+                AchievementRows.Children.Add(row);
             }
+            if (AchievementRows.Children.Count == 0) AchievementRows.Children.Add(new TextBlock { Text = owner.Locale.T("No achievements yet.") });
             CloudRows.Children.Clear();
             if (!owner.Catalog.Any(x => x.Id == id && x.CloudEnabled))
-            { CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("Cloud saves are not enabled for this game.") }); return; }
+            { CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("Cloud saves are not enabled for this game."), TextWrapping = TextWrapping.Wrap }); return; }
             var saves = await owner.Api.Get("/platform/saves/" + id);
             if (revision != request) return;
             foreach (var item in saves.Items())
-                CloudRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"],
-                    Child = new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") +
-                        "\n" + item.S("updated_at", "updatedAt") } });
+                CloudRows.Children.Add(new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") + "\n" + item.S("updated_at", "updatedAt"), TextWrapping = TextWrapping.Wrap });
             if (CloudRows.Children.Count == 0) CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("No cloud saves found.") });
         }
-        catch (Exception ex)
-        { if (revision == request) { PlayingLabel.Text = owner.Locale.Error(ex); } }
+        catch (Exception ex) { if (revision == request) PlayingLabel.Text = owner.Locale.Error(ex); }
     }
+#if UI_VALIDATION
+    internal async Task<Grid> ValidationShow()
+    {
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800)); selected = owner.Catalog.FirstOrDefault()?.Id;
+        Activate(); OpenWidgets(); await Reload(); return OverlayRoot;
+    }
+    internal bool ValidationWidgetsOpaque => Widgets.All(x => x.Background is SolidColorBrush brush && brush.Color.A == 255);
+    internal bool ValidationLabelsNative => ProfileHeading.Text == owner.Locale.T("Profile") && LibraryRows.Children.Count > 0 && AchievementRows.Children.Count > 0;
+    internal void ValidationPinAndHide() { ProfilePin.IsChecked = true; Hide(); }
+    internal bool ValidationPinned => !IsOpen && ProfilePanel.Visibility == Visibility.Visible && LibraryPanel.Visibility == Visibility.Collapsed;
+#endif
     private async void ReloadClick(object sender, RoutedEventArgs e) => await Reload();
     private void CloseClick(object sender, RoutedEventArgs e) => Hide();
 }
-

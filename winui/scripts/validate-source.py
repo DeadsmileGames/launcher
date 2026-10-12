@@ -25,12 +25,13 @@ for path in root.rglob("*.json"):
     except ValueError as ex: check(False, f"{path}: {ex}")
 
 # Every XAML event handler must exist in its code-behind.
-events = {"Click", "Loaded", "SelectionChanged", "TextChanged", "ItemClick", "Checked", "Unchecked", "Toggled", "KeyDown", "BackRequested", "PaneToggleRequested", "QuerySubmitted"}
+events = {"Click", "Loaded", "SelectionChanged", "TextChanged", "ItemClick", "Checked", "Unchecked", "Toggled", "KeyDown", "BackRequested", "PaneToggleRequested", "QuerySubmitted", "PointerPressed", "PointerMoved", "PointerReleased", "PointerCanceled", "PointerCaptureLost"}
 for path in root.rglob("*.xaml"):
     document = ET.parse(path)
     code_file = Path(str(path) + ".cs")
     if not code_file.exists(): continue
-    code = code_file.read_text()
+    # Partial window implementations also contain XAML handlers.
+    code = "\n".join(p.read_text() for p in path.parent.glob(path.stem + "*.cs"))
     for element in document.iter():
         for name, value in element.attrib.items():
             if name in events: check(bool(re.search(r"\b" + re.escape(value) + r"\s*\(", code)), f"{path}: missing {value}")

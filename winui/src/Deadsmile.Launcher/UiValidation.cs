@@ -112,7 +112,7 @@ public sealed partial class MainWindow
         {
             await Task.Delay(1500); await Resize(1280, 800);
             Check(LoginPanel.Visibility == Visibility.Visible, "Login is visible before authentication");
-            Check(LoginButton.Style == Application.Current.Resources["AccentButtonStyle"], "Login uses native AccentButtonStyle");
+            Check(LoginButton.Style == (Style)Application.Current.Resources["AccentButtonStyle"], "Login uses native AccentButtonStyle");
             Check(EmailBox.Header?.ToString() == Locale.T("Email or username"), "Login email has its localized header");
             Fits(EmailBox, "Login email fits at 1280x800"); Fits(LoginButton, "Login button fits at 1280x800");
             await Capture("01-login-1280");
@@ -130,8 +130,8 @@ public sealed partial class MainWindow
             Shell.SelectedItem = LibraryItem; await Task.Delay(200);
             Check(page == "library" && CatalogPanel.Visibility == Visibility.Visible, "Native library selection navigates");
             await Capture("05-library-1280");
-            SearchBox.Text = "Abby"; await Task.Delay(200);
-            Check(GameGrid.Items.Count == 1, "Title-bar search filters the library"); SearchBox.Text = "";
+            SearchBox.Text = "Abby"; await Task.Delay(200); RenderCatalog();
+            Check(GameGrid.Items.Count == 1, "Title-bar search filters the library"); SearchBox.Text = ""; await Task.Delay(200); RenderCatalog();
             await LoadDetail(Catalog[0]); await Task.Delay(300);
             Check(DetailPanel.Visibility == Visibility.Visible && AppTitleBar.IsBackButtonEnabled, "Game details enable native back navigation");
             await Capture("06-game-details-1280");

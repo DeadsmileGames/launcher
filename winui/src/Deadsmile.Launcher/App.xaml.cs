@@ -3,7 +3,7 @@ namespace Deadsmile.Launcher;
 public partial class App : Application
 {
     public static MainWindow? Main { get; private set; }
-    public App() { InitializeComponent(); }
+    public App() { RequestedTheme = ApplicationTheme.Dark; InitializeComponent(); }
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         Main = new MainWindow(); Main.Activate();

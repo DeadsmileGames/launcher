@@ -144,6 +144,7 @@ public sealed partial class MainWindow : Window
         SearchBox.Visibility = Visibility.Collapsed; AccountButton.Visibility = Visibility.Collapsed;
         AppTitleBar.IsPaneToggleButtonVisible = false; AppTitleBar.IsBackButtonVisible = false;
         AppTitleBar.IsBackButtonEnabled = false;
+        LoginHeading.Text = Locale.T("Sign in");
         selected = null; detailRevision++; twoFactor = false; PasswordBox.Password = ""; CodeBox.Text = "";
         CredentialsPanel.Visibility = Visibility.Visible; CodeBox.Visibility = Visibility.Collapsed;
         LoginBackButton.Visibility = Visibility.Collapsed; ResendButton.Visibility = Visibility.Collapsed; LoginButton.Content = Locale.T("Sign in");
@@ -178,7 +179,7 @@ public sealed partial class MainWindow : Window
                 await Api.Post("/auth/mobile-login", new { email = EmailBox.Text.Trim(), password = PasswordBox.Password });
             if (n.B("requiresTwoFactor"))
             {
-                twoFactor = true; LoginBackButton.Visibility = Visibility.Visible; CredentialsPanel.Visibility = Visibility.Collapsed; CodeBox.Visibility = Visibility.Visible;
+                twoFactor = true; LoginHeading.Text = Locale.T("Verify sign in"); LoginBackButton.Visibility = Visibility.Visible; CredentialsPanel.Visibility = Visibility.Collapsed; CodeBox.Visibility = Visibility.Visible;
                 CodeBox.Text = ""; CodeBox.Focus(FocusState.Programmatic); LoginButton.Content = Locale.T("Verify");
             }
             else { User = await Api.Get("/auth/me"); await Enter(); }
@@ -201,7 +202,7 @@ public sealed partial class MainWindow : Window
     private void LoginBackClick(object sender, RoutedEventArgs e)
     {
         if (authenticating) return;
-        twoFactor = false; CodeBox.Text = ""; CodeBox.Visibility = Visibility.Collapsed;
+        twoFactor = false; LoginHeading.Text = Locale.T("Sign in"); CodeBox.Text = ""; CodeBox.Visibility = Visibility.Collapsed;
         CredentialsPanel.Visibility = Visibility.Visible; LoginBackButton.Visibility = Visibility.Collapsed;
         LoginButton.Content = Locale.T("Sign in"); LoginError.IsOpen = false;
     }
@@ -253,6 +254,7 @@ public sealed partial class MainWindow : Window
     private void TitlePaneToggleRequested(TitleBar sender, object args) => Shell.IsPaneOpen = !Shell.IsPaneOpen;
     private void ShowPage()
     {
+        if (selected is null) { heroImage = null; heroImages = []; }
         CatalogPanel.Visibility = selected is null && (page is "explore" or "library") ? Visibility.Visible : Visibility.Collapsed;
         DetailPanel.Visibility = selected is not null ? Visibility.Visible : Visibility.Collapsed;
         DownloadsPanel.Visibility = selected is null && page == "downloads" ? Visibility.Visible : Visibility.Collapsed;
@@ -270,10 +272,12 @@ public sealed partial class MainWindow : Window
     {
         if (LoginLayout is null || GameGrid is null) return;
         LoginLayout.MinHeight = Math.Max(0, Root.ActualHeight - AppTitleBar.ActualHeight);
+        SearchBox.Width = Root.ActualWidth < 900 ? 180 : Math.Clamp(Root.ActualWidth * 0.4, 180, 600);
+        AppTitleBar.Title = Root.ActualWidth < 900 ? "Deadsmile" : "Deadsmile Games Launcher";
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
-        var showSide = GameGrid.ActualWidth >= 1056 && featuredGames[0] is not null;
+        var showSide = GameGrid.ActualWidth >= 880 && featuredGames[0] is not null;
         FeaturedSide.Visibility = showSide ? Visibility.Visible : Visibility.Collapsed;
         FeaturedSideColumn.Width = showSide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
     }
@@ -308,7 +312,7 @@ public sealed partial class MainWindow : Window
     }
     private void SearchChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
-        if (!ready || User is null) return;
+        if (!ready || User is null || args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
         if (selected is not null || page is not ("explore" or "library"))
         { selected = null; detailRevision++; page = "explore"; ShowPage(); }
         else RenderCatalog();
@@ -668,6 +672,10 @@ public sealed partial class MainWindow : Window
             if (node is TextBlock t) t.Text = Locale.T(key);
             if (node is ButtonBase b && b.Content is string) b.Content = Locale.T(key);
         }
+        if (node is Panel panel) { foreach (var child in panel.Children) Translate(child); return; }
+        if (node is Border border && border.Child is { } childBorder) { Translate(childBorder); return; }
+        if (node is NavigationView navigation && navigation.Content is DependencyObject navContent) { Translate(navContent); return; }
+        if (node is ContentControl control && control.Content is DependencyObject content) { Translate(content); return; }
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) Translate(VisualTreeHelper.GetChild(node, i));
     }
     private void OverlayToggled(object sender, RoutedEventArgs e)

@@ -16,6 +16,13 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
     public bool Busy(string id) => running.ContainsKey(id) || starting.ContainsKey(id);
     public bool AnyBusy => running.Count > 0 || starting.Count > 0;
     public Func<string, bool> DownloadBusy { get; set; } = _ => false;
+    public bool Stop(string id)
+    {
+        if (!running.TryGetValue(Urls.Id(id), out var active) || active.Process.HasExited) return false;
+        try { active.Process.Kill(entireProcessTree: true); return true; }
+        catch (InvalidOperationException) { return true; }
+        catch (System.ComponentModel.Win32Exception) { return false; }
+    }
     public event Action? Changed;
     public event Action<Exception>? Failed;
     public async Task Launch(Game requested)

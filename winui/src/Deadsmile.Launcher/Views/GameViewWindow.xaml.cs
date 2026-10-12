@@ -17,6 +17,7 @@ namespace Deadsmile.Launcher.Views;
 public sealed partial class GameViewWindow : Window
 {
     private readonly MainWindow owner;
+    private readonly NativeWindow windowHook;
     private readonly DispatcherQueueTimer timer;
     private string? selected;
     private int request;
@@ -31,13 +32,14 @@ public sealed partial class GameViewWindow : Window
     public GameViewWindow(MainWindow main)
     {
         owner = main; InitializeComponent();
+        windowHook = new NativeWindow(this, noActivate: true);
         SystemBackdrop = new TransparentBackdrop();
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         { presenter.SetBorderAndTitleBar(false, false); presenter.IsResizable = false; presenter.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(this);
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(60);
         timer.Tick += (_, _) => Monitor(); timer.Start();
-        Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); };
+        Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); windowHook.Dispose(); };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         ApplyPreferences(); ReloadLabels();
     }
@@ -50,6 +52,7 @@ public sealed partial class GameViewWindow : Window
     }
     public void Show()
     {
+        if (!owner.GameIsFocused) return;
         var game = owner.Games.Running.FirstOrDefault(x => !x.Process.HasExited && !NativeWindow.Minimized(x.Process.MainWindowHandle));
         if (game is null) return;
         selected ??= game.Game.Id;
@@ -90,7 +93,7 @@ public sealed partial class GameViewWindow : Window
     {
         if (!AppWindow.IsVisible) return;
 #if !UI_VALIDATION
-        if (owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
+        if (!owner.GameIsFocused || owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
         { Hide(true); return; }
 #endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
@@ -228,5 +231,5 @@ public sealed partial class GameViewWindow : Window
     internal bool ValidationPinned => !IsOpen && ProfilePanel.Visibility == Visibility.Visible && LibraryPanel.Visibility == Visibility.Collapsed;
 #endif
     private async void ReloadClick(object sender, RoutedEventArgs e) => await Reload();
-    private void CloseClick(object sender, RoutedEventArgs e) => Hide();
+    private void CloseClick(object sender, RoutedEventArgs e) => Hide(true);
 }

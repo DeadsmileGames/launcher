@@ -13,6 +13,7 @@ public sealed class DownloadJob(Game game)
     public long Total { get; internal set; }
     public double Percent => Total == 0 ? 0 : Math.Min(95, Received * 95.0 / Total);
     public string? Error { get; internal set; }
+    public DateTimeOffset? CompletedAt { get; internal set; }
     internal CancellationTokenSource? Cancellation;
     internal bool PauseRequested;
     internal bool CancelRequested;
@@ -133,7 +134,8 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
             lock (job) { ct.ThrowIfCancellationRequested(); job.Status = "committing"; }
             Changed?.Invoke();
             var result = await installs.Commit(job.Id, staged, metadata.Version, running);
-            job.Status = "complete"; Installed?.Invoke(result, job.Game); Cleanup(job);
+            job.Status = "complete"; job.CompletedAt = DateTimeOffset.UtcNow;
+            Installed?.Invoke(result, job.Game); Cleanup(job);
         }
         catch (OperationCanceledException)
         { job.Status = job.CancelRequested ? "cancelled" : job.PauseRequested ? "paused" : "failed"; job.Error = "NETWORK_ERROR"; }

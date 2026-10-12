@@ -19,7 +19,7 @@ public sealed class ApiClient : IDisposable
     private static readonly Regex Routes = new(
         @"^(GET csrf|GET auth/me|POST auth/(mobile-login|verify-2fa|logout|resend-email)|GET games/[a-z0-9-]{1,120}|GET integrations/itch|POST integrations/itch/connect|DELETE integrations/itch|GET library(/catalog)?|POST library/sync|POST library/[0-9a-f-]{36}(/install-metadata)?|GET platform/achievements/[0-9a-f-]{36}|POST platform/achievements/[0-9a-f-]{36}/[a-z0-9_]{2,80}/unlock|GET platform/saves/[0-9a-f-]{36}(/default)?|PUT platform/saves/[0-9a-f-]{36}/default|POST platform/sessions|POST platform/sessions/[0-9a-f-]{36}/end|GET platform/live-ticket|GET platform/events(\?after=\d+&limit=100)?)$", RegexOptions.Compiled);
     private static readonly Regex ContentRoutes = new(
-        @"^(GET games\?page=[1-9][0-9]{0,2}&limit=48|GET launcher|GET newswire\?limit=24&offset=[0-9]{1,5}|GET newswire/[a-z0-9-]{1,160}|GET videos\?limit=24|GET wishlist|POST wishlist|DELETE wishlist/[0-9a-f-]{36}|GET account|GET account/privacy|PUT account/privacy|GET account/sessions|GET account/totp/status)$", RegexOptions.Compiled);
+        @"^(GET games\?page=[1-9][0-9]{0,2}&limit=48|GET launcher|GET newswire\?limit=24&offset=[0-9]{1,5}|GET newswire/[a-z0-9-]{1,160}|GET videos\?limit=24|GET wishlist|POST wishlist|DELETE wishlist/[0-9a-f-]{36}|GET account|GET account/privacy|PUT account/privacy|GET account/sessions|GET account/totp/status|PATCH account)$", RegexOptions.Compiled);
 
     public ApiClient(Localization locale, CookieContainer? cookies = null, Action<CookieContainer>? persist = null,
         HttpMessageHandler? testHandler = null)
@@ -34,6 +34,7 @@ public sealed class ApiClient : IDisposable
     public Task<JsonNode?> Post(string path, object? body = null, CancellationToken ct = default) =>
         Request(HttpMethod.Post, path, body, ct);
     public Task<JsonNode?> Put(string path, object body, CancellationToken ct = default) => Request(HttpMethod.Put, path, body, ct);
+    public Task<JsonNode?> Patch(string path, object body, CancellationToken ct = default) => Request(HttpMethod.Patch, path, body, ct);
     public Task<JsonNode?> Delete(string path, CancellationToken ct = default) => Request(HttpMethod.Delete, path, null, ct);
     private async Task<string> Csrf(CancellationToken ct)
     {
@@ -64,7 +65,7 @@ public sealed class ApiClient : IDisposable
         if (body is not null)
         {
             var json = System.Text.Json.JsonSerializer.Serialize(body, Storage.JsonOptions);
-            if (Encoding.UTF8.GetByteCount(json) > 16384) throw new LauncherException("INVALID_RESPONSE");
+            if (Encoding.UTF8.GetByteCount(json) > 600000) throw new LauncherException("INVALID_RESPONSE");
             req.Content = new StringContent(json, Encoding.UTF8, "application/json");
         }
         HttpResponseMessage response;

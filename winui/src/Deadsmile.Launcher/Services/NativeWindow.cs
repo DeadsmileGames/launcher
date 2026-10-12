@@ -9,12 +9,14 @@ public sealed class NativeWindow : IDisposable
     private readonly WndProc handler;
     private readonly IntPtr previous;
     private bool registered;
+    private readonly bool noActivate;
     private string registeredShortcut = "";
     public event Action? Hotkey;
     public event Action<uint, IntPtr, IntPtr>? Message;
     public Func<double>? Scale { get; set; }
-    public NativeWindow(Window window)
+    public NativeWindow(Window window, bool noActivate = false)
     {
+        this.noActivate = noActivate;
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
         handler = Procedure;
         previous = SetWindowLongPtr(hwnd, -4, Marshal.GetFunctionPointerForDelegate(handler));
@@ -45,6 +47,7 @@ public sealed class NativeWindow : IDisposable
     {
         try { Message?.Invoke(message, wp, lp); } catch { /* Never unwind a managed callback across WndProc. */ }
         if (message == 0x0312 && wp.ToInt64() == 0x4453) { Hotkey?.Invoke(); return IntPtr.Zero; }
+        if (noActivate && message == 0x0021) return new IntPtr(3);
         if (message == 0x0024)
         {
             var s = Scale?.Invoke() ?? 1;

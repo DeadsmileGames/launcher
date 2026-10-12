@@ -156,7 +156,9 @@
     "Account": "Account",
     "About": "About",
     "More options": "More options",
-    "Additional information": "Additional information"
+    "Additional information": "Additional information",
+    "On": "On",
+    "Off": "Off"
   },
   "pt-BR": {
     "Achievement unlocked": "Conquista desbloqueada",
@@ -315,7 +317,9 @@
     "Account": "Conta",
     "About": "Sobre",
     "More options": "Mais opções",
-    "Additional information": "Informações adicionais"
+    "Additional information": "Informações adicionais",
+    "On": "Ativado",
+    "Off": "Desativado"
   },
   "es": {
     "Achievement unlocked": "Logro desbloqueado",
@@ -474,6 +478,8 @@
     "Account": "Cuenta",
     "About": "Acerca de",
     "More options": "Más opciones",
-    "Additional information": "Información adicional"
+    "Additional information": "Información adicional",
+    "On": "Activado",
+    "Off": "Desactivado"
   }
 }

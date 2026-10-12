@@ -120,6 +120,7 @@ public sealed partial class MainWindow
             await Resize(1280, 800);
             EmailBox.Text = "layout@example.invalid"; PasswordBox.Password = "ci-layout-fixture"; await SignIn(); await Task.Delay(300);
             Check(User is not null && Shell.Visibility == Visibility.Visible, "Native sign-in opens the shell");
+            Check(ItchButton.IsEnabled && LogoutButton.IsEnabled, "Account controls re-enable after sign-in");
             Check(Shell is NavigationView && AppTitleBar is TitleBar, "Shell uses native NavigationView and TitleBar");
             Check(Shell.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftCompact, "Store compact navigation is enabled");
             Check(((SolidColorBrush)Root.Background).Color == Windows.UI.Color.FromArgb(255, 39, 39, 39), "Body color is exactly 272727");
@@ -134,6 +135,7 @@ public sealed partial class MainWindow
             Check(GameGrid.Items.Count == 1, "Title-bar search filters the library"); SearchBox.Text = ""; await Task.Delay(200); RenderCatalog();
             await LoadDetail(Catalog[0]); await Task.Delay(300);
             Check(DetailPanel.Visibility == Visibility.Visible && AppTitleBar.IsBackButtonEnabled, "Game details enable native back navigation");
+            Check(((FrameworkElement)DetailContent.Children[0]).ActualHeight <= 420, "Product hero leaves room for Store content below it");
             await Capture("06-game-details-1280");
             await Resize(800, 600); await Capture("07-game-details-800");
             TitleBackRequested(AppTitleBar, new object());

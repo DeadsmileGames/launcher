@@ -189,7 +189,7 @@ public sealed partial class MainWindow : Window
             LoginError.Message = Locale.Error(ex); LoginError.IsOpen = true;
             ResendButton.Visibility = ex is LauncherException { Code: "EMAIL_NOT_VERIFIED" } ? Visibility.Visible : Visibility.Collapsed;
         }
-        finally { authenticating = false; LoginButton.IsEnabled = true; }
+        finally { authenticating = false; LoginButton.IsEnabled = true; UpdateBusy(); }
     }
     private async void ResendClick(object sender, RoutedEventArgs e)
     {
@@ -405,7 +405,7 @@ public sealed partial class MainWindow : Window
     private void RenderDetail(Game game)
     {
         DetailContent.Children.Clear(); heroImages = game.HeroImages; heroIndex = 0;
-        var hero = new Grid { MinHeight = 360, CornerRadius = new CornerRadius(8), Background = (Brush)Application.Current.Resources["BaseBrush"] };
+        var hero = new Grid { Height = 400, MinHeight = 360, CornerRadius = new CornerRadius(8), Background = (Brush)Application.Current.Resources["BaseBrush"] };
         heroImage = new Image { Stretch = Stretch.UniformToFill };
         SetImage(heroImage, heroImages.FirstOrDefault() ?? ""); hero.Children.Add(heroImage);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
@@ -534,7 +534,7 @@ public sealed partial class MainWindow : Window
             await Api.Post("/library/" + Urls.Id(game.Id)); await Refresh();
             if (Catalog.FirstOrDefault(x => x.Id == game.Id) is { } current) await LoadDetail(current);
         }
-        finally { commandBusy = false; UpdateBusy(); accountGate.Release(); }
+        finally { commandBusy = false; UpdateBusy(); RefreshGameActions(); accountGate.Release(); }
     }
     private async Task FillAchievements(string id, StackPanel panel, int revision)
     {
@@ -581,7 +581,7 @@ public sealed partial class MainWindow : Window
             await installs.Uninstall(game.Id, id => Games.Busy(id) || downloads.Busy(id));
             DesktopIntegration.RemoveShortcuts(game.Id); await Refresh(); RenderDetail(game);
         }
-        finally { commandBusy = false; UpdateBusy(); accountGate.Release(); }
+        finally { commandBusy = false; UpdateBusy(); RefreshGameActions(); accountGate.Release(); }
     }
     private void RenderDownloads()
     {
@@ -658,6 +658,7 @@ public sealed partial class MainWindow : Window
             if (Shell.SettingsItem is NavigationViewItem settings) settings.Content = Locale.T("Settings");
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");
+            OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
             EmailBox.Header = Locale.T("Email or username"); PasswordBox.Header = Locale.T("Password");
             CodeBox.Header = Locale.T("Authentication code"); SearchBox.PlaceholderText = Locale.T("Search games");

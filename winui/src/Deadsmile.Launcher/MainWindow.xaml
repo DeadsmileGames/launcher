@@ -177,7 +177,7 @@
         <Border Style="{StaticResource Panel}"><Grid ColumnSpacing="24">
          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <StackPanel Spacing="8"><TextBlock Text="Game View"/><TextBlock x:Name="ShortcutText" Text="Ctrl + D" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
-         <ToggleSwitch x:Name="OverlayToggle" Grid.Column="1" Header="Game View" Toggled="OverlayToggled" IsOn="True"/>
+         <ToggleSwitch x:Name="OverlayToggle" Grid.Column="1" Toggled="OverlayToggled" IsOn="True"/>
         </Grid></Border>
         <Button Content="Open games folder" Tag="Open games folder" Click="OpenGamesClick"/>
        </StackPanel>

@@ -529,8 +529,7 @@ public sealed partial class MainWindow : Window
             var text = value is JsonArray array ? string.Join(", ", array.Items().Select(x => x.S())) : value.S();
             if (text.Length == 0) continue;
             var row = new StackPanel { Spacing = 4 };
-            row.Children.Add(new TextBlock { Text = Locale.T(key), Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+            row.Children.Add(new TextBlock { Text = Locale.T(key), Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"] });
             row.Children.Add(Text(text)); meta.Children.Add(row);
         }
         var times = storage.Read("playtime.json", new Dictionary<string, double>());

@@ -44,6 +44,7 @@ public sealed partial class GameViewWindow : Window
     public void ApplyPreferences()
     {
         OverlayRoot.RequestedTheme = owner.UiTheme;
+        ReloadLabels();
         foreach (var widget in Widgets)
             widget.Transitions = owner.MotionEnabled ? new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 16, IsStaggeringEnabled = false } } : null;
     }
@@ -176,7 +177,7 @@ public sealed partial class GameViewWindow : Window
                 if (url.Contains("fixture.invalid")) picture.Source = new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
                 else
 #endif
-                if (Urls.Https(url) is { } uri) picture.Source = new BitmapImage(uri);
+                if (Urls.Https(url) is { } uri) picture.Source = uri.AbsolutePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? new SvgImageSource(uri) : new BitmapImage(uri);
                 row.Children.Add(picture);
                 var title = new TextBlock { Text = game.Title, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(title, 1); row.Children.Add(title);

@@ -75,6 +75,17 @@ public sealed class NativeWindow : IDisposable
         var monitor = MonitorFromWindow(game, 2); var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
         return GetMonitorInfo(monitor, ref info) ? info.Monitor : new Rect { Right = 1271, Bottom = 796 };
     }
+    public static Rect WorkAreaFor(IntPtr game)
+    {
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        return GetMonitorInfo(MonitorFromWindow(game, 2), ref info) ? info.Work : MonitorFor(game);
+    }
+    public static double DpiScale(IntPtr game, Window fallback)
+    {
+        var dpi = GetDpiForWindow(game);
+        if (dpi == 0) dpi = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(fallback));
+        return dpi > 0 ? dpi / 96d : 1;
+    }
     public static void Place(Window window, Rect rect)
     {
         SetWindowPos(WinRT.Interop.WindowNative.GetWindowHandle(window), new IntPtr(-1), rect.Left, rect.Top,
@@ -97,6 +108,7 @@ public sealed class NativeWindow : IDisposable
     [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate IntPtr WndProc(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)] private static extern IntPtr SetWindowLongPtr(IntPtr h, int index, IntPtr value);
+    [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr h);
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr h, int attribute, ref int value, int size);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
     [DllImport("user32.dll", EntryPoint = "CallWindowProcW")] private static extern IntPtr CallWindowProc(IntPtr proc, IntPtr h, uint msg, IntPtr wp, IntPtr lp);

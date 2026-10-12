@@ -32,10 +32,23 @@ public sealed partial class AchievementWindow : Window
 #endif
     public void ShowOn(IntPtr game)
     {
-        var monitor = NativeWindow.MonitorFor(game);
-        var rect = new NativeWindow.Rect { Left = monitor.Right - 440, Top = monitor.Bottom - 166,
-            Right = monitor.Right - 20, Bottom = monitor.Bottom - 20 };
-        NativeWindow.Place(this, rect); NativeWindow.ShowInactive(this); timer.Start();
+        var monitor = NativeWindow.WorkAreaFor(game); var scale = NativeWindow.DpiScale(game, this);
+        var margin = (int)Math.Round(20 * scale); var width = Math.Min((int)Math.Round(420 * scale), monitor.Right - monitor.Left - margin * 2);
+        var height = (int)Math.Round(146 * scale);
+        var rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
+            Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
+        NativeWindow.Place(this, rect);
+        // The game's process may be DPI-unaware. Re-check our own per-monitor window after placing it.
+        var actualScale = NativeWindow.DpiScale(IntPtr.Zero, this);
+        if (Math.Abs(actualScale - scale) > 0.01)
+        {
+            margin = (int)Math.Round(20 * actualScale); width = Math.Min((int)Math.Round(420 * actualScale), monitor.Right - monitor.Left - margin * 2);
+            height = (int)Math.Round(146 * actualScale);
+            rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
+                Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
+            NativeWindow.Place(this, rect);
+        }
+        NativeWindow.ShowInactive(this); timer.Start();
     }
 }
 

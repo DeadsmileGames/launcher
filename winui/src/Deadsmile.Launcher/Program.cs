@@ -25,7 +25,10 @@ internal static class Program
         };
         Application.Start(parameters =>
         {
-            SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
+            var queue = DispatcherQueue.GetForCurrentThread();
+            // Windows.UI.Composition system backdrops require the system queue in addition to WinUI's queue.
+            queue.EnsureSystemDispatcherQueue();
+            SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(queue));
             _ = new App();
         });
         return 0;

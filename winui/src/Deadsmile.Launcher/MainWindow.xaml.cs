@@ -200,7 +200,7 @@ public sealed partial class MainWindow : Window
         live.Start(User is not null); if (User is not null) achievements.Start(User.S("id"));
 #endif
         if (User is not null && pendingLaunch is { } id)
-        { pendingLaunch = null; var game = Catalog.FirstOrDefault(x => x.Id == id); if (game is not null) await Guard(() => Games.Launch(game)); }
+        { pendingLaunch = null; var game = Catalog.FirstOrDefault(x => x.Id == id); if (game is not null) await Guard(() => LaunchWithSequence(game)); }
     }
     private async void LoginClick(object sender, RoutedEventArgs e) => await SignIn();
     private async void LoginKeyDown(object sender, KeyRoutedEventArgs e)
@@ -274,7 +274,8 @@ public sealed partial class MainWindow : Window
             else { itchConfigured = itchConnected = false; ItchStatus.Text = Locale.T("Sign in to manage your account."); ItchButton.Content = Locale.T("Sign in"); }
             var catalog = await PublicCatalog.Load(Api, User is not null);
             if (User.S("id") != user) return;
-            await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id));
+            if (User is not null) await DetectLegacyFreeInstallations(catalog);
+            await installs.Refresh(catalog, id => Games.Busy(id) || downloads.Busy(id), User is not null);
             Catalog = catalog; RenderCatalog();
             if (User is not null)
             {
@@ -291,6 +292,35 @@ public sealed partial class MainWindow : Window
         }
         finally { refreshing = false; BusyRing.IsActive = false; UpdateBusy();
             if (refreshAgain) { refreshAgain = false; UI(Refresh); } }
+    }
+    private async Task DetectLegacyFreeInstallations(IEnumerable<Game> catalog)
+    {
+        foreach (var game in catalog)
+        {
+            if (!game.Slug.Equals(Urls.Slug(game.Slug), StringComparison.Ordinal) ||
+                !game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
+            var legacyFolder = Path.Combine(storage.Games, game.Slug);
+            try
+            {
+                PathGuard.RequireInside(storage.Games, legacyFolder);
+                if (!Directory.Exists(legacyFolder) || InstallationService.FindExe(legacyFolder) is null) continue;
+                if (!game.InLibrary)
+                {
+                    await Api.Post("/library/" + Urls.Id(game.Id), new { });
+                    if (game.Data is JsonObject data)
+                    {
+                        data["owned"] = true;
+                        data["inLibrary"] = true;
+                    }
+                }
+                DesktopNotice(Locale.T("Free game installation detected"), Locale.T("{0} was found in your Games folder and added to your library.", game.Title),
+                    "game", game.Id, game.Slug);
+            }
+            catch (Exception ex)
+            {
+                storage.Log(ex is LauncherException failure ? failure.Code : "EXTERNAL_FREE_GAME_DETECTION_FAILED");
+            }
+        }
     }
     private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(Refresh);
     private void NavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -970,7 +1000,7 @@ public sealed partial class MainWindow : Window
         if (id is null) return;
         var game = Catalog.FirstOrDefault(x => x.Id == id);
         if (User is null || game is null) { pendingLaunch = id; return; }
-        UI(() => Games.Launch(game));
+        UI(() => LaunchWithSequence(game));
     }
 }
 

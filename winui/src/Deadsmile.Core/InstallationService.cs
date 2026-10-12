@@ -13,7 +13,7 @@ public sealed class InstallationService(Storage storage)
     public ConcurrentDictionary<string, InstalledGame> Installed { get; private set; } = new();
     public string Folder(string id) => Path.Combine(Storage.Games, Urls.Id(id));
 
-    public async Task Refresh(IEnumerable<Game> catalog, Func<string, bool> busy)
+    public async Task Refresh(IEnumerable<Game> catalog, Func<string, bool> busy, bool allowLegacyDetection = true)
     {
         await gate.WaitAsync();
         try
@@ -27,7 +27,7 @@ public sealed class InstallationService(Storage storage)
                 PathGuard.RequireInside(Storage.Games, backup);
                 if (!busy(id) && !Directory.Exists(folder) && Directory.Exists(backup) && ReadRecord(backup, id) is not null)
                     Directory.Move(backup, folder);
-                if (!Directory.Exists(folder) && !busy(id) && !string.IsNullOrEmpty(game.Slug))
+                if (allowLegacyDetection && !Directory.Exists(folder) && !busy(id) && !string.IsNullOrEmpty(game.Slug))
                 {
                     var legacy = Path.Combine(Storage.Games, Urls.Slug(game.Slug));
                     PathGuard.RequireInside(Storage.Games, legacy);

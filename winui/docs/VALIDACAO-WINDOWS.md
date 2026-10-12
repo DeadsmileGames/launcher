@@ -1,6 +1,6 @@
 # Validação obrigatória no Windows
 
-Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta lista registra cenários de aceite; nenhum item abaixo foi marcado como executado nesta entrega.
+Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta lista registra cenários de aceite. O build, os 20 testes Core e os smoke tests de instalação/desinstalação EXE/MSIX passaram no runner Windows Server 2025; a abertura da janela foi conferida para o aplicativo instalado pelo EXE. Consulte STATUS.md para a execução e o commit testados. Os cenários completos abaixo continuam pendentes de homologação em Windows 10/11.
 
 ## Build e instalação
 

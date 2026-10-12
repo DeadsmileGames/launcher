@@ -2,7 +2,7 @@
 
 Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .NET 10, Windows App SDK 2.5.1 e Windows SDK BuildTools 10.0.28000.2705.
 
-**Status: em validação no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI, o empacotamento e os testes dos instaladores estão sendo validados no PR #10. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
+**Status: binários de teste compilados no GitHub Actions.** Os 20 testes Core passaram em Linux e Windows. A compilação WinUI/XAML, o empacotamento, a instalação e a desinstalação de EXE/MSIX passaram no runner Windows Server 2025, incluindo abertura da janela do aplicativo instalado pelo EXE. A interface e os jogos reais ainda exigem homologação em Windows 10/11.
 
 ## Conteúdo
 
@@ -17,6 +17,8 @@ Implementação nativa em C# e XAML, baseada no projeto Electron anexado. Usa .N
 ## Baixar sem instalar Visual Studio
 
 Abra [Actions do projeto](https://github.com/DeadsmileGames/launcher/actions), selecione uma execução bem-sucedida de **Build Deadsmile WinUI** e baixe um dos artefatos no fim da página. É necessário estar conectado ao GitHub para baixar artefatos.
+
+Primeiro build validado, versão 2.0.0: [execução e testes](https://github.com/DeadsmileGames/launcher/actions/runs/38286833115), [EXE de teste](https://github.com/DeadsmileGames/launcher/actions/runs/38286833115/artifacts/11763313167) e [MSIX de desenvolvimento](https://github.com/DeadsmileGames/launcher/actions/runs/38286833115/artifacts/11763581834). Estes downloads expiram em 11/11/2026; consulte Actions para builds posteriores.
 
 - **Deadsmile-WinUI-Setup-x64**: extraia o ZIP e execute o arquivo Setup.exe. O instalador inclui o .NET e o runtime WinUI; não exige Visual Studio, SDK ou NSIS no computador do usuário.
 - **Deadsmile-WinUI-MSIX-Development-x64**: contém o MSIX, seu hash e o certificado público de desenvolvimento. Siga a seção de certificados abaixo antes de instalar este pacote de teste.

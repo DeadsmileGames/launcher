@@ -1,6 +1,6 @@
 # Estado da implementação — 12/10/2026
 
-A entrega contém uma implementação C#/WinUI 3 e o processo de geração de MSIX e Setup.exe. **Não é uma versão homologada.** A validação está em andamento no [PR #10](https://github.com/DeadsmileGames/launcher/pull/10), com build e testes no GitHub Actions.
+A entrega contém uma implementação C#/WinUI 3 e binários de teste MSIX/Setup.exe. **Não é uma versão homologada.** O [build #4](https://github.com/DeadsmileGames/launcher/actions/runs/38286833115) passou no commit `f79e89a94a48224e291a9bbd9207376d1c259d76`, no [PR #10](https://github.com/DeadsmileGames/launcher/pull/10). Alterações posteriores exclusivamente de documentação não exigem recompilar estes mesmos binários.
 
 | Verificação | Estado |
 |---|---|
@@ -11,15 +11,16 @@ A entrega contém uma implementação C#/WinUI 3 e o processo de geração de MS
 | Testes originais Electron | 40 passaram na análise do ZIP, antes desta implementação. |
 | Testes novos em C# | 20 passaram em Linux e Windows no GitHub Actions; nenhum ignorado. |
 | Compilação Core/C# | Passou em Linux e Windows. |
-| Compilação WinUI/XAML | Em validação no runner Windows; conflito de referência de timer corrigido após o primeiro build. |
-| Geração e assinatura MSIX/EXE | Em validação no runner Windows. |
-| Instalação e desinstalação | Smoke tests automáticos adicionados para EXE e MSIX no runner isolado. |
+| Compilação WinUI/XAML | Passou no runner Windows Server 2025, imagem windows-2025-vs2026. |
+| Geração e assinatura MSIX/EXE | Passaram com certificado de desenvolvimento; hashes SHA-256 incluídos. |
+| Instalação e desinstalação | EXE e MSIX passaram no runner isolado; marcador de dados do usuário preservado. |
+| Abertura da aplicação instalada pelo EXE | Passou: processo permaneceu ativo e criou a janela principal. |
 | Login/2FA e itch.io reais | Não executados. |
 | Downloads e jogos reais | Não executados. |
 | Saves/conquistas com backend | Não executados. |
 | Layout e escalas de tela | Não verificados em execução. |
 | Overlay/avisos transparentes | Implementação de prova de conceito; não verificada em Windows. |
-| Workflow remoto | Publicado e executado no PR #10; artefatos de instalador disponibilizados apenas após validação bem-sucedida. |
+| Workflow remoto | Build #4 concluído com sucesso; artefatos de instalador disponíveis até 11/11/2026. |
 
 ## O que o código implementa
 
@@ -31,7 +32,7 @@ O instalador EXE prepara uma pasta nova e troca a instalação com backup. O MSI
 
 ## Limitações que exigem continuidade
 
-1. A validação WinUI e dos instaladores está em andamento. Testes automáticos não substituem a homologação visual e integrada.
+1. O build e os smoke tests passaram. Testes automáticos no runner Windows Server não substituem a homologação visual e integrada em Windows 10/11.
 2. O overlay não tem garantia de funcionar em fullscreen exclusivo, sobre jogos elevados, com todos os drivers gráficos ou em todas as escalas.
 3. Falhas de rede, conflitos de saves e pedidos de autorização dependem do comportamento do backend e de conta de teste.
 4. A biblioteca antiga guardada apenas no localStorage do Electron e a pasta de jogos de versões muito antigas em Downloads não são importadas automaticamente. A recuperação usa registros e pastas do layout atual em Documentos.

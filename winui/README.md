@@ -40,7 +40,7 @@ O processo executa os testes C#, compila o app e gera, se todas as etapas passar
 
 O certificado de desenvolvimento é criado no armazenamento pessoal do usuário que executa o build. Sua chave privada não é exportada. Esse certificado serve para testes; não equivale a assinatura pública de produção.
 
-Para testar o MSIX, importe conscientemente o certificado .cer público em **Pessoas Confiáveis / Trusted People** no computador de teste, usando o assistente de certificados do Windows, e então instale o MSIX. A importação exige as permissões do dispositivo. A geração não instala automaticamente o certificado, o MSIX ou o launcher.
+Para testar o MSIX, importe conscientemente o certificado .cer público em **Computador Local → Pessoas Confiáveis / Trusted People** no computador de teste, usando o assistente de certificados do Windows, e então instale o MSIX. A importação exige as permissões do dispositivo. A geração não instala automaticamente o certificado, o MSIX ou o launcher.
 
 Alternativas de build:
 

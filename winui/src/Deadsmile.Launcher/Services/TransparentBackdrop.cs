@@ -1,5 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Composition;
+using Compositor = Windows.UI.Composition.Compositor;
+using CompositionColorBrush = Windows.UI.Composition.CompositionColorBrush;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 namespace Deadsmile.Launcher.Services;

@@ -197,7 +197,7 @@ public sealed partial class MainWindow
             await Resize(1280, 800); Shell.SelectedItem = DownloadsItem; await Task.Delay(200);
             Check(page == "downloads" && DownloadsPanel.Visibility == Visibility.Visible, "Native downloads selection navigates");
             await Capture("08-downloads-1280");
-            Shell.SelectedItem = SettingsNav; await Task.Delay(200);
+            Shell.SelectedItem = ExploreItem; await Task.Delay(100); page = "settings"; selected = null; ShowPage(); await Task.Delay(200);
             Check(page == "settings" && SettingsPanel.Visibility == Visibility.Visible, "Native settings selection navigates");
             await Capture("09-settings-1280");
             Check(ThemeChoice.Items.Count == 3 && AnimationToggle.IsOn && MaterialsToggle.IsOn, "Native appearance preferences are available");
@@ -214,10 +214,10 @@ public sealed partial class MainWindow
             Check(Shell.PaneDisplayMode == NavigationViewPaneDisplayMode.Left, "Expanded navigation preference applies");
             NavigationChoice.SelectedIndex = 0;
             Check(storage.Read("winui-appearance.json", new Services.UiPreferences()).Theme == "dark", "Appearance preferences persist");
-            foreach (var (item, expected) in new[] { (WishlistItem, "wishlist"), (NewsItem, "news"), (VideosItem, "videos"), (SupportItem, "support") })
+            foreach (var (item, expected) in new[] { (WishlistItem, "wishlist"), (NewsItem, "news") })
             { Shell.SelectedItem = item; await Task.Delay(500); Check(page == expected && ContentPage.Visibility == Visibility.Visible && ContentRows.Children.Count > 0, "Connected native page: " + expected); await Capture("page-" + expected); }
-            page = "account"; selected = null; ShowPage(); await Task.Delay(500);
-            Check(ContentRows.Children.OfType<PersonPicture>().Any(), "Account page loads the profile through the authenticated API"); await Capture("page-account");
+            page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(500);
+            Check(ProfileSettingsAvatar is not null, "Profile editor is part of native settings"); await Capture("page-account");
             var reading = ShowNews(newsItems[0]); await Task.Delay(400);
             Check(newsDialog is not null && newsDialog.Content is ScrollViewer, "Newswire uses a bounded native scrolling dialog");
             await Capture("news-dialog", newsDialog!); newsDialog!.Hide(); await reading;

@@ -133,11 +133,12 @@ public sealed partial class MainWindow
         searchResults.Clear(); query = query.Trim();
         if (query.Length > 0)
         {
-            foreach (var game in Catalog.Where(x => (x.Title + " " + x.Genres).Contains(query, StringComparison.CurrentCultureIgnoreCase)).Take(8))
+            foreach (var game in Catalog.Where(x => (x.Title + " " + x.Genres + " " + x.Data.S("developer", "publisher")).Contains(query, StringComparison.CurrentCultureIgnoreCase)).Take(8))
                 searchResults.Add(new SearchEntry(game.Title, game));
             if (searchResults.Count == 0)
-                foreach (var key in new[] { "App theme", "Animations", "Language", "DeadBar", "Notifications", "Settings" })
-                    searchResults.Add(new SearchEntry(Locale.T(key), setting: key));
+                foreach (var key in new[] { "App theme", "Animations", "Language", "DeadBar", "Notifications", "Settings", "Profile", "Newswire", "Support" })
+                    if (key.Contains(query, StringComparison.CurrentCultureIgnoreCase) || Locale.T(key).Contains(query, StringComparison.CurrentCultureIgnoreCase))
+                        searchResults.Add(new SearchEntry(Locale.T(key), setting: key));
         }
         SearchBox.ItemsSource = searchResults.ToArray(); SearchBox.IsSuggestionListOpen = searchResults.Count > 0;
     }
@@ -153,26 +154,31 @@ public sealed partial class MainWindow
         var list = await Api.Get("/newswire?limit=24&offset=0");
         if (list is not JsonArray) throw new LauncherException("INVALID_RESPONSE"); newsItems = list.Items().Select(x => x.DeepClone()).ToArray();
         HomeNewsRows.Children.Clear();
-        foreach (var item in newsItems.Take(8)) HomeNewsRows.Children.Add(NewsCard(item, true));
+        foreach (var item in newsItems.Take(2)) HomeNewsRows.Children.Add(NewsCard(item, true));
         HomeNews.Visibility = page == "explore" && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     private Button NewsCard(JsonNode item, bool horizontal = false)
     {
-        var stack = new StackPanel { Spacing = 12 };
-        var image = new Image { Height = horizontal ? 160 : 180, Stretch = Stretch.UniformToFill }; SetImage(image, Urls.Image(item.S("image")) ?? "");
-        stack.Children.Add(new Border { CornerRadius = new CornerRadius(8), Child = image });
-        stack.Children.Add(Text(item.S("title"), 20, true)); if (item.S("excerpt").Length > 0) { var excerpt = Text(item.S("excerpt")); excerpt.MaxLines = 2; excerpt.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(excerpt); }
-        var button = new Button { Content = stack, Width = horizontal ? 300 : double.NaN, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var stack = new StackPanel { Spacing = 10, Width = 276, MinWidth = 0 };
+        var image = new Image { Width = 276, Height = 155.25, Stretch = Stretch.UniformToFill };
+        SetImage(image, Urls.Image(item.S("image", "coverImage", "cover_image")) ?? "");
+        stack.Children.Add(new Border { Width = 276, Height = 155.25, CornerRadius = new CornerRadius(8), Child = image });
+        var title = Text(item.S("title"), 20, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(title);
+        if (item.S("excerpt").Length > 0) { var excerpt = Text(item.S("excerpt")); excerpt.MaxLines = 3; excerpt.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(excerpt); }
+        var published = item.S("published_at", "publishedAt", "created_at", "createdAt", "date");
+        if (published.Length > 0) stack.Children.Add(Text(FormatDate(published), 12));
+        var button = new Button { Content = stack, Width = 300, Height = 350, MinWidth = 300, MaxWidth = 300,
+            HorizontalAlignment = HorizontalAlignment.Left, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Padding = new Thickness(12) };
         button.Click += async (_, _) => await Guard(() => ShowNews(item)); return button;
     }
     private async Task ShowNews(JsonNode summary)
     {
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
-        var item = await Api.Get("/newswire/" + slug); var width = Math.Min(680, Root.XamlRoot.Size.Width - 112);
+        var item = await Api.Get("/newswire/" + slug); var width = Math.Max(280, Math.Min(680, Root.XamlRoot.Size.Width - 64));
         var body = new StackPanel { Spacing = 16, Width = width };
         body.Children.Add(Text(item.S("title"), 28, true));
         if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 20, true));
-        var image = new Image { Width = width, Height = width * 9 / 16, Stretch = Stretch.Uniform }; SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
+        var image = new Image { Width = width, Height = width * 9 / 16, Stretch = Stretch.UniformToFill }; SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
         // API HTML is rendered as native text, never evaluated as HTML/XAML.
         var text = Regex.Replace(item.S("body"), @"</(p|div|li|h[1-6])>|<br\s*/?>", "\n\n", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"<[^>]+>", ""); body.Children.Add(Text(WebUtility.HtmlDecode(text)));
@@ -191,33 +197,63 @@ public sealed partial class MainWindow
     private ContentDialog NewsDialog(StackPanel body, double width)
     {
         var viewer = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme, CloseButtonText = Locale.T("Close"),
-            Content = new ScrollViewer { Content = body, Height = Math.Max(180, Math.Min(640, Root.XamlRoot.Size.Height - 180)), VerticalScrollBarVisibility = ScrollBarVisibility.Auto } };
+            Content = new ScrollViewer { Content = body, Height = Math.Max(180, Math.Min(680, Root.XamlRoot.Size.Height - 140)), MaxHeight = Math.Max(180, Root.XamlRoot.Size.Height - 120), VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollMode = ScrollMode.Enabled, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
         viewer.Resources["ContentDialogMaxWidth"] = width + 48; return viewer;
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
-    { if (await RequireAccount()) { RememberPage(); selected = null; page = "account"; ShowPage(); } }
+    {
+        RememberPage(); selected = null; page = "settings"; profileLoaded = false; ShowPage();
+        if (User is null) await RequireAccount();
+        if (User is not null) await LoadProfileSettings();
+    }
     private async Task RenderContentPage()
     {
         var revision = ++pageRevision; var current = page; ContentRows.Children.Clear();
         if (current is "wishlist" or "account" && User is null)
         { ContentRows.Children.Add(Text(Locale.T("Sign in to manage your account."))); ContentRows.Children.Add(Action("Sign in", async () => { if (await RequireAccount()) await RenderContentPage(); }, true)); return; }
         if (current == "news") { foreach (var item in newsItems) ContentRows.Children.Add(NewsCard(item)); return; }
-        if (current == "support")
-        {
-            ContentRows.Children.Add(Section("Support", Text(Locale.T("Find help, contact the team and check service availability."))));
-            foreach (var (label, path) in new[] { ("Support", "/support"), ("Privacy policy", "/privacy"), ("Terms", "/terms"), ("About", "/about") })
-                ContentRows.Children.Add(Action(label, () => { DesktopIntegration.Open(Urls.Website + path); return Task.CompletedTask; })); return;
-        }
+        if (current == "support") { DesktopIntegration.Open(Urls.Website + "/support"); return; }
         ContentRows.Children.Add(new ProgressRing { IsActive = true });
         try
         {
-            var data = await Api.Get(current == "wishlist" ? "/wishlist" : current == "videos" ? "/videos?limit=24" : "/account");
+            var data = await Api.Get(current == "wishlist" ? "/wishlist" : "/account");
             if (revision != pageRevision || page != current) return; ContentRows.Children.Clear();
             if (current == "account")
             {
-                var person = new PersonPicture { Width = 80, Height = 80, DisplayName = data.S("username"), HorizontalAlignment = HorizontalAlignment.Left }; await SetProfilePicture(person, data.S("avatarUrl")); ContentRows.Children.Add(person);
-                ContentRows.Children.Add(Text(data.S("fullName", "username"), 28, true)); ContentRows.Children.Add(Text(data.S("email")));
-                ContentRows.Children.Add(Action("Manage account and privacy", () => { DesktopIntegration.Open(Urls.Website + "/account"); return Task.CompletedTask; })); return;
+                RememberPage(); selected = null; page = "settings"; profileLoaded = false; ShowPage();
+                await LoadProfileSettings(); return;
+            }
+            if (current == "wishlist")
+            {
+                wishlistIds.Clear();
+                foreach (var wishlistItem in data.Items())
+                    if (Guid.TryParse(wishlistItem.S("id", "gameId"), out var parsed)) wishlistIds.Add(parsed.ToString());
+                if (!data.Items().Any()) { ContentRows.Children.Add(Text(Locale.T("Your wishlist is empty."))); return; }
+                foreach (var item in data.Items())
+                {
+                    var id = item.S("id", "gameId");
+                    var game = Catalog.FirstOrDefault(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    var coverUrl = game is not null ? (game.Poster.Length > 0 ? game.Poster : game.Cover) : Urls.Image(item.S("cover_image", "coverImage"));
+                    var card = new Grid { ColumnSpacing = 16 };
+                    card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
+                    card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    var image = new Image { Width = 112, Height = 168, Stretch = Stretch.UniformToFill };
+                    SetImage(image, coverUrl ?? "");
+                    card.Children.Add(new Border { Width = 112, Height = 168, CornerRadius = new CornerRadius(8), Child = image });
+                    var details = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
+                    var title = Text(item.S("title", "name", "gameTitle"), 20, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; details.Children.Add(title);
+                    var desc = item.S("short_description", "shortDescription");
+                    if (desc.Length > 0) { var summary = Text(desc); summary.MaxLines = 3; summary.TextTrimming = TextTrimming.CharacterEllipsis; details.Children.Add(summary); }
+                    if (game is not null) details.Children.Add(Action("View details", () => LoadDetail(game), true));
+                    var remove = Action("Already in wishlist · Remove", async () =>
+                    {
+                        await Api.Delete("/wishlist/" + Urls.Id(id)); wishlistIds.Remove(id);
+                        await RenderContentPage(); RefreshGameActions();
+                    });
+                    details.Children.Add(remove); Grid.SetColumn(details, 1); card.Children.Add(details);
+                    ContentRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = card });
+                }
+                return;
             }
             foreach (var item in data.Items())
             {
@@ -239,7 +275,27 @@ public sealed partial class MainWindow
         catch (Exception ex) { if (revision == pageRevision) { ContentRows.Children.Clear(); ContentRows.Children.Add(Text(Locale.Error(ex))); } }
     }
     private async Task ToggleWishlist(Game game)
-    { if (await RequireAccount()) { await Api.Post("/wishlist", new { gameId = Urls.Id(game.Id) }); Notify(Locale.T("Added to wishlist."), InfoBarSeverity.Success); } }
+    {
+        if (!await RequireAccount()) return;
+        var id = Urls.Id(game.Id);
+        if (wishlistIds.Contains(id)) { Notify(Locale.T("Already in wishlist."), InfoBarSeverity.Informational); return; }
+        await Api.Post("/wishlist", new { gameId = id });
+        wishlistIds.Add(id); RefreshGameActions(); Notify(Locale.T("Added to wishlist."), InfoBarSeverity.Success);
+    }
+    private void HomeHeroPauseClick(object sender, RoutedEventArgs e)
+    {
+        homeHeroPaused = !homeHeroPaused;
+        HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
+        AutomationProperties.SetName(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
+    }
+    private void HomeNewsOpenClick(object sender, RoutedEventArgs e)
+    { RememberPage(); selected = null; page = "news"; ShowPage(); }
+    private void HomeNewsDisableClick(object sender, RoutedEventArgs e)
+    {
+        RememberPage(); selected = null; page = "settings"; ShowPage();
+        _ = LoadProfileSettings(); NewswireToggle.StartBringIntoView();
+        Notify(Locale.T("Turn off Show Newswire on Home in settings."), InfoBarSeverity.Informational);
+    }
     private async void AddVideoBackground(Game game, Grid hero, Image fallback)
     {
         bannerPlayer?.Dispose(); bannerPlayer = null;

@@ -39,6 +39,7 @@ public sealed partial class MainWindow : Window
     private readonly NativeWindow native;
     private readonly DispatcherQueueTimer downloadTimer;
     private readonly DispatcherQueueTimer heroTimer;
+    private readonly DispatcherQueueTimer appToastTimer;
     private readonly UpdateService updater;
     private GameViewWindow? overlay;
     private Game? selected;
@@ -104,6 +105,8 @@ public sealed partial class MainWindow : Window
             { RenderDownloads(); UpdateBusy(); }
         };
         downloadTimer.Start();
+        appToastTimer = DispatcherQueue.CreateTimer(); appToastTimer.Interval = TimeSpan.FromSeconds(5);
+        appToastTimer.Tick += (_, _) => { appToastTimer.Stop(); AppToast.Visibility = Visibility.Collapsed; };
         heroTimer = DispatcherQueue.CreateTimer(); heroTimer.Interval = TimeSpan.FromSeconds(5);
         heroTimer.Tick += (_, _) =>
         {
@@ -137,7 +140,7 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) =>
         {
             live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); updateTimer?.Stop(); bannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
-            downloadTimer.Stop(); heroTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
+            downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
         Root.SizeChanged += (_, _) => AdjustLayout();
@@ -163,6 +166,14 @@ public sealed partial class MainWindow : Window
     { try { await action(); } catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED"); } }
     private void Notify(string text, InfoBarSeverity severity = InfoBarSeverity.Warning)
     { Notice.Message = text; Notice.Severity = severity; Notice.IsOpen = true; }
+    private void ShowInAppToast(string title, string message)
+    {
+        if (!AppWindow.IsVisible) return;
+        AppToastTitle.Text = title; AppToastMessage.Text = message; AppToast.Visibility = Visibility.Visible;
+        appToastTimer.Stop(); appToastTimer.Start();
+    }
+    private void DismissAppToastClick(object sender, RoutedEventArgs e)
+    { appToastTimer.Stop(); AppToast.Visibility = Visibility.Collapsed; }
     private async Task Boot() => await StartBoot();
     private void ShowLogin() => UI(async () => { await OpenSignIn(); });
     private async Task Enter(bool alreadyLoaded = false)
@@ -276,13 +287,14 @@ public sealed partial class MainWindow : Window
         PageToolbar.Visibility = selected is null ? Visibility.Visible : Visibility.Collapsed;
         AppTitleBar.IsBackButtonVisible = true;
         AppTitleBar.IsBackButtonEnabled = selected is not null || page != "explore" || history.Count > 0;
-        ContentPage.Visibility = selected is null && page is "wishlist" or "news" or "videos" or "account" or "support" ? Visibility.Visible : Visibility.Collapsed;
+        ContentPage.Visibility = selected is null && page is "wishlist" or "news" ? Visibility.Visible : Visibility.Collapsed;
         HomeNews.Visibility = page == "explore" && Preferences.ShowNewswireOnHome && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (selected is null) HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
         CollapseLabel.Visibility = Shell.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
         if (ContentPage.Visibility == Visibility.Visible) UI(RenderContentPage);
-        PageHeading.Text = Locale.T(page switch { "library" => "Library", "downloads" => "Downloads", "settings" => "Settings", "wishlist" => "Wishlist", "news" => "Newswire", "videos" => "Videos", "account" => "My account", "support" => "Support", _ => "Explore" });
+        PageHeading.Text = Locale.T(page switch { "library" => "Library", "downloads" => "Downloads", "settings" or "account" => "Settings", "wishlist" => "Wishlist", "news" => "Newswire", _ => "Explore" });
         changingNavigation = true;
-        try { Shell.SelectedItem = page switch { "library" => LibraryItem, "downloads" => DownloadsItem, "settings" => SettingsNav, "wishlist" => WishlistItem, "news" => NewsItem, "videos" => VideosItem, "support" => SupportItem, "account" => null, _ => ExploreItem }; }
+        try { Shell.SelectedItem = page switch { "library" => LibraryItem, "downloads" => DownloadsItem, "wishlist" => WishlistItem, "news" => NewsItem, _ => ExploreItem }; }
         finally { changingNavigation = false; }
         RenderCatalog(); RenderDownloads(); AdjustLayout();
     }
@@ -291,7 +303,10 @@ public sealed partial class MainWindow : Window
         if (LoginLayout is null || GameGrid is null) return;
         LoginLayout.MinHeight = 0;
         SearchBox.Width = Root.ActualWidth < 900 ? 180 : Math.Clamp(Root.ActualWidth * 0.4, 180, 600);
-        AppTitleBar.Title = Root.ActualWidth < 900 ? "Deadsmile" : "Deadsmile Games Launcher";
+        AppTitleBar.Title = "Deadsmile Games Launcher";
+        if (SettingsPanel.ActualWidth > 0) SettingsBody.Width = Math.Max(0, Math.Min(1000, SettingsPanel.ActualWidth - 24));
+        if (HomeHeroSurface.ActualWidth > 0 && FeaturedVideo.Visibility == Visibility.Visible)
+        { FeaturedVideo.Width = HomeHeroSurface.ActualWidth; FeaturedVideo.Height = HomeHeroSurface.ActualHeight; }
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
@@ -313,8 +328,7 @@ public sealed partial class MainWindow : Window
             FeaturedImage.Source = null;
             SetImage(FeaturedImage, featuredGame.HeroImages.FirstOrDefault() ?? featuredGame.Cover);
             FeaturedTitle.Text = featuredGame.Title; FeaturedGenres.Text = featuredGame.Genres;
-            FeaturedButton.Content = installs.Installed.ContainsKey(featuredGame.Id) && featuredGame.CanLaunch
-                ? Locale.T(Games.Busy(featuredGame.Id) ? "Running" : "Play") : Locale.T("View details");
+            FeaturedButton.Content = Locale.T("View details");
         }
         var featureImages = new[] { SecondaryFeaturedImage, ThirdFeaturedImage, FourthFeaturedImage };
         var featureTitles = new[] { SecondaryFeaturedTitle, ThirdFeaturedTitle, FourthFeaturedTitle };
@@ -331,6 +345,17 @@ public sealed partial class MainWindow : Window
         EmptyCatalog.Text = Locale.T(page == "library" ? "Your library is empty." : "No games found.");
         EmptyCatalog.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+    private void NavigationInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        if (!ready) return;
+        if (args.InvokedItemContainer is NavigationViewItem item && item.Tag?.ToString() == page && selected is null)
+        {
+            detailRevision++; ShowPage();
+            if (page is "news" or "wishlist") UI(RenderContentPage);
+        }
+    }
+    private void NavigationCompactClick(object sender, RoutedEventArgs e) => NavigationChoice.SelectedIndex = 0;
+    private void NavigationExpandedClick(object sender, RoutedEventArgs e) => NavigationChoice.SelectedIndex = 1;
     private void SearchChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (!ready || args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
@@ -341,11 +366,7 @@ public sealed partial class MainWindow : Window
     private void SearchChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
     { if (args.SelectedItem is SearchEntry entry) sender.Text = entry.Title; }
     private async void FeaturedClick(object sender, RoutedEventArgs e)
-    {
-        if (featuredGame is not { } game) return;
-        if (installs.Installed.ContainsKey(game.Id) && game.CanLaunch) await LaunchWithSequence(game);
-        else await LoadDetail(game);
-    }
+    { if (featuredGame is { } game) await LoadDetail(game); }
     private async void SecondaryFeaturedClick(object sender, RoutedEventArgs e)
     {
         if (int.TryParse(((Button)sender).Tag?.ToString(), out var index) && index >= 0 && index < featuredGames.Length && featuredGames[index] is { } game)
@@ -728,7 +749,7 @@ public sealed partial class MainWindow : Window
                 combo.SelectedIndex = Locale.Language == "pt-BR" ? 0 : Locale.Language == "en" ? 1 : 2;
             Translate(Root);
             ExploreItem.Content = Locale.T("Explore"); LibraryItem.Content = Locale.T("Library"); DownloadsItem.Content = Locale.T("Downloads");
-            SettingsNav.Content = Locale.T("Settings"); WishlistItem.Content = Locale.T("Wishlist"); NewsItem.Content = Locale.T("Newswire"); VideosItem.Content = Locale.T("Videos"); SupportItem.Content = Locale.T("Support");
+            WishlistItem.Content = Locale.T("Wishlist"); NewsItem.Content = Locale.T("Newswire");
             SignInMenuItem.Text = Locale.T("Sign in"); AccountMenuItem.Text = Locale.T("My account"); UpdateAccount();
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");

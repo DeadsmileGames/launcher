@@ -6,25 +6,34 @@
   <TitleBar x:Name="AppTitleBar" Title="Deadsmile Games Launcher" Background="{ThemeResource SidebarBrush}"
    IsPaneToggleButtonVisible="False" IsBackButtonVisible="True" IsBackButtonEnabled="False"
    BackRequested="TitleBackRequested" PaneToggleRequested="TitlePaneToggleRequested">
-   <TitleBar.IconSource><BitmapIconSource UriSource="ms-appx:///Assets/Square44x44Logo.png" ShowAsMonochrome="False"/></TitleBar.IconSource>
    <TitleBar.Content>
     <AutoSuggestBox x:Name="SearchBox" PlaceholderText="Search games" QueryIcon="Find" MinWidth="180" MaxWidth="600"
      HorizontalAlignment="Stretch" Visibility="Collapsed" TextChanged="SearchChanged" QuerySubmitted="SearchSubmitted" SuggestionChosen="SearchChosen"
      AutomationProperties.AutomationId="GlobalSearch" AutomationProperties.Name="Search games"/>
    </TitleBar.Content>
    <TitleBar.RightHeader>
-    <Button x:Name="AccountButton" Style="{StaticResource SubtleButtonStyle}" Padding="4" Visibility="Collapsed"
-     AutomationProperties.Name="Account" AutomationProperties.AutomationId="AccountMenu">
-     <StackPanel Orientation="Horizontal" Spacing="8"><PersonPicture x:Name="Avatar" Width="28" Height="28"/><TextBlock x:Name="AccountActionLabel" Text="Sign in" VerticalAlignment="Center"/></StackPanel>
-     <Button.Flyout><MenuFlyout>
-      <MenuFlyoutItem x:Name="Username" Text="Account" IsEnabled="False"/>
-      <MenuFlyoutItem x:Name="AccountMenuItem" Text="My account" Click="AccountClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
-      <MenuFlyoutItem x:Name="SignInMenuItem" Text="Sign in" Click="GuestSignInClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
-      <MenuFlyoutSeparator/>
-      <MenuFlyoutItem x:Name="WebsiteMenuItem" Text="Website" Click="WebsiteClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="World"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
-      <MenuFlyoutItem x:Name="LogoutButton" Text="Sign out" Click="LogoutClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="LeaveChat"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
-     </MenuFlyout></Button.Flyout>
-    </Button>
+    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+     <Button x:Name="NotificationsButton" Style="{StaticResource SubtleButtonStyle}" Padding="8" Click="NotificationsClick"
+      AutomationProperties.Name="Notifications" AutomationProperties.AutomationId="LauncherNotifications">
+      <Grid Width="24" Height="24">
+       <SymbolIcon Symbol="Ringer" Width="22" Height="22"/>
+       <InfoBadge x:Name="NotificationBadge" Value="1" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+      </Grid>
+      <Button.Flyout><MenuFlyout x:Name="NotificationMenu"/></Button.Flyout>
+     </Button>
+     <Button x:Name="AccountButton" Style="{StaticResource SubtleButtonStyle}" Padding="4" Visibility="Collapsed"
+      AutomationProperties.Name="My profile and settings" AutomationProperties.AutomationId="AccountMenu">
+      <StackPanel Orientation="Horizontal" Spacing="8"><PersonPicture x:Name="Avatar" Width="28" Height="28"/><TextBlock x:Name="AccountActionLabel" Text="Sign in" VerticalAlignment="Center"/></StackPanel>
+      <Button.Flyout><MenuFlyout>
+       <MenuFlyoutItem x:Name="Username" Text="Account" IsEnabled="False"/>
+       <MenuFlyoutItem x:Name="AccountMenuItem" Text="My profile and settings" Click="AccountClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+       <MenuFlyoutItem x:Name="SignInMenuItem" Text="Sign in" Click="GuestSignInClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+       <MenuFlyoutSeparator/>
+       <MenuFlyoutItem x:Name="WebsiteMenuItem" Text="Website" Click="WebsiteClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="World"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+       <MenuFlyoutItem x:Name="LogoutButton" Text="Sign out" Click="LogoutClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="LeaveChat"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+      </MenuFlyout></Button.Flyout>
+     </Button>
+    </StackPanel>
    </TitleBar.RightHeader>
   </TitleBar>
   <Grid x:Name="BootPanel" Grid.Row="1" Background="{ThemeResource BaseBrush}" Padding="32">
@@ -69,16 +78,13 @@
   <NavigationView x:Name="Shell" Grid.Row="1" Visibility="Collapsed" PaneDisplayMode="LeftCompact"
    CompactPaneLength="72" OpenPaneLength="280" IsPaneOpen="False" IsPaneToggleButtonVisible="False"
    IsBackButtonVisible="Collapsed" IsSettingsVisible="False" AlwaysShowHeader="False"
-   Background="{ThemeResource SidebarBrush}" SelectionChanged="NavigationChanged">
+   Background="{ThemeResource SidebarBrush}" SelectionChanged="NavigationChanged" ItemInvoked="NavigationInvoked">
    <NavigationView.MenuItems>
     <NavigationViewItem x:Name="ExploreItem" Content="Explore" Tag="explore" AutomationProperties.AutomationId="ExploreNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon></NavigationViewItem>
     <NavigationViewItem x:Name="LibraryItem" Content="Library" Tag="library" AutomationProperties.AutomationId="LibraryNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Library"/></NavigationViewItem.Icon></NavigationViewItem>
     <NavigationViewItem x:Name="WishlistItem" Content="Wishlist" Tag="wishlist" AutomationProperties.AutomationId="WishlistNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Favorite"/></NavigationViewItem.Icon></NavigationViewItem>
     <NavigationViewItem x:Name="NewsItem" Content="Newswire" Tag="news" AutomationProperties.AutomationId="NewsNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Message"/></NavigationViewItem.Icon></NavigationViewItem>
-    <NavigationViewItem x:Name="VideosItem" Content="Videos" Tag="videos" AutomationProperties.AutomationId="VideosNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Video"/></NavigationViewItem.Icon></NavigationViewItem>
     <NavigationViewItem x:Name="DownloadsItem" Content="Downloads" Tag="downloads" AutomationProperties.AutomationId="DownloadsNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Download"/></NavigationViewItem.Icon></NavigationViewItem>
-    <NavigationViewItem x:Name="SupportItem" Content="Support" Tag="support" AutomationProperties.AutomationId="SupportNavigation"><NavigationViewItem.Icon><SymbolIcon Symbol="Help"/></NavigationViewItem.Icon></NavigationViewItem>
-    <NavigationViewItem x:Name="SettingsNav" Content="Settings" Tag="settings"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon></NavigationViewItem>
    </NavigationView.MenuItems>
    <NavigationView.PaneFooter>
     <Button x:Name="CollapseButton" Margin="12,8" Style="{StaticResource SubtleButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="CollapseClick" AutomationProperties.Name="Collapse navigation">
@@ -105,8 +111,9 @@
         <StackPanel x:Name="CatalogHeader" Spacing="24" Margin="0,0,0,16">
          <Grid x:Name="FeaturedPanel" Height="340" Visibility="Collapsed" ColumnSpacing="12">
           <Grid.ColumnDefinitions><ColumnDefinition Width="1.6*"/><ColumnDefinition x:Name="FeaturedSideColumn" Width="*"/></Grid.ColumnDefinitions>
-          <Grid CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+          <Grid x:Name="HomeHeroSurface" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
            <Image x:Name="FeaturedImage" Stretch="UniformToFill"/>
+           <MediaPlayerElement x:Name="FeaturedVideo" Stretch="UniformToFill" AreTransportControlsEnabled="False" IsHitTestVisible="False" Visibility="Collapsed"/>
            <Border CornerRadius="8">
             <Border.Background><LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5"><GradientStop Color="#E6000000" Offset="0"/><GradientStop Color="#80000000" Offset="0.65"/><GradientStop Color="#40000000" Offset="1"/></LinearGradientBrush></Border.Background>
             <StackPanel Padding="32" Spacing="12" VerticalAlignment="Bottom" MaxWidth="620" HorizontalAlignment="Left">
@@ -115,6 +122,8 @@
              <Button x:Name="FeaturedButton" Content="View details" Style="{StaticResource AccentButtonStyle}" Click="FeaturedClick" Margin="0,8,0,0"/>
             </StackPanel>
            </Border>
+           <Button x:Name="HomeHeroPauseButton" Content="Pause" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
+            Style="{StaticResource SubtleButtonStyle}" Click="HomeHeroPauseClick" AutomationProperties.Name="Pause featured games"/>
           </Grid>
           <Grid x:Name="FeaturedSide" Grid.Column="1" RowSpacing="12">
            <Grid.RowDefinitions><RowDefinition Height="2*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -137,10 +146,24 @@
            </Grid>
           </Grid>
          </Grid>
-        <StackPanel x:Name="HomeNews" Spacing="12">
-         <TextBlock Text="Newswire" Style="{StaticResource SubtitleTextBlockStyle}"/>
-         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled"><StackPanel x:Name="HomeNewsRows" Orientation="Horizontal" Spacing="16"/></ScrollViewer>
-        </StackPanel>
+        <Border x:Name="HomeNews" Style="{StaticResource Panel}" Padding="16" CornerRadius="8">
+         <Grid RowSpacing="12">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+           <StackPanel Spacing="4">
+            <TextBlock Text="Newswire" Style="{StaticResource SubtitleTextBlockStyle}"/>
+            <TextBlock Text="The latest stories, directly from the Deadsmile Games launcher." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="2"/>
+           </StackPanel>
+           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button x:Name="HomeNewsOpenButton" Content="Open Newswire" Click="HomeNewsOpenClick"/>
+            <Button x:Name="HomeNewsDisableButton" Content="Hide section" Click="HomeNewsDisableClick"/>
+           </StackPanel>
+          </Grid>
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled">
+           <StackPanel x:Name="HomeNewsRows" Orientation="Horizontal" Spacing="16"/>
+          </ScrollViewer>
+         </Grid>
+        </Border>
          <CheckBox x:Name="InstalledFilter" Content="Installed only" Checked="FilterChanged" Unchecked="FilterChanged"/>
         </StackPanel>
        </GridView.Header>
@@ -161,7 +184,7 @@
      </ScrollViewer>
      <ScrollViewer x:Name="DownloadsPanel" Visibility="Collapsed"><StackPanel x:Name="DownloadRows" Spacing="12" Padding="0,0,8,24"/></ScrollViewer>
      <ScrollViewer x:Name="SettingsPanel" Visibility="Collapsed">
-      <StackPanel Spacing="24" MaxWidth="1000" HorizontalAlignment="Stretch" Padding="0,0,8,24">
+      <StackPanel x:Name="SettingsBody" Spacing="24" MaxWidth="1000" HorizontalAlignment="Left" Padding="0,0,8,24">
        <StackPanel Spacing="12">
         <TextBlock Text="Appearance" Tag="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
@@ -174,7 +197,27 @@
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="GlobalNavigationButton" VerticalAlignment="Center"/>
          <TextBlock Grid.Column="1" Text="Navigation" Tag="Navigation" TextWrapping="Wrap" VerticalAlignment="Center"/>
-         <ComboBox x:Name="NavigationChoice" Grid.Column="2" Width="180" SelectionChanged="AppearanceChanged"><ComboBoxItem Content="Compact" Tag="compact"/><ComboBoxItem Content="Expanded" Tag="expanded"/></ComboBox>
+         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+          <Button x:Name="NavigationCompactCard" Padding="8" Click="NavigationCompactClick" AutomationProperties.Name="Compact navigation layout">
+           <StackPanel Spacing="6" Width="116">
+            <Grid Height="58" ColumnSpacing="4"><Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+             <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" CornerRadius="3"><StackPanel Padding="4" Spacing="4"><Border Height="4" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="4" Background="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel></Border>
+             <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="3"><StackPanel Padding="5" Spacing="5"><Border Height="5" Width="48" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="5" Width="62" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="5" Width="38" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel></Border>
+            </Grid>
+            <TextBlock Text="Compact" HorizontalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+          <Button x:Name="NavigationExpandedCard" Padding="8" Click="NavigationExpandedClick" AutomationProperties.Name="Expanded navigation layout">
+           <StackPanel Spacing="6" Width="116">
+            <Grid Height="58" ColumnSpacing="4"><Grid.ColumnDefinitions><ColumnDefinition Width="38"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+             <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" CornerRadius="3"><StackPanel Padding="4" Spacing="4"><Border Height="4" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="4" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="4" Background="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel></Border>
+             <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="3"><StackPanel Padding="5" Spacing="5"><Border Height="5" Width="32" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="5" Width="44" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/><Border Height="5" Width="24" HorizontalAlignment="Left" Background="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel></Border>
+            </Grid>
+            <TextBlock Text="Expanded" HorizontalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+         </StackPanel>
+         <ComboBox x:Name="NavigationChoice" Visibility="Collapsed" Width="180" SelectionChanged="AppearanceChanged"><ComboBoxItem Content="Compact" Tag="compact"/><ComboBoxItem Content="Expanded" Tag="expanded"/></ComboBox>
         </Grid></Border>
         <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -212,6 +255,81 @@
          </ComboBox>
         </Grid></Border>
        </StackPanel>
+       <StackPanel x:Name="ProfileSettingsSection" Spacing="12">
+        <TextBlock Text="My profile" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="14">
+         <StackPanel Orientation="Horizontal" Spacing="16">
+          <PersonPicture x:Name="ProfileSettingsAvatar" Width="76" Height="76" DisplayName="Profile" VerticalAlignment="Center"/>
+          <StackPanel Spacing="6" VerticalAlignment="Center">
+           <TextBlock x:Name="ProfileDisplayName" Style="{StaticResource BodyStrongTextBlockStyle}" Text="My profile"/>
+           <TextBlock x:Name="ProfileDisplayEmail" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+           <Button Content="Choose a profile photo" Click="ChooseProfilePhotoClick" HorizontalAlignment="Left"/>
+          </StackPanel>
+         </StackPanel>
+         <StackPanel x:Name="ProfileSignInPrompt" Spacing="10" Visibility="Collapsed">
+          <TextBlock Text="Sign in to edit your profile, security and privacy settings." TextWrapping="Wrap"/>
+          <Button Content="Sign in" Click="ProfileSignInClick" HorizontalAlignment="Left"/>
+         </StackPanel>
+         <StackPanel x:Name="ProfileFields" Spacing="12" Visibility="Collapsed">
+          <TextBox x:Name="ProfileUsername" Header="Username" MaxLength="24"/>
+          <TextBox x:Name="ProfileBio" Header="Bio" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"/>
+          <TextBox x:Name="ProfileWebsite" Header="Website URL" MaxLength="2000"/>
+          <TextBox x:Name="ProfileLocation" Header="Location" MaxLength="120"/>
+          <TextBox x:Name="ProfileAvatarUrl" Header="Profile image URL (optional)" MaxLength="500000"/>
+          <Button x:Name="SaveProfileButton" Content="Save profile" Click="SaveProfileClick" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
+         </StackPanel>
+        </StackPanel></Border>
+       </StackPanel>
+       <StackPanel x:Name="ProfileEmailSection" Spacing="12">
+        <TextBlock Text="Email address" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="12">
+         <TextBlock Text="Changing your email requires confirmation. Your current address remains active until confirmation." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+         <TextBox x:Name="AccountNewEmail" Header="New email address" MaxLength="254"/>
+         <PasswordBox x:Name="AccountEmailPassword" Header="Current password" MaxLength="128"/>
+         <TextBlock x:Name="AccountEmailStatus" TextWrapping="Wrap" Visibility="Collapsed"/>
+         <Button x:Name="AccountEmailSaveButton" Content="Send confirmation link" Click="SaveAccountEmailClick" HorizontalAlignment="Left"/>
+        </StackPanel></Border>
+       </StackPanel>
+       <StackPanel x:Name="ProfileSecuritySection" Spacing="12">
+        <TextBlock Text="Security and active sessions" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="12">
+         <TextBlock x:Name="TwoFactorStatus" Text="Two-step verification status" TextWrapping="Wrap"/>
+         <Button x:Name="TwoFactorActionButton" Content="Set up two-step verification" Click="TwoFactorActionClick" HorizontalAlignment="Left"/>
+         <StackPanel x:Name="TwoFactorSecretPanel" Spacing="6" Visibility="Collapsed">
+          <TextBlock Text="Authenticator secret" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+          <TextBlock x:Name="TwoFactorSecret" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+         </StackPanel>
+         <TextBox x:Name="TwoFactorTokenBox" Header="Authentication code" MaxLength="16" Visibility="Collapsed"/>
+         <Button x:Name="TwoFactorConfirmButton" Content="Confirm two-step verification" Click="TwoFactorConfirmClick" Visibility="Collapsed" HorizontalAlignment="Left"/>
+         <TextBlock Text="Active sessions" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+         <StackPanel x:Name="SessionsRows" Spacing="8"/>
+        </StackPanel></Border>
+       </StackPanel>
+       <StackPanel x:Name="ProfilePrivacySection" Spacing="12">
+        <TextBlock Text="Privacy" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="12">
+         <ToggleSwitch x:Name="ShareGameActivityToggle" Header="Share game activity" OnContent="On" OffContent="Off"/>
+         <ToggleSwitch x:Name="SharePlaytimeToggle" Header="Share playtime on public profile" OnContent="On" OffContent="Off"/>
+         <ToggleSwitch x:Name="ShareAchievementsToggle" Header="Share achievements on public profile" OnContent="On" OffContent="Off"/>
+         <Button x:Name="SavePrivacyButton" Content="Save privacy settings" Click="SavePrivacyClick" HorizontalAlignment="Left"/>
+        </StackPanel></Border>
+       </StackPanel>
+       <StackPanel Spacing="12">
+        <TextBlock Text="Newswire" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16">
+         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+         <SymbolIcon Symbol="Message" VerticalAlignment="Center"/>
+         <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="Show Newswire on Home" Style="{StaticResource BodyStrongTextBlockStyle}"/><TextBlock Text="Show the two most recent stories on the home page." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
+         <ToggleSwitch x:Name="NewswireToggle" Grid.Column="2" Toggled="AppearanceToggled"/>
+        </Grid></Border>
+       </StackPanel>
+       <StackPanel Spacing="12">
+        <TextBlock Text="Help and support" Style="{StaticResource SubtitleTextBlockStyle}"/>
+        <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="10">
+         <TextBlock Text="Need help? Open Deadsmile Games support." TextWrapping="Wrap"/>
+         <Button Content="Open support" Click="OpenSupportClick" HorizontalAlignment="Left"/>
+        </StackPanel></Border>
+       </StackPanel>
        <StackPanel Spacing="12">
         <TextBlock Text="Account" Tag="Account" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}"><StackPanel Spacing="16">
@@ -248,6 +366,12 @@
         <Border Style="{StaticResource Panel}"><StackPanel Spacing="16">
          <TextBlock x:Name="VersionLabel" Text="Deadsmile Games Launcher" Style="{StaticResource BodyStrongTextBlockStyle}"/>
          <Button x:Name="UpdateButton" Content="Check for updates" Tag="Check for updates" Click="UpdateClick"/>
+         <TextBlock Text="Follow Deadsmile Games" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+         <StackPanel Spacing="8">
+          <Button Content="X / Twitter @deadsmilegames" Tag="https://twitter.com/deadsmilegames" Click="SocialLinkClick" HorizontalAlignment="Left"/>
+          <Button Content="Instagram @deadsmilegames" Tag="https://instagram.com/deadsmilegames" Click="SocialLinkClick" HorizontalAlignment="Left"/>
+          <Button Content="YouTube @deadsmilegames" Tag="https://youtube.com/@deadsmilegames" Click="SocialLinkClick" HorizontalAlignment="Left"/>
+         </StackPanel>
         </StackPanel></Border>
        </StackPanel>
       </StackPanel>
@@ -255,5 +379,27 @@
     </Grid>
    </Grid>
   </NavigationView>
+  <Grid x:Name="AppToast" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24,52,24,0" Width="360" MaxWidth="360" Visibility="Collapsed" IsHitTestVisible="True">
+   <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="14">
+    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <SymbolIcon Symbol="Ringer" Width="22" Height="22" VerticalAlignment="Top"/>
+     <StackPanel Grid.Column="1" Spacing="4"><TextBlock x:Name="AppToastTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap"/><TextBlock x:Name="AppToastMessage" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis"/></StackPanel>
+     <Button Grid.Column="2" Style="{StaticResource SubtleButtonStyle}" Padding="4" Click="DismissAppToastClick" VerticalAlignment="Top"><SymbolIcon Symbol="Cancel"/></Button>
+    </Grid>
+   </Border>
+  </Grid>
+  <Grid x:Name="LaunchSequenceOverlay" Grid.RowSpan="2" Background="#E9080808" Visibility="Collapsed" IsHitTestVisible="False">
+   <Grid RowSpacing="20" Padding="32"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+     <TextBlock x:Name="LaunchShip" Text="🚀" FontSize="92" HorizontalAlignment="Center"><TextBlock.RenderTransform><TranslateTransform x:Name="LaunchShipTransform"/></TextBlock.RenderTransform></TextBlock>
+     <ProgressRing IsActive="True" Width="28" Height="28" HorizontalAlignment="Center"/>
+    </StackPanel>
+    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Spacing="6" Margin="0,0,0,36">
+     <TextBlock Text="NOW LAUNCHING" Foreground="#B8FFFFFF" FontSize="12" CharacterSpacing="180" HorizontalAlignment="Center"/>
+     <TextBlock x:Name="LaunchSequenceTitle" Style="{StaticResource TitleLargeTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2"/>
+     <TextBlock Text="Deadsmile Games" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+    </StackPanel>
+   </Grid>
+  </Grid>
  </Grid>
 </Window>

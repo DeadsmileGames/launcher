@@ -40,8 +40,10 @@ public sealed class LauncherException(string code, int status = 0) : Exception(c
     public int Status { get; } = status;
 }
 
-public sealed record Game(JsonNode Data)
+public sealed class Game(JsonNode data)
 {
+    // WinUI's XAML metadata generator cannot emit setters for record init-only properties.
+    public JsonNode Data { get; } = data;
     public string Id => Data.S("id");
     public string Slug => Data.S("slug");
     public string Title => Data.S("title");

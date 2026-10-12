@@ -114,7 +114,10 @@ public sealed partial class MainWindow
             if (!Regex.IsMatch(value, @"^data:image/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$", RegexOptions.IgnoreCase) || value.Length > 1000000) return;
             var bytes = Convert.FromBase64String(value[(value.IndexOf(',') + 1)..]);
             using var stream = new InMemoryRandomAccessStream(); using var writer = new DataWriter(stream.GetOutputStreamAt(0));
-            writer.WriteBytes(bytes); await writer.StoreAsync(); stream.Seek(0); var bitmap = new BitmapImage(); await bitmap.SetSourceAsync(stream); picture.ProfilePicture = bitmap;
+            writer.WriteBytes(bytes); await writer.StoreAsync(); stream.Seek(0);
+            var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream);
+            if (decoder.PixelWidth > 2048 || decoder.PixelHeight > 2048) return;
+            stream.Seek(0); var bitmap = new BitmapImage(); await bitmap.SetSourceAsync(stream); picture.ProfilePicture = bitmap;
         }
         catch (Exception) { picture.ProfilePicture = null; }
     }
@@ -223,7 +226,10 @@ public sealed partial class MainWindow
                 if (current == "wishlist")
                 {
                     button.Click += async (_, _) => { if (Catalog.FirstOrDefault(x => x.Id == item.S("id")) is { } game) await Guard(() => LoadDetail(game)); };
-                    var remove = Action("Remove from wishlist", async () => { await Api.Delete("/wishlist/" + Urls.Id(item.S("id"))); await RenderContentPage(); }); row.Children.Add(remove);
+                    var remove = Action("Remove from wishlist", async () => { await Api.Delete("/wishlist/" + Urls.Id(item.S("id"))); await RenderContentPage(); });
+                    var line = new Grid { ColumnSpacing = 16 }; line.ColumnDefinitions.Add(new ColumnDefinition()); line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    line.Children.Add(button); Grid.SetColumn(remove, 1); line.Children.Add(remove);
+                    ContentRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = line }); continue;
                 }
                 else { var url = Urls.Https(item.S("video_url", "videoUrl")); button.Click += (_, _) => { if (url is not null) DesktopIntegration.Open(url.AbsoluteUri); }; }
                 ContentRows.Children.Add(button);

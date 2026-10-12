@@ -231,6 +231,10 @@ public sealed partial class MainWindow
             toast.ShowOn(IntPtr.Zero); await Task.Delay(300);
             Check(toast.ValidationSolid, "Windows 10 achievement fallback always has an opaque background");
             await Capture("16-achievement-solid", toast.ValidationRoot); toast.Close();
+            var hint = new AchievementWindow(this, "DeadBar", Locale.T("Press {0} to open DeadBar").Replace("{0}", "Ctrl + D"), forceSolid: true, hint: true);
+            hint.ShowOn(IntPtr.Zero, centered: true); await Task.Delay(300);
+            Check(hint.ValidationRoot.ActualHeight <= 96, "DeadBar reminder is a compact bottom-centered toast");
+            await Capture("deadbar-hint", hint.ValidationRoot); hint.Close();
             if (Services.GameCapture.Supported)
             {
                 try

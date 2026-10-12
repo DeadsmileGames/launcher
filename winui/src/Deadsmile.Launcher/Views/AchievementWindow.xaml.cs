@@ -10,9 +10,10 @@ namespace Deadsmile.Launcher.Views;
 public sealed partial class AchievementWindow : Window
 {
     private readonly DispatcherQueueTimer timer;
-    public AchievementWindow(MainWindow owner, string heading, string title, bool forceSolid = false)
+    public AchievementWindow(MainWindow owner, string heading, string title, bool forceSolid = false, bool hint = false)
     {
         InitializeComponent(); Heading.Text = heading; AchievementTitle.Text = title;
+        if (hint) { ToastIcon.Symbol = Microsoft.UI.Xaml.Controls.Symbol.GlobalNavigationButton; Heading.Visibility = Visibility.Collapsed; }
         ToastRoot.RequestedTheme = owner.UiTheme;
         // Mica is opaque, including its system fallback. Windows 10 always retains the solid XAML surface.
         if (!forceSolid && owner.Preferences.WindowsMaterials && OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000) && MicaController.IsSupported())
@@ -34,7 +35,7 @@ public sealed partial class AchievementWindow : Window
     {
         var monitor = NativeWindow.WorkAreaFor(game); var scale = NativeWindow.DpiScale(game, this);
         var margin = (int)Math.Round(20 * scale); var width = Math.Min((int)Math.Round(420 * scale), monitor.Right - monitor.Left - margin * 2);
-        var height = (int)Math.Round(146 * scale);
+        var height = (int)Math.Round((centered ? 88 : 146) * scale);
         var rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
             Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
         NativeWindow.Place(this, rect);
@@ -43,7 +44,7 @@ public sealed partial class AchievementWindow : Window
         if (Math.Abs(actualScale - scale) > 0.01)
         {
             margin = (int)Math.Round(20 * actualScale); width = Math.Min((int)Math.Round(420 * actualScale), monitor.Right - monitor.Left - margin * 2);
-            height = (int)Math.Round(146 * actualScale);
+            height = (int)Math.Round((centered ? 88 : 146) * actualScale);
             rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
                 Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
             NativeWindow.Place(this, rect);

@@ -37,7 +37,8 @@ public sealed partial class MainWindow
     {
         if (!Preferences.Notifications) return;
         AddLocalNotification(title, text, kind, entityId, slug);
-        if (AppWindow.IsVisible) { ShowInAppToast(title, text); return; }
+        var window = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (AppWindow.IsVisible && !NativeWindow.Minimized(window)) { ShowInAppToast(title, text); return; }
         if (notifications?.Show(title, text) != true) tray?.Notify(title, text);
     }
     private void AddLocalNotification(string title, string message, string kind, string? entityId, string? slug)
@@ -161,4 +162,5 @@ public sealed partial class MainWindow
         toast.ShowOn(game.Process.MainWindowHandle, centered: true);
     }
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
 }

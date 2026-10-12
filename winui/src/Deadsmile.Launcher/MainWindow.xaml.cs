@@ -51,8 +51,18 @@ public sealed partial class MainWindow : Window
     private bool homeHeroPaused, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
     private string page = "explore";
     public string OverlayShortcut { get; private set; } = "Control+D";
-    internal bool GameIsFocused => Games.Running.Any(x => !x.Process.HasExited && x.Process.MainWindowHandle != IntPtr.Zero &&
-        !NativeWindow.Minimized(x.Process.MainWindowHandle) && GetForegroundWindow() == x.Process.MainWindowHandle);
+    internal bool GameIsFocused
+    {
+        get
+        {
+            var foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero) return false;
+            _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
+            return foregroundProcessId != 0 && Games.Running.Any(game =>
+                !game.Process.HasExited && (uint)game.Process.Id == foregroundProcessId &&
+                !NativeWindow.Minimized(game.Process.MainWindowHandle));
+        }
+    }
     private bool ready, refreshing, refreshAgain, twoFactor, authenticating, changingLanguage, connecting, commandBusy, closeDialog, itchConfigured, itchConnected;
     private int downloadDirty = 1, detailRevision;
     private string? pendingLaunch;

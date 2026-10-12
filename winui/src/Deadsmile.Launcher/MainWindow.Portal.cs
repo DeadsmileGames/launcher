@@ -337,6 +337,8 @@ public sealed partial class MainWindow
             player.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
             { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; });
             player.Play();
+        }
+        catch (Exception) { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; }
 #endif
     }
     private async void AddVideoBackground(Game game, Grid hero, Image fallback)

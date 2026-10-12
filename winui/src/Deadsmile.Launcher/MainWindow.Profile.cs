@@ -56,7 +56,7 @@ public sealed partial class MainWindow
             foreach (var session in sessions.At("sessions").Items())
             {
                 var sessionId = session.S("id", "deviceId");
-                var label = session.S("deviceName", "device", "userAgent");
+                var label = string.Join(" · ", new[] { session.S("client"), session.S("platform") }.Where(value => value.Length > 0));
                 if (label.Length == 0) label = Locale.T("Signed-in device");
                 var row = new Grid { ColumnSpacing = 12 };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

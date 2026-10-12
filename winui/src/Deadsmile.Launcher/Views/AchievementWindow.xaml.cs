@@ -34,8 +34,8 @@ public sealed partial class AchievementWindow : Window
     public void ShowOn(IntPtr game, bool centered = false)
     {
         var monitor = NativeWindow.WorkAreaFor(game); var scale = NativeWindow.DpiScale(game, this);
-        var margin = (int)Math.Round(20 * scale); var width = Math.Min((int)Math.Round(420 * scale), monitor.Right - monitor.Left - margin * 2);
-        var height = (int)Math.Round((centered ? 88 : 146) * scale);
+        var margin = (int)Math.Round(16 * scale); var width = Math.Min((int)Math.Round(centered ? 330 * scale : 360 * scale), monitor.Right - monitor.Left - margin * 2);
+        var height = (int)Math.Round((centered ? 76 : 104) * scale);
         var rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
             Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
         NativeWindow.Place(this, rect);
@@ -43,8 +43,8 @@ public sealed partial class AchievementWindow : Window
         var actualScale = NativeWindow.DpiScale(IntPtr.Zero, this);
         if (Math.Abs(actualScale - scale) > 0.01)
         {
-            margin = (int)Math.Round(20 * actualScale); width = Math.Min((int)Math.Round(420 * actualScale), monitor.Right - monitor.Left - margin * 2);
-            height = (int)Math.Round((centered ? 88 : 146) * actualScale);
+            margin = (int)Math.Round(16 * actualScale); width = Math.Min((int)Math.Round(centered ? 330 * actualScale : 360 * actualScale), monitor.Right - monitor.Left - margin * 2);
+            height = (int)Math.Round((centered ? 76 : 104) * actualScale);
             rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
                 Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
             NativeWindow.Place(this, rect);

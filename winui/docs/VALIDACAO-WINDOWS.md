@@ -1,10 +1,10 @@
 # Validação obrigatória no Windows
 
-Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta lista registra cenários de aceite. O build, os 20 testes Core e os smoke tests de instalação/desinstalação EXE/MSIX passaram no runner Windows Server 2025; a abertura da janela foi conferida para o aplicativo instalado pelo EXE. Consulte STATUS.md para a execução e o commit testados. Os cenários completos abaixo continuam pendentes de homologação em Windows 10/11.
+Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta lista registra cenários de aceite. O build, os 22 testes Core e os smoke tests de instalação/desinstalação EXE/MSIX passaram no runner Windows Server 2025; a abertura da janela foi conferida para o aplicativo instalado pelo EXE. Consulte STATUS.md para a execução e o commit testados. Os cenários completos abaixo continuam pendentes de homologação em Windows 10/11.
 
 ## Build e instalação
 
-- Executar os 20 testes Core; todos devem passar.
+- Executar os 22 testes Core; todos devem passar.
 - Publicar x64 e conferir ausência de erros do compilador C# e do compilador XAML.
 - Confirmar que o app abre em Windows 10 22H2 e Windows 11 sem SDK de desenvolvimento instalado.
 - Gerar MSIX com MakeAppx e verificar assinatura com SignTool.
@@ -16,13 +16,17 @@ Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta 
 
 ## Interface
 
-- Comparar com o Electron original em 1271 × 796.
+- Comparar com as referências WinUI Gallery, Microsoft Store e Xbox Game Bar em 1280 × 800.
 - Conferir mínimo de janela, maximização, restauração e arraste da barra de título.
 - Testar 100%, 125%, 150% e 200%, inclusive em monitores com escalas diferentes.
 - Conferir fontes, ícones, login, lateral, capas, descrição, galeria, ações e dados da Store.
 - Conferir português, inglês e espanhol, incluindo textos longos.
 - Conferir navegação por teclado, foco, leitor de tela e alto contraste.
 - Conferir ausência de corte de texto, áreas sem rolagem e controles fora da janela.
+- Abrir screenshots muito largas e verticais; redimensionar com a galeria aberta e verificar a imagem inteira.
+- Testar todos os temas, alto contraste, navegação compacta/expandida e persistência das preferências.
+- Desativar animações no app e no Windows; conferir ausência de transições e rotação automática.
+- Conferir o ícone em tarefa, Iniciar, busca e Explorer nas escalas 100–400%, incluindo atualização da instalação existente.
 
 ## Conta e biblioteca
 
@@ -54,7 +58,9 @@ Execute em ambiente de teste, com cópia dos saves e dos dados relevantes. Esta 
 - Aviso de conquista sem roubar foco, inclusive com launcher minimizado.
 - Atalho Game View livre e ocupado por outro programa.
 - Overlay em janela, sem bordas, fullscreen exclusivo e jogo minimizado.
-- Clique nos painéis, passagem de cliques fora deles, foco e ocultação.
+- Clique nos widgets, arraste, fixação, fechamento, restauração das posições, passagem de cliques fora deles, foco e ocultação.
+- Fixar um widget, fechar Ctrl+D e depois fechar/minimizar o jogo; não pode sobrar widget na tela.
+- Toast: fundo sólido no Windows 10; no Windows 11 testar Mica e fallback com efeitos/transparência desativados.
 - Monitor do jogo, troca de monitor e escalas distintas.
 
 ## Atualização e publicação

@@ -413,7 +413,7 @@ public sealed partial class MainWindow : Window
         DetailContent.Children.Clear(); heroImages = game.HeroImages; heroIndex = 0;
         var hero = new Grid { Height = 360, MaxHeight = 360, CornerRadius = new CornerRadius(8) };
         hero.Background = Root.Background;
-        heroImage = new Image { Height = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
+        heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
         SetImage(heroImage, heroImages.FirstOrDefault() ?? ""); hero.Children.Add(heroImage);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
@@ -474,6 +474,8 @@ public sealed partial class MainWindow : Window
         hero.SizeChanged += (_, _) =>
         {
             banner.Width = Math.Max(0, hero.ActualWidth);
+            banner.MaxWidth = banner.Width;
+            banner.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
             contents.Width = Math.Min(640, hero.ActualWidth);
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };

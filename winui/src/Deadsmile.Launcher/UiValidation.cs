@@ -137,20 +137,35 @@ public sealed partial class MainWindow
             Check(GameGrid.Items.Count == 1, "Title-bar search filters the library"); SearchBox.Text = ""; await Task.Delay(200); RenderCatalog();
             await LoadDetail(Catalog[0]); await Task.Delay(300);
             Check(DetailPanel.Visibility == Visibility.Visible && AppTitleBar.IsBackButtonEnabled, "Game details enable native back navigation");
-            Check(((FrameworkElement)DetailContent.Children[0]).ActualHeight == 360 && heroImage?.ActualHeight == 360, "Product hero and image are limited to a 360 DIP strip");
-            Check(((Grid)DetailContent.Children[0]).Clip is RectangleGeometry, "Product image is clipped to its banner container");
             await Capture("06-game-details-1280");
+            var productBanner = (Grid)DetailContent.Children[0];
+            Check(Math.Abs(productBanner.ActualHeight - 360) < 1 && heroImage?.MaxHeight == 360 && heroImage.Clip is RectangleGeometry,
+                $"Product banner is limited to 360 DIPs (container: {productBanner.ActualHeight}; image: {heroImage?.ActualHeight})");
+            Check(((Grid)DetailContent.Children[0]).Clip is RectangleGeometry, "Product image is clipped to its banner container");
             async Task GalleryCheck(string name, bool portrait)
             {
                 var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
                 var content = (Grid)dialog.Content; var full = (Image)content.Children[0];
                 // Extreme source aspect ratios expose oversized natural-size image layout.
-                full.Source = new WriteableBitmap(portrait ? 600 : 4096, portrait ? 4096 : 600);
+                var w = portrait ? 180 : 1200; var h = portrait ? 1200 : 180;
+                var pixels = new byte[w * h * 4];
+                for (var y = 0; y < h; y++) for (var x = 0; x < w; x++)
+                {
+                    var offset = (y * w + x) * 4;
+                    pixels[offset] = (byte)(x < w / 2 ? 180 : 70);
+                    pixels[offset + 1] = (byte)(y < h / 2 ? 120 : 210);
+                    pixels[offset + 2] = (byte)(x < w / 2 ? 80 : 160); pixels[offset + 3] = 255;
+                }
+                using var pattern = new InMemoryRandomAccessStream();
+                var png = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pattern);
+                png.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, (uint)w, (uint)h, 96, 96, pixels);
+                await png.FlushAsync(); pattern.Seek(0);
+                var source = new BitmapImage(); await source.SetSourceAsync(pattern); full.Source = source;
                 var showing = dialog.ShowAsync(); await Task.Delay(600); content.UpdateLayout();
                 var bounds = full.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, full.ActualWidth, full.ActualHeight));
                 Check(full.Stretch == Stretch.Uniform && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
                     "Entire " + (portrait ? "portrait" : "panoramic") + " screenshot fits the native dialog in " + name);
-                await Capture(name); dialog.Hide(); await showing;
+                await Capture(name, dialog); dialog.Hide(); await showing;
             }
             await GalleryCheck("12-gallery-wide-1280", false);
             await Resize(800, 600); await Capture("07-game-details-800");

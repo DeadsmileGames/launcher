@@ -297,11 +297,11 @@ public sealed partial class MainWindow : Window
     {
         foreach (var game in catalog)
         {
-            if (!game.Slug.Equals(Urls.Slug(game.Slug), StringComparison.Ordinal) ||
-                !game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
-            var legacyFolder = Path.Combine(storage.Games, game.Slug);
+            if (!game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
             try
             {
+                if (string.IsNullOrWhiteSpace(game.Slug)) continue;
+                var legacyFolder = Path.Combine(storage.Games, Urls.Slug(game.Slug));
                 PathGuard.RequireInside(storage.Games, legacyFolder);
                 if (!Directory.Exists(legacyFolder) || InstallationService.FindExe(legacyFolder) is null) continue;
                 if (!game.InLibrary)
@@ -313,7 +313,7 @@ public sealed partial class MainWindow : Window
                         data["inLibrary"] = true;
                     }
                 }
-                DesktopNotice(Locale.T("Free game installation detected"), Locale.T("{0} was found in your Games folder and added to your library.", game.Title),
+                DesktopNotice(Locale.T("Free game installation detected"), game.Title + " · " + Locale.T("Added to library."),
                     "game", game.Id, game.Slug);
             }
             catch (Exception ex)

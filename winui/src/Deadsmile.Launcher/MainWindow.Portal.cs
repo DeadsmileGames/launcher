@@ -311,12 +311,13 @@ public sealed partial class MainWindow
 #if UI_VALIDATION
         return;
 #else
+        if (!Preferences.VideoBackgrounds || !MotionEnabled || game.BackgroundVideo.Length == 0)
+        { StopHomeVideo(); return; }
         if (homeVideoGameId == game.Id && homeBannerPlayer is not null) return;
         var revision = ++homeMediaRevision;
         homeVideoGameId = game.Id;
         homeBannerPlayer?.Dispose(); homeBannerPlayer = null;
         FeaturedVideo.Visibility = Visibility.Collapsed;
-        if (!Preferences.VideoBackgrounds || !MotionEnabled || game.BackgroundVideo.Length == 0) return;
         try
         {
             if (!Uri.TryCreate(game.BackgroundVideo, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return;

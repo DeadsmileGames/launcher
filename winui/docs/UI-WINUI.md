@@ -17,7 +17,7 @@ A UI segue as três imagens de referência fornecidas: WinUI 3 Gallery, página 
 
 Os templates de Button, NavigationView, TextBox, ComboBox e ContentDialog continuam sendo os do WinUI. Acento, estados de foco/hover/pressionado e acessibilidade vêm da biblioteca. O tema HighContrast usa as cores do sistema. A largura mínima é 640 e os layouts refluem conforme o espaço disponível.
 
-A ação adicional “Verificar instalação” foi removida da UI. “Verificar compra” foi mantida segundo o fluxo original. Os serviços de autenticação, downloads, instalações, processos, saves e conquistas permanecem no Core. A leitura de nomes alternativos de campos da API foi corrigida para capas e metadados.
+A ação adicional “Verificar instalação” foi removida da UI. “Verificar compra” foi mantida segundo o fluxo original. Os serviços de autenticação, downloads, instalações, processos, saves e conquistas permanecem no Core. Os testes adicionais conferem os nomes alternativos de campos da API usados por capas e conquistas.
 
 ## Validação
 

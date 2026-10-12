@@ -79,7 +79,7 @@ public sealed partial class GameViewWindow : Window
             AchievementRows.Children.Clear();
             foreach (var a in achievements.Items())
             {
-                var unlocked = a.First("unlocked_at", "unlockedAt") is not null;
+                var unlocked = a.At("unlocked_at", "unlockedAt") is not null;
                 var hidden = a.B("hidden") && !unlocked;
                 AchievementRows.Children.Add(new Border
                 {
@@ -96,8 +96,8 @@ public sealed partial class GameViewWindow : Window
             if (revision != request) return;
             foreach (var item in saves.Items())
                 CloudRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"],
-                    Child = new TextBlock { Text = item.First("filename", "slot").S() + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") +
-                        "\n" + item.First("updated_at", "updatedAt").S() } });
+                    Child = new TextBlock { Text = item.S("filename", "slot") + "\n" + owner.Locale.T("Revision") + " " + item.L("revision") +
+                        "\n" + item.S("updated_at", "updatedAt") } });
             if (CloudRows.Children.Count == 0) CloudRows.Children.Add(new TextBlock { Text = owner.Locale.T("No cloud saves found.") });
         }
         catch (Exception ex)

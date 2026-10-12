@@ -92,16 +92,39 @@
        HorizontalContentAlignment="Stretch" Padding="0,0,0,16" AutomationProperties.AutomationId="GameCatalog">
        <GridView.Header>
         <StackPanel x:Name="CatalogHeader" Spacing="24" Margin="0,0,0,16">
-         <Grid x:Name="FeaturedPanel" Height="300" Visibility="Collapsed" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-          <Image x:Name="FeaturedImage" Stretch="UniformToFill"/>
-          <Border CornerRadius="8">
-           <Border.Background><LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5"><GradientStop Color="#E6000000" Offset="0"/><GradientStop Color="#70000000" Offset="0.65"/><GradientStop Color="#20000000" Offset="1"/></LinearGradientBrush></Border.Background>
-           <StackPanel Padding="32" Spacing="12" VerticalAlignment="Bottom" MaxWidth="620" HorizontalAlignment="Left">
-            <TextBlock x:Name="FeaturedTitle" Style="{StaticResource TitleLargeTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
-            <TextBlock x:Name="FeaturedGenres" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" Foreground="White"/>
-            <Button x:Name="FeaturedButton" Content="View details" Style="{StaticResource AccentButtonStyle}" Click="FeaturedClick" Margin="0,8,0,0"/>
-           </StackPanel>
-          </Border>
+         <Grid x:Name="FeaturedPanel" Height="340" Visibility="Collapsed" ColumnSpacing="12">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="1.6*"/><ColumnDefinition x:Name="FeaturedSideColumn" Width="*"/></Grid.ColumnDefinitions>
+          <Grid CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+           <Image x:Name="FeaturedImage" Stretch="UniformToFill"/>
+           <Border CornerRadius="8">
+            <Border.Background><LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5"><GradientStop Color="#E6000000" Offset="0"/><GradientStop Color="#80000000" Offset="0.65"/><GradientStop Color="#40000000" Offset="1"/></LinearGradientBrush></Border.Background>
+            <StackPanel Padding="32" Spacing="12" VerticalAlignment="Bottom" MaxWidth="620" HorizontalAlignment="Left">
+             <TextBlock x:Name="FeaturedTitle" Style="{StaticResource TitleLargeTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
+             <TextBlock x:Name="FeaturedGenres" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" Foreground="White"/>
+             <Button x:Name="FeaturedButton" Content="View details" Style="{StaticResource AccentButtonStyle}" Click="FeaturedClick" Margin="0,8,0,0"/>
+            </StackPanel>
+           </Border>
+          </Grid>
+          <Grid x:Name="FeaturedSide" Grid.Column="1" RowSpacing="12">
+           <Grid.RowDefinitions><RowDefinition Height="2*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+           <Button x:Name="SecondaryFeature" Tag="0" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="SecondaryFeaturedClick">
+            <Grid><Image x:Name="SecondaryFeaturedImage" Stretch="UniformToFill"/><Border Background="#60000000"/>
+             <TextBlock x:Name="SecondaryFeaturedTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" VerticalAlignment="Bottom" Margin="24"/>
+            </Grid>
+           </Button>
+           <Grid Grid.Row="1" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Button x:Name="ThirdFeature" Tag="1" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="SecondaryFeaturedClick">
+             <Grid><Image x:Name="ThirdFeaturedImage" Stretch="UniformToFill"/><Border Background="#60000000"/>
+              <TextBlock x:Name="ThirdFeaturedTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" VerticalAlignment="Bottom" Margin="16"/>
+             </Grid>
+            </Button>
+            <Button x:Name="FourthFeature" Grid.Column="1" Tag="2" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Click="SecondaryFeaturedClick">
+             <Grid><Image x:Name="FourthFeaturedImage" Stretch="UniformToFill"/><Border Background="#60000000"/>
+              <TextBlock x:Name="FourthFeaturedTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" VerticalAlignment="Bottom" Margin="16"/>
+             </Grid>
+            </Button>
+           </Grid>
+          </Grid>
          </Grid>
          <CheckBox x:Name="InstalledFilter" Content="Installed only" Checked="FilterChanged" Unchecked="FilterChanged"/>
         </StackPanel>
@@ -136,7 +159,7 @@
         <Border Style="{StaticResource Panel}"><Grid ColumnSpacing="24">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="Font" VerticalAlignment="Center"/>
-         <TextBlock Text="Language" Tag="Language" Style="{StaticResource BodyTextBlockStyle}" VerticalAlignment="Center"/>
+         <TextBlock Grid.Column="1" Text="Language" Tag="Language" Style="{StaticResource BodyTextBlockStyle}" VerticalAlignment="Center"/>
          <ComboBox x:Name="SettingsLanguage" Grid.Column="2" SelectionChanged="LanguageChanged" Width="220">
           <ComboBoxItem Content="Português" Tag="pt-BR"/><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="Español" Tag="es"/>
          </ComboBox>

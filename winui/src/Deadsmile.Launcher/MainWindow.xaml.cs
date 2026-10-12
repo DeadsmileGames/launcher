@@ -40,6 +40,7 @@ public sealed partial class MainWindow : Window
     private GameViewWindow? overlay;
     private Game? selected;
     private Game? featuredGame;
+    private readonly Game?[] featuredGames = new Game?[3];
     private bool changingNavigation;
     private string page = "explore";
     public string OverlayShortcut { get; private set; } = "Control+D";
@@ -272,6 +273,9 @@ public sealed partial class MainWindow : Window
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
+        var showSide = GameGrid.ActualWidth >= 1056 && featuredGames[0] is not null;
+        FeaturedSide.Visibility = showSide ? Visibility.Visible : Visibility.Collapsed;
+        FeaturedSideColumn.Width = showSide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
     }
     private void RenderCatalog()
     {
@@ -286,6 +290,17 @@ public sealed partial class MainWindow : Window
             FeaturedImage.Source = null;
             SetImage(FeaturedImage, featuredGame.HeroImages.FirstOrDefault() ?? featuredGame.Cover);
             FeaturedTitle.Text = featuredGame.Title; FeaturedGenres.Text = featuredGame.Genres;
+        }
+        var featureImages = new[] { SecondaryFeaturedImage, ThirdFeaturedImage, FourthFeaturedImage };
+        var featureTitles = new[] { SecondaryFeaturedTitle, ThirdFeaturedTitle, FourthFeaturedTitle };
+        var featureButtons = new[] { SecondaryFeature, ThirdFeature, FourthFeature };
+        for (var i = 0; i < featuredGames.Length; i++)
+        {
+            featuredGames[i] = featuredGame is not null ? items.ElementAtOrDefault(i + 1) : null;
+            featureButtons[i].Visibility = featuredGames[i] is not null ? Visibility.Visible : Visibility.Collapsed;
+            if (featuredGames[i] is not { } feature) continue;
+            featureImages[i].Source = null; SetImage(featureImages[i], feature.HeroImages.FirstOrDefault() ?? feature.Cover);
+            featureTitles[i].Text = feature.Title; AutomationProperties.SetName(featureButtons[i], feature.Title);
         }
         AdjustLayout();
         EmptyCatalog.Text = Locale.T(page == "library" ? "Your library is empty." : "No games found.");
@@ -302,6 +317,11 @@ public sealed partial class MainWindow : Window
     { if (User is not null) { selected = null; detailRevision++; if (page != "library") page = "explore"; ShowPage(); } }
     private async void FeaturedClick(object sender, RoutedEventArgs e)
     { if (featuredGame is { } game) await LoadDetail(game); }
+    private async void SecondaryFeaturedClick(object sender, RoutedEventArgs e)
+    {
+        if (int.TryParse(((Button)sender).Tag?.ToString(), out var index) && index >= 0 && index < featuredGames.Length && featuredGames[index] is { } game)
+            await LoadDetail(game);
+    }
     private void FilterChanged(object sender, RoutedEventArgs e) { if (ready) RenderCatalog(); }
     private async void GameClick(object sender, ItemClickEventArgs e)
     { if (e.ClickedItem is Game game) await LoadDetail(game); }
@@ -520,7 +540,7 @@ public sealed partial class MainWindow : Window
             if (revision != detailRevision) return;
             foreach (var a in data.Items())
             {
-                var unlocked = a.First("unlocked_at", "unlockedAt") is not null;
+                var unlocked = a.At("unlocked_at", "unlockedAt") is not null;
                 var title = a.B("hidden") && !unlocked ? Locale.T("Hidden achievement") : a.S("title");
                 panel.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"],
                     Child = Text(title + "\n" + (a.B("hidden") && !unlocked ? "" : a.S("description")) +

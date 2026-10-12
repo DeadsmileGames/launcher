@@ -21,7 +21,7 @@ public sealed partial class MainWindow
         {
             if (Urls.Image(rating.S("imageUrl")) is { } url)
             { var image = new Image { Height = 80, HorizontalAlignment = HorizontalAlignment.Left }; SetImage(image, url); ratingPanel.Children.Add(image); }
-            ratingPanel.Children.Add(Text(rating.First("description", "label").S()));
+            ratingPanel.Children.Add(Text(rating.S("description", "label")));
         }
         else
         {
@@ -42,7 +42,7 @@ public sealed partial class MainWindow
         var notes = store.At("releaseNotes").Items().Select(x => x.S()).ToArray();
         if (notes.Length > 0) { info.Children.Add(Text(Locale.T("What’s new"), 22, true)); foreach (var note in notes) info.Children.Add(Text(note)); }
         var actions = new List<Button>();
-        var publisher = store.First("publisher", "developer").S();
+        var publisher = store.S("publisher", "developer");
         var publisherUrl = publisher.Length == 0 ? "" : "https://apps.microsoft.com/search/publisher?name=" + Uri.EscapeDataString(publisher) +
             "&hl=" + Uri.EscapeDataString(Locale.Language) + "&gl=" + (Locale.Language == "pt-BR" ? "BR" : Locale.Language == "es" ? "ES" : "US");
         foreach (var (key, value) in new[] { ("Privacy policy", store.S("privacyUrl")), ("More from this publisher", publisherUrl),

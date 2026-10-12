@@ -20,11 +20,11 @@ Add("Catalog artwork resolves both current and legacy API field names", () =>
     Check(new Game(J.Obj(("coverImage", "https://example.com/current.png"))).Cover == "https://example.com/current.png");
     Check(new Game(J.Obj(("cover_image", "https://example.com/legacy.png"))).Cover == "https://example.com/legacy.png");
 });
-Add("Alternative metadata keys do not change nested JSON lookup", () =>
+Add("Alternate achievement fields preserve the original API contract", () =>
 {
     var metadata = J.Obj(("unlockedAt", "2026-10-12"), ("error", J.Obj(("code", "UNAUTHENTICATED"))));
-    Check(metadata.First("unlocked_at", "unlockedAt").S() == "2026-10-12");
-    Check(metadata.S("error", "code") == "UNAUTHENTICATED");
+    Check(metadata.At("unlocked_at", "unlockedAt").S() == "2026-10-12");
+    Check(metadata.At("error").S("code") == "UNAUTHENTICATED");
 });
 Add("Private IPv4 and mapped IPv6 cannot be download targets", () =>
 {

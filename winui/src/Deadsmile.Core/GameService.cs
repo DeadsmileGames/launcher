@@ -19,15 +19,17 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
     public bool Stop(string id)
     {
         if (!running.TryGetValue(Urls.Id(id), out var active) || active.Process.HasExited) return false;
+        LauncherLog.Info("Game", $"stop requested; game={active.Game.Id}; pid={active.Process.Id}");
         try { active.Process.Kill(entireProcessTree: true); return true; }
         catch (InvalidOperationException) { return true; }
-        catch (System.ComponentModel.Win32Exception) { return false; }
+        catch (System.ComponentModel.Win32Exception ex) { LauncherLog.Error("Game", $"stop failed; game={active.Game.Id}", ex); return false; }
     }
     public event Action? Changed;
     public event Action<Exception>? Failed;
     public async Task Launch(Game requested)
     {
         var id = Urls.Id(requested.Id);
+        LauncherLog.Info("Game", $"launch requested; game={id}; slug={Urls.Slug(requested.Slug)}");
         if (!starting.TryAdd(id, 0)) throw new LauncherException("GAME_ALREADY_RUNNING");
         string? session = null;
         try
@@ -73,9 +75,16 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
                     info.Environment.Remove(key);
                 var process = Process.Start(info) ?? throw new LauncherException("GAME_LAUNCH_FAILED");
                 var active = new RunningGame(metadata, process, userId, session, DateTimeOffset.UtcNow, save, live);
-                running[id] = active; session = null; Changed?.Invoke(); _ = Observe(active);
+                running[id] = active; session = null;
+                LauncherLog.Info("Game", $"process started; game={id}; pid={process.Id}; version={installed.Version}");
+                Changed?.Invoke(); _ = Observe(active);
             }
             finally { transitions.Release(); }
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("Game", $"launch failed; game={id}; code={(ex is LauncherException le ? le.Code : "INTERNAL_ERROR")}", ex);
+            throw;
         }
         finally
         {
@@ -96,8 +105,9 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
                 await Task.WhenAny(exit, Task.Delay(2000));
             }
             await exit;
+            LauncherLog.Info("Game", $"process exited; game={id}; pid={active.Process.Id}; exit_code={active.Process.ExitCode}");
         }
-        catch (Exception ex) { Failed?.Invoke(ex); }
+        catch (Exception ex) { LauncherLog.Error("Game", $"game monitor failed; game={id}", ex); Failed?.Invoke(ex); }
         finally
         {
             try
@@ -117,6 +127,7 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
     private async Task End(string session)
     {
         if (!Guid.TryParse(session, out _)) return;
+        LauncherLog.Info("Game", "ending platform play session");
         for (var attempt = 0; attempt < 3; attempt++)
         {
             try { await api.Post("/platform/sessions/" + session + "/end", new { }); return; }

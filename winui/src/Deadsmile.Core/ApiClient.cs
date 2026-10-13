@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -50,11 +51,17 @@ public sealed class ApiClient : IDisposable
     }
     public async Task<JsonNode?> Request(HttpMethod method, string path, object? body, CancellationToken ct, bool retry = true)
     {
+        var timer = Stopwatch.StartNew();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(ct);
         lifetime.CancelAfter(TimeSpan.FromSeconds(45));
         ct = lifetime.Token;
         path = path.TrimStart('/');
-        if (!Routes.IsMatch(method.Method + " " + path) && !ContentRoutes.IsMatch(method.Method + " " + path)) throw new LauncherException("BLOCKED_REQUEST");
+        if (!Routes.IsMatch(method.Method + " " + path) && !ContentRoutes.IsMatch(method.Method + " " + path))
+        {
+            LauncherLog.Warning("API", $"blocked route; method={method.Method}");
+            throw new LauncherException("BLOCKED_REQUEST");
+        }
+        LauncherLog.Info("API", $"request started; method={method.Method}; route={path}");
         var authMutation = method == HttpMethod.Post && Regex.IsMatch(path, "^auth/(mobile-login|verify-2fa|logout)$");
         var generation = authMutation ? Interlocked.Increment(ref authGeneration) : Interlocked.Read(ref authGeneration);
         var token = method != HttpMethod.Get && method != HttpMethod.Head ? await Csrf(ct) : null;
@@ -70,8 +77,21 @@ public sealed class ApiClient : IDisposable
         }
         HttpResponseMessage response;
         try { response = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new LauncherException("NETWORK_ERROR"); }
-        catch (HttpRequestException) { throw new LauncherException("NETWORK_ERROR"); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            LauncherLog.Warning("API", $"request timeout; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            throw new LauncherException("NETWORK_ERROR");
+        }
+        catch (OperationCanceledException)
+        {
+            LauncherLog.Info("API", $"request cancelled; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            throw;
+        }
+        catch (HttpRequestException)
+        {
+            LauncherLog.Warning("API", $"network failure; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            throw new LauncherException("NETWORK_ERROR");
+        }
         using (response)
         {
             if (response.Content.Headers.ContentLength > 8 * 1024 * 1024) throw new LauncherException("INVALID_RESPONSE");
@@ -90,18 +110,21 @@ public sealed class ApiClient : IDisposable
             {
                 var code = payload.At("error").S("code");
                 if (!Regex.IsMatch(code, "^[A-Z][A-Z0-9_]{1,79}$")) code = "UNKNOWN_ERROR";
+                LauncherLog.Warning("API", $"request failed; method={method.Method}; route={path}; status={(int)response.StatusCode}; code={code}; elapsed_ms={timer.ElapsedMilliseconds}");
                 if (response.StatusCode == HttpStatusCode.Forbidden && code == "CSRF_VALIDATION_FAILED" && retry)
-                { csrf = null; return await Request(method, "/" + path, body, ct, false); }
+                { csrf = null; LauncherLog.Info("API", "retrying once after CSRF refresh"); return await Request(method, "/" + path, body, ct, false); }
                 if (response.StatusCode == HttpStatusCode.Unauthorized && generation == Interlocked.Read(ref authGeneration))
-                { csrf = null; Invalidated?.Invoke(); }
+                { csrf = null; LauncherLog.Warning("Auth", "server invalidated the current session"); Invalidated?.Invoke(); }
                 throw new LauncherException(code.Length > 0 ? code : "UNKNOWN_ERROR", (int)response.StatusCode);
             }
             if (authMutation) Interlocked.CompareExchange(ref authGeneration, generation + 1, generation);
+            LauncherLog.Info("API", $"request succeeded; method={method.Method}; route={path}; status={(int)response.StatusCode}; elapsed_ms={timer.ElapsedMilliseconds}");
             return payload.At("data")?.DeepClone();
         }
     }
     public void ClearSession()
     {
+        LauncherLog.Info("Auth", "clearing local authentication session");
         Interlocked.Increment(ref authGeneration);
         csrf = null;
         foreach (Cookie c in Cookies.GetAllCookies()) c.Expired = true;

@@ -119,6 +119,18 @@ Add("Known Abby achievement titles and descriptions have all language entries", 
         locale.Language = "en"; Check(locale.T(key) == key);
     }
 });
+Add("Launcher log writes useful events to the launcher root and redacts secrets", () =>
+{
+    var logRoot = Path.Combine(root, "central-log");
+    var storage = new Storage(logRoot);
+    storage.Log("SESSION_RESTORE_UNAVAILABLE password=unit-test-password token=unit-test-token");
+    var logPath = Path.Combine(logRoot, "launcher.log");
+    Check(File.Exists(logPath));
+    var contents = File.ReadAllText(logPath);
+    Check(contents.Contains("SESSION_RESTORE_UNAVAILABLE"));
+    Check(contents.Contains("[REDACTED]"));
+    Check(!contents.Contains("unit-test-password") && !contents.Contains("unit-test-token"));
+});
 Add("Storage paths cannot escape settings", () =>
 {
     var s = new Storage(Path.Combine(root, "storage"));

@@ -37,14 +37,28 @@ public sealed partial class GameViewWindow : Window
     public GameViewWindow(MainWindow main)
     {
         owner = main; InitializeComponent();
+        LauncherLog.Info("DeadBar", "overlay window created");
         windowHook = new NativeWindow(this, noActivate: true);
         SystemBackdrop = new TransparentBackdrop();
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         { presenter.SetBorderAndTitleBar(false, false); presenter.IsResizable = false; presenter.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(this);
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(16);
-        timer.Tick += (_, _) => Monitor();
-        Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); windowHook.Dispose(); };
+        timer.Tick += (_, _) =>
+        {
+            try { Monitor(); }
+            catch (Exception ex)
+            {
+                LauncherLog.Error("DeadBar", "focus-monitor tick failed; closing overlay safely", ex);
+                try { Hide(true); } catch (Exception hideError) { LauncherLog.Error("DeadBar", "failed to hide after monitor error", hideError); }
+            }
+        };
+        Closed += (_, _) =>
+        {
+            timer.Stop();
+            LauncherLog.Info("DeadBar", "overlay window closed");
+            captureShare?.Dispose(); windowHook.Dispose();
+        };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         foreach (var widget in Widgets)
         {
@@ -83,39 +97,80 @@ public sealed partial class GameViewWindow : Window
         foreach (var widget in Widgets)
             widget.Transitions = owner.MotionEnabled ? new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 16, IsStaggeringEnabled = false } } : null;
     }
-    public void Show()
+    public void Show(RunningGame game)
     {
-        if (!owner.GameIsFocused) return;
-        var game = owner.Games.Running.FirstOrDefault(x => !x.Process.HasExited &&
-            !NativeWindow.Minimized(x.Process.MainWindowHandle) && owner.IsGameFocusedFor(x.Game.Id));
-        if (game is null) return;
-        selected = game.Game.Id;
+        LauncherLog.Info("DeadBar", $"show requested; game={game.Game.Id}; pid={game.Process.Id}");
+        try
+        {
+            game.Process.Refresh();
+            if (game.Process.HasExited)
+            {
+                LauncherLog.Warning("DeadBar", $"show aborted because game process exited; game={game.Game.Id}");
+                return;
+            }
+            var gameHandle = game.Process.MainWindowHandle;
+            if (gameHandle != IntPtr.Zero && NativeWindow.Minimized(gameHandle))
+            {
+                LauncherLog.Warning("DeadBar", $"show aborted because game is minimized; game={game.Game.Id}");
+                return;
+            }
+            selected = game.Game.Id;
         focusLostAt = DateTime.MinValue;
-        NativeWindow.Place(this, NativeWindow.MonitorFor(game.Process.MainWindowHandle));
-        OpenWidgets();
-        NativeWindow.PassClicks(this, false);
-        NativeWindow.ShowInactive(this);
-        Monitor();
-        _ = Reload();
+            var monitor = NativeWindow.MonitorFor(gameHandle);
+            NativeWindow.Place(this, monitor);
+            OpenWidgets();
+            NativeWindow.PassClicks(this, false);
+            NativeWindow.ShowInactive(this);
+            if (!NativeWindow.IsVisible(this))
+            {
+                // Native no-activate display can race on first show; retry without activating the overlay.
+                NativeWindow.Place(this, monitor);
+                NativeWindow.ShowInactive(this);
+            }
+            var nativeVisible = NativeWindow.IsVisible(this);
+            LauncherLog.Info("DeadBar", $"overlay show result; game={game.Game.Id}; hwnd_visible={nativeVisible}; appwindow_visible={AppWindow.IsVisible}");
+            if (!nativeVisible)
+            {
+                Hide(true);
+                throw new InvalidOperationException("The DeadBar HWND remained hidden after a no-activate show.");
+            }
+            Monitor();
+            _ = Reload();
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("DeadBar", $"overlay show failed; game={game.Game.Id}", ex);
+            throw;
+        }
     }
     private void OpenWidgets()
     {
         IsOpen = true;
-        if (!timer.IsRunning) timer.Start();
+        if (!timer.IsRunning)
+        {
+            timer.Start();
+            LauncherLog.Info("DeadBar", "focus monitor timer started");
+        }
         ToolbarPanel.Visibility = Visibility.Visible;
         for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         ApplyPreferences(); if (!positioned) ResetLayout(); ReloadLabels();
     }
     public void Hide(bool force = false)
     {
+        LauncherLog.Info("DeadBar", $"hide requested; force={force}; visible_widgets={Widgets.Count(x => x.Visibility == Visibility.Visible)}");
         captureDialog?.Hide(); request++; IsOpen = false; ToolbarPanel.Visibility = Visibility.Collapsed;
         for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = !force && Pins[i].IsChecked == true && Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (force || Widgets.All(x => x.Visibility == Visibility.Collapsed))
         {
             AppWindow.Hide();
             timer.Stop();
+            LauncherLog.Info("DeadBar", "overlay hidden; focus monitor timer stopped");
         }
-        else if (!timer.IsRunning) timer.Start();
+        else if (!timer.IsRunning)
+        {
+            timer.Start();
+            LauncherLog.Info("DeadBar", "focus monitor kept active for pinned widgets");
+        }
     }
     private void ReloadLabels()
     {
@@ -154,7 +209,7 @@ public sealed partial class GameViewWindow : Window
 
     private void Monitor()
     {
-        if (!AppWindow.IsVisible) return;
+        if (!NativeWindow.IsVisible(this)) return;
         var pointerOverInteractive = IsPointerOverInteractiveSurface();
 #if !UI_VALIDATION
         var game = selected is null ? null : owner.Games.Running.FirstOrDefault(entry =>
@@ -181,7 +236,10 @@ public sealed partial class GameViewWindow : Window
         else if (focusLostAt == DateTime.MinValue) focusLostAt = now;
         var graceElapsed = !gameFocused && focusLostAt != DateTime.MinValue && now - focusLostAt >= FocusLossGrace;
         if (ShouldDismissOverlay(processRunning, gameMinimized, gameFocused, graceElapsed))
-        { Hide(true); return; }
+        {
+            LauncherLog.Info("DeadBar", $"auto-hide; process_running={processRunning}; game_minimized={gameMinimized}; game_focused={gameFocused}; grace_elapsed={graceElapsed}");
+            Hide(true); return;
+        }
 #endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
         NativeWindow.PassClicks(this, !pointerOverInteractive);
@@ -200,6 +258,7 @@ public sealed partial class GameViewWindow : Window
         {
             AppWindow.Hide();
             timer.Stop();
+            LauncherLog.Info("DeadBar", "last pinned widget closed; overlay hidden and focus monitor stopped");
         }
     }
     private void ResetLayoutClick(object sender, RoutedEventArgs e) => ResetLayout();

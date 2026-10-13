@@ -220,12 +220,12 @@ public sealed partial class MainWindow
                 "DeadBar shortcut validation rejects debugger-reserved F12 and maps supported keys");
             var configuredNotificationState = Preferences.Notifications;
             UpdateNotificationsIcon(true);
-            var enabledNotificationsGlyph = NotificationIcon.Glyph == "\uE7E7";
+            var enabledNotificationsGlyph = NotificationIcon.Glyph == "\uEA8F";
             UpdateNotificationsIcon(false);
             var disabledNotificationsGlyph = NotificationIcon.Glyph == "\uE7ED";
             UpdateNotificationsIcon(configuredNotificationState);
             Check(enabledNotificationsGlyph && disabledNotificationsGlyph &&
-                NotificationIcon.Glyph == (configuredNotificationState ? "\uE7E7" : "\uE7ED"),
+                NotificationIcon.Glyph == (configuredNotificationState ? "\uEA8F" : "\uE7ED"),
                 "Notifications use the active bell when enabled and the silent glyph only when disabled");
             var originalLanguage = Locale.Language;
             Locale.Language = "pt-BR"; ApplyLanguage();
@@ -415,7 +415,7 @@ public sealed partial class MainWindow
                 GameViewWindow.ShouldDismissOverlay(true, false, false, true),
                 "DeadBar lifetime follows game exit, minimization and sustained focus loss without hiding on transient focus changes");
             var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
-            Check(view.ValidationTimerRunning, "DeadBar starts focus monitoring when visible");
+            Check(view.ValidationTimerRunning && view.ValidationNativeVisible, "DeadBar starts focus monitoring and shows its native HWND");
             Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
             await Capture("15-game-view-widgets", widgetRoot);
             view.ValidationPinAndHide();

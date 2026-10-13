@@ -186,6 +186,7 @@ main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
 portal_code = (launcher / "MainWindow.Portal.cs").read_text(encoding="utf-8")
 appearance_code = (launcher / "MainWindow.Appearance.cs").read_text(encoding="utf-8")
 desktop_code = (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8")
+log_code = (root / "src" / "Deadsmile.Core" / "LauncherLog.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
 gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
 game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
@@ -203,6 +204,16 @@ check("native.Hotkey += QueueOverlayToggle;" in main_code and
 check("if (!timer.IsRunning) timer.Start();" in game_view_code and
       "timer.Stop();" in game_view_code and "ValidationTimerRunning => timer.IsRunning" in game_view_code,
       "DeadBar focus polling runs only while the overlay is visible or has pinned widgets")
+check("FocusedRunningGame" in main_code and "overlay.Show(focusedGame);" in main_code and
+      "show requested; game=" in game_view_code and "NativeWindow.IsVisible(this)" in game_view_code and
+      "overlay.Show();" not in main_code,
+      "DeadBar opens from one foreground-game snapshot and verifies the native HWND after showing")
+check('Glyph="&#xEA8F;"' in main_xaml and 'NotificationIcon.Glyph = enabled ? "\\uEA8F" : "\\uE7ED";' in desktop_code,
+      "Notifications use the paired Ringer/RingerSilent glyphs instead of ActionCenterNotification")
+check('Path.Combine(directory, "launcher.log")' in log_code and
+      "SensitiveValue" in log_code and "SensitiveHeader" in log_code and "MaxLogBytes" in log_code and
+      'LauncherLog.WriteAtRoot(Root, "INFO", "Core", code)' in (root / "src" / "Deadsmile.Core" / "Storage.cs").read_text(encoding="utf-8"),
+      "Launcher diagnostics are centralized in Documents/Deadsmile Games Launcher/launcher.log with redaction and bounded growth")
 check("SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero)" in native_code and
       "DefSubclassProc(h, message, wp, lp)" in native_code and
       "RemoveWindowSubclass(hwnd, handler, subclassId)" in native_code and

@@ -18,6 +18,7 @@ public sealed class DownloadJob(Game game)
     internal bool PauseRequested;
     internal bool CancelRequested;
     internal bool Active;
+    internal int LastLoggedProgress;
     internal DownloadMetadata? Metadata;
     internal string? WorkRoot;
 }
@@ -35,7 +36,8 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
     public void Enqueue(Game game)
     {
         var id = Urls.Id(game.Id);
-        if (running(id)) throw new LauncherException("GAME_RUNNING");
+        LauncherLog.Info("Download", $"enqueue requested; game={id}");
+        if (running(id)) { LauncherLog.Warning("Download", $"enqueue blocked because game is running; game={id}"); throw new LauncherException("GAME_RUNNING"); }
         if (jobs.TryGetValue(id, out var old) && (old.Active || old.Status is "queued" or "paused")) return;
         var job = new DownloadJob(game); jobs[id] = job; _ = Run(job);
     }
@@ -43,6 +45,7 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
     {
         if (!jobs.TryGetValue(id, out var j)) return;
         lock (j) { if (j.Status is "complete" or "committing") return; j.PauseRequested = true; j.Cancellation?.Cancel(); }
+        LauncherLog.Info("Download", $"pause requested; game={id}");
     }
     public void Resume(string id)
     {
@@ -50,7 +53,8 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
         lock (j)
         {
             if (j.Active || j.Status is not ("paused" or "failed")) return;
-            j.PauseRequested = false; j.CancelRequested = false; j.Status = "queued"; _ = Run(j);
+            j.PauseRequested = false; j.CancelRequested = false; j.Status = "queued";
+            LauncherLog.Info("Download", $"resume requested; game={id}"); _ = Run(j);
         }
     }
     public void Cancel(string id)
@@ -60,6 +64,7 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
         {
             if (j.Status is "complete" or "committing") return;
             j.CancelRequested = true; j.PauseRequested = false; j.Cancellation?.Cancel();
+            LauncherLog.Info("Download", $"cancel requested; game={id}");
             if (!j.Active) { j.Status = "cancelled"; Cleanup(j); }
         }
         Changed?.Invoke();
@@ -76,6 +81,7 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
         var ct = job.Cancellation.Token; var acquired = false;
         try
         {
+            LauncherLog.Info("Download", $"job started; game={job.Id}");
             Changed?.Invoke(); await slots.WaitAsync(ct); acquired = true;
             if (running(job.Id)) throw new LauncherException("GAME_RUNNING");
             var metadata = await api.Metadata(job.Id, ct);
@@ -116,7 +122,14 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
                     if (read == 0) break;
                     if (job.Received + read > metadata.Size) throw new LauncherException("GAME_DOWNLOAD_SIZE_MISMATCH");
                     await output.WriteAsync(buffer.AsMemory(0, read), ct);
-                    job.Received += read; Changed?.Invoke();
+                    job.Received += read;
+                    var progress = (int)(job.Percent / 10) * 10;
+                    if (progress >= 10 && progress > job.LastLoggedProgress)
+                    {
+                        job.LastLoggedProgress = progress;
+                        LauncherLog.Info("Download", $"progress; game={job.Id}; percent={progress}");
+                    }
+                    Changed?.Invoke();
                 }
                 await output.FlushAsync(ct);
             }
@@ -135,12 +148,20 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
             Changed?.Invoke();
             var result = await installs.Commit(job.Id, staged, metadata.Version, running);
             job.Status = "complete"; job.CompletedAt = DateTimeOffset.UtcNow;
+            LauncherLog.Info("Download", $"installation complete; game={job.Id}; version={metadata.Version}");
             Installed?.Invoke(result, job.Game); Cleanup(job);
         }
         catch (OperationCanceledException)
-        { job.Status = job.CancelRequested ? "cancelled" : job.PauseRequested ? "paused" : "failed"; job.Error = "NETWORK_ERROR"; }
+        {
+            job.Status = job.CancelRequested ? "cancelled" : job.PauseRequested ? "paused" : "failed";
+            job.Error = "NETWORK_ERROR";
+            LauncherLog.Info("Download", $"job ended; game={job.Id}; state={job.Status}");
+        }
         catch (Exception e)
-        { job.Status = "failed"; job.Error = e is LauncherException le ? le.Code : "GAME_DOWNLOAD_FAILED"; }
+        {
+            job.Status = "failed"; job.Error = e is LauncherException le ? le.Code : "GAME_DOWNLOAD_FAILED";
+            LauncherLog.Error("Download", $"job failed; game={job.Id}; code={job.Error}", e);
+        }
         finally
         {
             if (job.CancelRequested && job.Status != "complete") Cleanup(job);

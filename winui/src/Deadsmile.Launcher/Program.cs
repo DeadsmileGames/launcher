@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO;
+using Deadsmile.Core;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -14,9 +15,17 @@ internal static class Program
     [STAThread]
     private static int Main()
     {
-        try { return Run(); }
+        LauncherLog.Initialize();
+        LauncherLog.Info("Startup", $"entry point started; pid={Environment.ProcessId}");
+        try
+        {
+            var result = Run();
+            LauncherLog.Info("Startup", $"entry point returned; exit_code={result}");
+            return result;
+        }
         catch (Exception ex)
         {
+            LauncherLog.Error("Startup", "fatal startup/activation error", ex);
             ReportStartupFailure(ex);
             return 1;
         }
@@ -25,12 +34,16 @@ internal static class Program
     private static int Run()
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
+        LauncherLog.Info("Startup", "WinRT COM wrappers initialized");
         var args = AppInstance.GetCurrent().GetActivatedEventArgs();
+        LauncherLog.Info("Startup", $"activation received; kind={args.Kind}");
         instance = AppInstance.FindOrRegisterForKey("Deadsmile.Games.Launcher.WinUI");
         if (!instance.IsCurrent) return Redirect(instance, args);
         Activations.Enqueue(args);
+        LauncherLog.Info("Startup", "single-instance registration complete");
         instance.Activated += (_, activation) =>
         {
+            LauncherLog.Info("Startup", $"secondary activation received; kind={activation.Kind}");
             if (App.Main is { } window) window.DispatcherQueue.TryEnqueue(() => window.HandleActivation(activation));
             else Activations.Enqueue(activation);
         };
@@ -41,6 +54,7 @@ internal static class Program
             queue.EnsureSystemDispatcherQueue();
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(queue));
             _ = new App();
+            LauncherLog.Info("Startup", "WinUI application object constructed");
         });
         return 0;
     }
@@ -63,30 +77,10 @@ internal static class Program
 
     private static void ReportStartupFailure(Exception exception)
     {
-        string? logPath = null;
-        var details = DateTimeOffset.UtcNow.ToString("O") + " STARTUP_FATAL " + exception + Environment.NewLine;
-        try
-        {
-            var settings = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Deadsmile Games Launcher", "settings");
-            Directory.CreateDirectory(settings);
-            logPath = Path.Combine(settings, "winui.log");
-            File.AppendAllText(logPath, details);
-        }
-        catch (Exception)
-        {
-            try
-            {
-                var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Deadsmile Games Launcher");
-                Directory.CreateDirectory(directory);
-                logPath = Path.Combine(directory, "startup-failure.log");
-                File.AppendAllText(logPath, details);
-            }
-            catch (Exception) { logPath = null; }
-        }
-
+        // The full sanitized exception is already in the single central launcher.log.
         var message = "O Deadsmile Games Launcher não conseguiu iniciar." + Environment.NewLine + Environment.NewLine +
-            "Detalhes: " + exception.GetBaseException().Message;
-        if (logPath is not null) message += Environment.NewLine + Environment.NewLine + "Log: " + logPath;
+            "Detalhes: " + exception.GetBaseException().Message + Environment.NewLine + Environment.NewLine +
+            "Log: " + LauncherLog.LogPath;
         _ = MessageBoxW(IntPtr.Zero, message, "Deadsmile Games Launcher", 0x10);
     }
 

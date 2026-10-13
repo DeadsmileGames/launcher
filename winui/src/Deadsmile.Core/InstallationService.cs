@@ -58,6 +58,7 @@ public sealed class InstallationService(Storage storage)
                 else if (busy(id) && Installed.TryGetValue(id, out var existing)) indexed[id] = existing;
             }
             Installed = new ConcurrentDictionary<string, InstalledGame>(indexed);
+            LauncherLog.Info("Install", $"installed-game scan finished; indexed={indexed.Count}");
             try { Storage.Write("winui-installed.json", indexed); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             { Storage.Log("INSTALL_INDEX_RECOVERY_PENDING"); }
@@ -104,6 +105,7 @@ public sealed class InstallationService(Storage storage)
         try
         {
             if (running(id)) throw new LauncherException("GAME_RUNNING");
+            LauncherLog.Info("Install", $"commit requested; game={id}; version={version}");
             var target = Folder(id); var backup = target + ".backup";
             PathGuard.RequireInside(Storage.Games, staged); PathGuard.RequireInside(Storage.Games, target);
             PathGuard.RequireInside(Storage.Games, backup);
@@ -117,6 +119,7 @@ public sealed class InstallationService(Storage storage)
             catch { if (hadOld && !Directory.Exists(target)) Directory.Move(backup, target); throw; }
             var result = new InstalledGame(id, Path.Combine(target, relative), target, version);
             Installed[id] = result;
+            LauncherLog.Info("Install", $"commit completed; game={id}; version={version}; executable={result.Path}");
             try { Storage.Write("winui-installed.json", Installed); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Storage.Log("INSTALL_INDEX_RECOVERY_PENDING"); }
             if (hadOld) { try { Directory.Delete(backup, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Storage.Log("INSTALL_BACKUP_CLEANUP_PENDING"); } }
@@ -130,10 +133,12 @@ public sealed class InstallationService(Storage storage)
         try
         {
             if (busy(id)) throw new LauncherException("GAME_RUNNING");
+            LauncherLog.Info("Install", $"uninstall requested; game={id}");
             var folder = Folder(id); PathGuard.RequireInside(Storage.Games, folder);
             if (ReadRecord(folder, id) is null) throw new LauncherException("GAME_PATH_UNSAFE");
             if (busy(id)) throw new LauncherException("GAME_RUNNING");
             Directory.Delete(folder, true); Installed.TryRemove(id, out _);
+            LauncherLog.Info("Install", $"uninstall completed; game={id}");
             try { Storage.Write("winui-installed.json", Installed); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             { Storage.Log("INSTALL_INDEX_RECOVERY_PENDING"); }

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Threading;
+using Deadsmile.Core;
 using Microsoft.UI.Xaml;
 
 namespace Deadsmile.Launcher.Services;
@@ -25,8 +26,13 @@ public sealed class NativeWindow : IDisposable
         subclassId = new UIntPtr(unchecked((uint)Interlocked.Increment(ref nextSubclassId)));
         // Preserve the WinUI window-procedure chain and remove this hook explicitly at disposal.
         if (!SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero))
-            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        {
+            var error = new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            LauncherLog.Error("NativeWindow", $"failed to install HWND message hook; hwnd=0x{hwnd.ToInt64():X}", error);
+            throw error;
+        }
         subclassed = true;
+        LauncherLog.Info("NativeWindow", $"HWND message hook installed; hwnd=0x{hwnd.ToInt64():X}; subclass_id={subclassId}");
     }
     public bool Register(bool enabled, string shortcut = "Control+D")
     {
@@ -43,8 +49,14 @@ public sealed class NativeWindow : IDisposable
             }
             var keyName = parts.LastOrDefault()?.ToUpperInvariant() ?? "";
             uint key = VirtualKey(keyName);
-            if (key == 0) return false;
-            registered = RegisterHotKey(hwnd, 0x4453, modifiers, key); registeredShortcut = shortcut;
+            if (key == 0)
+            {
+                LauncherLog.Warning("DeadBar", $"hotkey rejected by parser; shortcut={shortcut}");
+                return false;
+            }
+            registered = RegisterHotKey(hwnd, 0x4453, modifiers, key);
+            registeredShortcut = shortcut;
+            LauncherLog.Info("DeadBar", $"global hotkey registration; shortcut={shortcut}; enabled={enabled}; success={registered}; win32_error={(registered ? 0 : Marshal.GetLastWin32Error())}");
         }
         return !enabled || registered;
     }
@@ -61,11 +73,13 @@ public sealed class NativeWindow : IDisposable
     private IntPtr Procedure(IntPtr h, uint message, IntPtr wp, IntPtr lp, UIntPtr id, UIntPtr refData)
     {
         // Never unwind a managed exception through the native Windows message loop.
-        try { Message?.Invoke(message, wp, lp); } catch (Exception) { }
+        try { Message?.Invoke(message, wp, lp); }
+        catch (Exception ex) { LauncherLog.Error("NativeWindow", $"window message observer failed; message=0x{message:X}", ex); }
         if (message == 0x0312 && wp.ToInt64() == 0x4453)
         {
+            LauncherLog.Info("DeadBar", "WM_HOTKEY delivered to the launcher HWND");
             try { Hotkey?.Invoke(); }
-            catch (Exception) { /* Hotkey callbacks only enqueue UI work. */ }
+            catch (Exception ex) { LauncherLog.Error("DeadBar", "hotkey callback failed", ex); }
             return IntPtr.Zero;
         }
         if (noActivate && message == 0x0021) return new IntPtr(3);
@@ -167,12 +181,14 @@ public sealed class NativeWindow : IDisposable
         return new(p.X, p.Y);
     }
     public static void ShowInactive(Window window) => ShowWindow(WinRT.Interop.WindowNative.GetWindowHandle(window), 4);
+    public static bool IsVisible(Window window) => IsWindowVisible(WinRT.Interop.WindowNative.GetWindowHandle(window));
     public void Dispose()
     {
         Register(false);
         if (subclassed)
         {
-            RemoveWindowSubclass(hwnd, handler, subclassId);
+            var removed = RemoveWindowSubclass(hwnd, handler, subclassId);
+            LauncherLog.Info("NativeWindow", $"HWND hook removed; hwnd=0x{hwnd.ToInt64():X}; success={removed}");
             subclassed = false;
         }
     }
@@ -198,6 +214,7 @@ public sealed class NativeWindow : IDisposable
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int height, uint flags);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int command);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsWindowVisible(IntPtr h);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll")] private static extern bool ScreenToClient(IntPtr h, ref Point point);
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr h);

@@ -19,18 +19,29 @@ public sealed partial class MainWindow
     private readonly HashSet<long> notifiedEvents = [];
     private void InitializeDesktop()
     {
+        LauncherLog.Info("Desktop", "initializing Windows notification integration");
 #if !UI_VALIDATION
         try
         {
             notifications = new DesktopNotifications(); notifications.Invoked += () => DispatcherQueue.TryEnqueue(RestoreFromTray);
+            LauncherLog.Info("Desktop", "Windows app notifications initialized");
         }
-        catch (Exception) { storage.Log("TRAY_UNAVAILABLE"); }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("Desktop", "Windows app notifications unavailable", ex);
+            storage.Log("TRAY_UNAVAILABLE");
+        }
 #endif
     }
     private bool Foreground => AppWindow.IsVisible && GetForegroundWindow() == WinRT.Interop.WindowNative.GetWindowHandle(this);
     private void DesktopNotice(string title, string text, string kind = "", string? entityId = null, string? slug = null)
     {
-        if (!Preferences.Notifications) return;
+        if (!Preferences.Notifications)
+        {
+            LauncherLog.Info("Notifications", $"notification suppressed by preference; kind={kind}");
+            return;
+        }
+        LauncherLog.Info("Notifications", $"notification event; kind={kind}; in_app={AppWindow.IsVisible}");
         AddLocalNotification(title, text, kind, entityId, slug);
         var window = WinRT.Interop.WindowNative.GetWindowHandle(this);
         if (AppWindow.IsVisible && !NativeWindow.Minimized(window)) { ShowInAppToast(title, text); return; }
@@ -103,7 +114,7 @@ public sealed partial class MainWindow
     }
     private void UpdateNotificationsIcon(bool enabled)
     {
-        NotificationIcon.Glyph = enabled ? "\uE7E7" : "\uE7ED";
+        NotificationIcon.Glyph = enabled ? "\uEA8F" : "\uE7ED";
         var accessibleName = Locale.T(enabled ? "Notifications" : "Notifications disabled");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(NotificationsButton, accessibleName);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(NotificationIcon, accessibleName);
@@ -113,6 +124,7 @@ public sealed partial class MainWindow
     private void NotificationsClick(object sender, RoutedEventArgs e) => RefreshNotificationMenu();
     private void MinimizeToTray()
     {
+        LauncherLog.Info("Desktop", "launcher minimizing to notification area");
         AppWindow.Hide(); bannerPlayer?.Pause(); homeBannerPlayer?.Pause();
         if (!storage.Read("winui-tray-tip.json", false))
         {
@@ -123,6 +135,7 @@ public sealed partial class MainWindow
     }
     private void RestoreFromTray()
     {
+        LauncherLog.Info("Desktop", "launcher restore requested from notification");
         AppWindow.Show(); Activate();
         if (Preferences.VideoBackgrounds && MotionEnabled)
         {
@@ -147,6 +160,7 @@ public sealed partial class MainWindow
         var id = item.L("id"); if (id <= 0 || !notifiedEvents.Add(id)) return;
         if (notifiedEvents.Count > 1000) { var keep = notifiedEvents.OrderDescending().Take(500).ToArray(); notifiedEvents.Clear(); foreach (var key in keep) notifiedEvents.Add(key); }
         var type = item.S("event_type");
+        LauncherLog.Info("Notifications", $"content event received; event_id={id}; event_type={type}");
         var payload = item.At("payload");
         var title = payload.S("title");
         var entityId = payload.S("gameId", "game_id", "id");
@@ -173,6 +187,7 @@ public sealed partial class MainWindow
     private async Task ShowGameHint(RunningGame game)
     {
         if (!OverlayToggle.IsOn) return;
+        LauncherLog.Info("DeadBar", $"game-start hint scheduled; game={game.Game.Id}; pid={game.Process.Id}");
         for (var attempt = 0; attempt < 25 && !game.Process.HasExited && game.Process.MainWindowHandle == IntPtr.Zero; attempt++) { await Task.Delay(200); game.Process.Refresh(); }
         if (game.Process.HasExited) return;
         var toast = new AchievementWindow(this, "DeadBar", Locale.T("Ctrl + D for DeadBar"), hint: true);

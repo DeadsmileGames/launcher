@@ -49,6 +49,7 @@ public sealed partial class MainWindow : Window
     private int homeSlideIndex;
     private bool homeHeroPaused, homeHeroAnimating, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
     private string page = "explore";
+    private string? loggedNavigationState;
     public string OverlayShortcut { get; private set; } = "Control+D";
     internal bool GameIsFocused
     {
@@ -64,6 +65,27 @@ public sealed partial class MainWindow : Window
                 !NativeWindow.Minimized(game.Process.MainWindowHandle));
         }
     }
+    internal RunningGame? FocusedRunningGame
+    {
+        get
+        {
+            var foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero) return null;
+            _ = GetWindowThreadProcessId(foreground, out var processId);
+            if (processId == 0) return null;
+            return Games.Running.FirstOrDefault(game =>
+            {
+                try
+                {
+                    game.Process.Refresh();
+                    return !game.Process.HasExited && (uint)game.Process.Id == processId &&
+                        !NativeWindow.Minimized(game.Process.MainWindowHandle);
+                }
+                catch (Exception) { return false; }
+            });
+        }
+    }
+
     internal bool IsGameFocusedFor(string gameId)
     {
         var foreground = GetForegroundWindow();
@@ -97,8 +119,10 @@ public sealed partial class MainWindow : Window
     private readonly SemaphoreSlim accountGate = new(1, 1);
     public MainWindow()
     {
+        LauncherLog.Info("Lifecycle", "MainWindow construction started");
         InitializeComponent();
         storage = new Storage();
+        LauncherLog.Info("Lifecycle", $"settings root ready; games_directory={storage.Games}");
         Preferences = storage.Read("winui-appearance.json", new UiPreferences());
         Locale.Language = storage.Read("winui-language.json", "pt-BR");
         if (Locale.Language is not ("pt-BR" or "en" or "es")) Locale.Language = "pt-BR";
@@ -174,6 +198,7 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            LauncherLog.Info("Lifecycle", "main window closed; disposing launcher services");
             live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
             downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
@@ -198,11 +223,28 @@ public sealed partial class MainWindow : Window
         InitializeDesktop();
     }
     private void UI(Func<Task> action) => DispatcherQueue.TryEnqueue(async () =>
-    { try { await action(); } catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED"); } });
+    {
+        try { await action(); }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("UI", "queued UI operation failed", ex);
+            Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED");
+        }
+    });
     private async Task Guard(Func<Task> action)
-    { try { await action(); } catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED"); } }
+    {
+        try { await action(); }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("UI", "guarded UI operation failed", ex);
+            Notify(Locale.Error(ex)); storage.Log(ex is LauncherException le ? le.Code : "UI_OPERATION_FAILED");
+        }
+    }
     private void Notify(string text, InfoBarSeverity severity = InfoBarSeverity.Warning)
-    { Notice.Message = text; Notice.Severity = severity; Notice.IsOpen = true; }
+    {
+        LauncherLog.Info("UI", $"InfoBar shown; severity={severity}");
+        Notice.Message = text; Notice.Severity = severity; Notice.IsOpen = true;
+    }
     private void ShowInAppToast(string title, string message)
     {
         if (!AppWindow.IsVisible) return;
@@ -211,10 +253,16 @@ public sealed partial class MainWindow : Window
     }
     private void DismissAppToastClick(object sender, RoutedEventArgs e)
     { appToastTimer.Stop(); AppToast.Visibility = Visibility.Collapsed; }
-    private async Task Boot() => await StartBoot();
+    private async Task Boot()
+    {
+        LauncherLog.Info("Startup", "launcher shell loaded; boot sequence started");
+        try { await StartBoot(); }
+        catch (Exception ex) { LauncherLog.Error("Startup", "boot sequence failed", ex); throw; }
+    }
     private void ShowLogin() => UI(async () => { await OpenSignIn(); });
     private async Task Enter(bool alreadyLoaded = false)
     {
+        LauncherLog.Info("Auth", $"entering launcher shell; state={(User is null ? "guest" : "authenticated")}; already_loaded={alreadyLoaded}");
         LoginPanel.Visibility = Visibility.Collapsed; Shell.Visibility = Visibility.Visible;
         SearchBox.Visibility = Visibility.Visible; AccountButton.Visibility = Visibility.Visible;
         AppTitleBar.IsPaneToggleButtonVisible = false; AppTitleBar.IsBackButtonVisible = true;
@@ -381,6 +429,12 @@ public sealed partial class MainWindow : Window
         {
             page = "explore";
             selected = null;
+        }
+        var navigationState = selected is null ? page : page + "/detail";
+        if (!string.Equals(loggedNavigationState, navigationState, StringComparison.Ordinal))
+        {
+            loggedNavigationState = navigationState;
+            LauncherLog.Info("Navigation", $"page changed; destination={navigationState}");
         }
         if (selected is null) { heroImage = null; heroImages = []; bannerPlayer?.Dispose(); bannerPlayer = null; }
         if (selected is not null || page != "explore") StopHomeVideo();
@@ -1226,12 +1280,15 @@ public sealed partial class MainWindow : Window
     {
         if (!ready) return;
         storage.Write("game-view.json", new { enabled = OverlayToggle.IsOn, shortcut = OverlayShortcut });
+        LauncherLog.Info("DeadBar", $"preference changed; enabled={OverlayToggle.IsOn}; shortcut={OverlayShortcut}");
         if (!OverlayToggle.IsOn) overlay?.Hide(true); UpdateBusy();
     }
     private void QueueOverlayToggle()
     {
+        LauncherLog.Info("DeadBar", "global hotkey received; dispatching toggle to the UI thread");
         if (!DispatcherQueue.TryEnqueue(ToggleOverlay))
         {
+            LauncherLog.Error("DeadBar", "UI dispatcher rejected the hotkey toggle");
             try { storage.Log("OVERLAY_HOTKEY_DISPATCH_FAILED"); }
             catch (Exception) { }
         }
@@ -1243,12 +1300,40 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            if (!OverlayToggle.IsOn || Games.Running.Length == 0) return;
-            if (!GameIsFocused) { overlay?.Hide(true); return; }
+            if (!OverlayToggle.IsOn)
+            {
+                LauncherLog.Info("DeadBar", "toggle ignored because DeadBar is disabled in Settings");
+                return;
+            }
+            // Handle close first: while the no-activate overlay is open, Windows may report
+            // its HWND rather than the game as foreground. Do not run the open guard twice.
+            if (overlay is { IsOpen: true })
+            {
+                LauncherLog.Info("DeadBar", "toggle requested close");
+                overlay.Hide(true);
+                return;
+            }
+            var activeGames = Games.Running;
+            if (activeGames.Length == 0)
+            {
+                LauncherLog.Warning("DeadBar", "open blocked because no tracked game is running");
+                return;
+            }
+            var focusedGame = FocusedRunningGame;
+            if (focusedGame is null)
+            {
+                LauncherLog.Warning("DeadBar", $"open blocked because foreground window belongs to no tracked game; running_games={activeGames.Length}");
+                return;
+            }
             overlay ??= new GameViewWindow(this);
-            if (overlay.IsOpen) overlay.Hide(true); else overlay.Show();
+            LauncherLog.Info("DeadBar", $"opening overlay; game={focusedGame.Game.Id}; pid={focusedGame.Process.Id}");
+            overlay.Show(focusedGame);
         }
-        catch (Exception ex) { Notify(Locale.Error(ex)); storage.Log("OVERLAY_UNAVAILABLE"); }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("DeadBar", "overlay toggle failed", ex);
+            Notify(Locale.Error(ex)); storage.Log("OVERLAY_UNAVAILABLE");
+        }
     }
     private void ShowAchievement(JsonNode achievement)
     {
@@ -1293,6 +1378,7 @@ public sealed partial class MainWindow : Window
 #endif
     public void HandleActivation(AppActivationArguments args)
     {
+        LauncherLog.Info("Activation", $"handling activation; kind={args.Kind}");
         ShowForActivation();
         var value = args.Data is ProtocolActivatedEventArgs protocol ? protocol.Uri.AbsoluteUri :
             args.Data is Windows.ApplicationModel.Activation.LaunchActivatedEventArgs launch ? launch.Arguments :

@@ -47,7 +47,7 @@ public sealed partial class MainWindow : Window
     private readonly Game?[] featuredGames = new Game?[3];
     private readonly HashSet<string> wishlistIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<LauncherNotification> localNotifications = [];
-    private int homeSlideIndex, launchSequenceRevision;
+    private int homeSlideIndex;
     private bool homeHeroPaused, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
     private string page = "explore";
     public string OverlayShortcut { get; private set; } = "Control+D";
@@ -378,9 +378,11 @@ public sealed partial class MainWindow : Window
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
-        var showSide = GameGrid.ActualWidth >= 880 && featuredGames[0] is not null;
-        FeaturedSide.Visibility = showSide ? Visibility.Visible : Visibility.Collapsed;
-        FeaturedSideColumn.Width = showSide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        // Restore the original single full-width featured hero.
+        FeaturedPanel.ColumnSpacing = 0;
+        FeaturedPanel.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+        FeaturedSide.Visibility = Visibility.Collapsed;
+        FeaturedSideColumn.Width = new GridLength(0);
     }
     private void RenderCatalog()
     {
@@ -529,7 +531,7 @@ public sealed partial class MainWindow : Window
         heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
         SetImage(heroImage, game.Cover); hero.Children.Add(heroImage);
-        var accent = GameAccent(game);
+        var accent = Windows.UI.Color.FromArgb(255, 132, 216, 0);
         var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
         shade.GradientStops.Add(new GradientStop { Color = accent, Offset = 0 });
         shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 22, 22, 22), Offset = 0.48 });
@@ -721,7 +723,7 @@ public sealed partial class MainWindow : Window
     {
         DownloadRows.Children.Clear();
         var jobs = downloads.Jobs.Where(x => x.Status != "complete" ||
-            (x.CompletedAt is { } completed && DateTimeOffset.UtcNow - completed < TimeSpan.FromSeconds(3))).ToArray();
+            (x.CompletedAt is { } completed && DateTimeOffset.UtcNow - completed < TimeSpan.FromSeconds(2))).ToArray();
         var activeCount = jobs.Count(x => downloads.Busy(x.Id));
         DownloadsItem.InfoBadge = activeCount > 0 ? new InfoBadge { Value = activeCount } : null;
         if (jobs.Length == 0) { DownloadRows.Children.Add(Text(Locale.T("No downloads yet."))); return; }
@@ -731,7 +733,8 @@ public sealed partial class MainWindow : Window
             card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
             card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var cover = new Grid { Width = 140, Height = 210, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 32, 32, 32)) };
-            var artwork = new Image { Stretch = Stretch.UniformToFill, Width = 140, Height = 210 };
+            var artwork = new Image { Stretch = Stretch.UniformToFill, Width = 140, Height = 210,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             SetImage(artwork, job.Game.Poster.Length > 0 ? job.Game.Poster : job.Game.Cover);
             cover.Children.Add(artwork);
             if (job.Status is not ("complete" or "cancelled" or "failed"))
@@ -740,24 +743,22 @@ public sealed partial class MainWindow : Window
                 var percent = job.Status is "extracting" or "committing" ? 96 : (int)Math.Clamp(job.Percent, 0, 95);
                 cover.Children.Add(CircularProgress(percent));
             }
-            else if (job.Status == "complete")
-            {
-                cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(150, 0, 0, 0)) });
-                var check = new TextBlock { Text = "✓", FontSize = 60, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                cover.Children.Add(check);
-                if (MotionEnabled)
+            var artworkColumn = new StackPanel { Width = 140, Spacing = 6 };
+            artworkColumn.Children.Add(cover);
+            if (job.Status == "complete")
+                artworkColumn.Children.Add(new Border
                 {
-                    var appear = new FadeInThemeAnimation(); Storyboard.SetTarget(appear, check);
-                    var animation = new Storyboard(); animation.Children.Add(appear); animation.Begin();
-                }
-            }
-            card.Children.Add(cover);
+                    Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 132, 216, 0)),
+                    CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 5, 8, 5),
+                    Child = new TextBlock { Text = Locale.T("Installed"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                        Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black), HorizontalAlignment = HorizontalAlignment.Center }
+                });
+            card.Children.Add(artworkColumn);
             var content = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
             content.Children.Add(Text(job.Game.Title, 22, true));
             var status = Locale.T(job.Status switch { "queued" => "Queued", "paused" => "Paused", "complete" => "Installed",
                 "extracting" => "Extracting…", "committing" => "Installing…", "cancelled" => "Cancelled", "failed" => "Failed", _ => "Downloading…" });
-            content.Children.Add(Text(status + " · " + Bytes(job.Received) + " / " + Bytes(job.Total)));
+            content.Children.Add(Text(job.Status == "complete" ? Locale.T("Installed") : status + " · " + Bytes(job.Received) + " / " + Bytes(job.Total)));
             content.Children.Add(new ProgressBar { Minimum = 0, Maximum = 100,
                 Value = job.Status == "complete" ? 100 : job.Status is "extracting" or "committing" ? 96 : job.Percent });
             if (job.Error is not null && job.Status == "failed") content.Children.Add(Text(Locale.Error(job.Error)));
@@ -803,13 +804,6 @@ public sealed partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
         return canvas;
     }
-    private static Windows.UI.Color GameAccent(Game game)
-    {
-        var value = game.Data.S("accentColor", "accent_color", "themeColor", "theme_color").Trim().TrimStart('#');
-        if (value.Length == 6 && uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
-            return Windows.UI.Color.FromArgb(232, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
-        return Windows.UI.Color.FromArgb(232, 105, 171, 0);
-    }
     internal string FormatDate(string value, bool includeTime = false)
     {
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date)) return value;
@@ -821,47 +815,7 @@ public sealed partial class MainWindow : Window
         if (Games.Busy(game.Id) || !await RequireAccount()) return;
         if (!AppWindow.IsVisible || NativeWindow.Minimized(WinRT.Interop.WindowNative.GetWindowHandle(this)))
             RestoreFromTray();
-        else Activate();
-        var revision = ++launchSequenceRevision;
-        LaunchSequenceTitle.Text = game.Title;
-        LaunchShip.Opacity = 1;
-        LaunchShipTransform.Y = 0;
-        LaunchSequenceOverlay.IsHitTestVisible = true;
-        LaunchSequenceOverlay.Visibility = Visibility.Visible;
-        try
-        {
-            await Task.Delay(1500);
-            if (revision != launchSequenceRevision) return;
-            if (MotionEnabled)
-            {
-                var fly = new DoubleAnimation
-                {
-                    From = 0, To = -Math.Max(600, Root.ActualHeight + 220),
-                    Duration = new Duration(TimeSpan.FromMilliseconds(500)),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-                };
-                Storyboard.SetTarget(fly, LaunchShipTransform);
-                Storyboard.SetTargetProperty(fly, "Y");
-                var fade = new DoubleAnimation { From = 1, To = 0, Duration = new Duration(TimeSpan.FromMilliseconds(420)) };
-                Storyboard.SetTarget(fade, LaunchShip);
-                Storyboard.SetTargetProperty(fade, "Opacity");
-                var launch = new Storyboard();
-                launch.Children.Add(fly); launch.Children.Add(fade); launch.Begin();
-                await Task.Delay(520);
-            }
-            else await Task.Delay(500);
-            if (revision != launchSequenceRevision) return;
-        }
-        finally
-        {
-            if (revision == launchSequenceRevision)
-            {
-                LaunchSequenceOverlay.Visibility = Visibility.Collapsed;
-                LaunchShip.Opacity = 1;
-                LaunchShipTransform.Y = 0;
-            }
-        }
-        if (revision == launchSequenceRevision) await Guard(() => Games.Launch(game));
+        await Guard(() => Games.Launch(game));
     }
     private static string Bytes(long value) => value >= 1073741824 ? (value / 1073741824.0).ToString("0.0") + " GB" :
         value >= 1048576 ? (value / 1048576.0).ToString("0.0") + " MB" : value >= 1024 ? (value / 1024.0).ToString("0") + " KB" : value + " B";

@@ -6,6 +6,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Composition;
+using System.Numerics;
 using QRCoder;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Pickers;
@@ -169,15 +172,16 @@ public sealed partial class MainWindow
             {
                 Width = 280,
                 Height = 280,
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                Clip = new EllipseGeometry
-                {
-                    Center = new Windows.Foundation.Point(140, 140),
-                    RadiusX = 140,
-                    RadiusY = 140
-                }
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent)
             };
             viewport.Children.Add(preview);
+            // UIElement.Clip only accepts RectangleGeometry in WinUI. Use the composition
+            // visual layer for a real circular mask instead of assigning an incompatible XAML geometry.
+            var compositor = ElementCompositionPreview.GetElementVisual(Root).Compositor;
+            var cropGeometry = compositor.CreateEllipseGeometry();
+            cropGeometry.Center = new Vector2(140, 140);
+            cropGeometry.Radius = new Vector2(140, 140);
+            ElementCompositionPreview.GetElementVisual(viewport).Clip = compositor.CreateGeometricClip(cropGeometry);
             var zoom = new Slider
             {
                 Header = Locale.T("Zoom"),

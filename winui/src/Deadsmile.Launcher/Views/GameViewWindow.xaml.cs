@@ -1,16 +1,19 @@
 using Deadsmile.Core;
 using Deadsmile.Launcher.Services;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
+using System.Numerics;
 
 namespace Deadsmile.Launcher.Views;
 
@@ -43,27 +46,21 @@ public sealed partial class GameViewWindow : Window
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         foreach (var widget in Widgets)
         {
-            widget.Clip = RoundedWidgetClip(widget.Width, widget.Height, 16);
-            widget.SizeChanged += (_, args) => widget.Clip = RoundedWidgetClip(args.NewSize.Width, args.NewSize.Height, 16);
+            widget.SizeChanged += (_, _) => ApplyRoundedWidgetClip(widget);
+            ApplyRoundedWidgetClip(widget);
         }
         ApplyPreferences(); ReloadLabels();
     }
-    private static Geometry RoundedWidgetClip(double width, double height, double radius)
+    private static void ApplyRoundedWidgetClip(Border widget)
     {
-        width = Math.Max(1, width); height = Math.Max(1, height);
-        radius = Math.Max(0.5, Math.Min(radius, Math.Min(width, height) / 2));
-        var path = new PathGeometry();
-        var figure = new PathFigure { StartPoint = new Point(radius, 0), IsClosed = true };
-        figure.Segments.Add(new LineSegment { Point = new Point(width - radius, 0) });
-        figure.Segments.Add(new ArcSegment { Point = new Point(width, radius), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
-        figure.Segments.Add(new LineSegment { Point = new Point(width, height - radius) });
-        figure.Segments.Add(new ArcSegment { Point = new Point(width - radius, height), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
-        figure.Segments.Add(new LineSegment { Point = new Point(radius, height) });
-        figure.Segments.Add(new ArcSegment { Point = new Point(0, height - radius), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
-        figure.Segments.Add(new LineSegment { Point = new Point(0, radius) });
-        figure.Segments.Add(new ArcSegment { Point = new Point(radius, 0), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
-        path.Figures.Add(figure);
-        return path;
+        var width = Math.Max(1, widget.ActualWidth);
+        var height = Math.Max(1, widget.ActualHeight);
+        var visual = ElementCompositionPreview.GetElementVisual(widget);
+        var compositor = visual.Compositor;
+        var geometry = compositor.CreateRoundedRectangleGeometry();
+        geometry.Size = new Vector2((float)width, (float)height);
+        geometry.CornerRadius = new Vector2(16, 16);
+        visual.Clip = compositor.CreateGeometricClip(geometry);
     }
     public void ApplyPreferences()
     {

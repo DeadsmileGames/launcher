@@ -198,12 +198,59 @@
       <StackPanel x:Name="SettingsBody" Spacing="24" MaxWidth="1000" HorizontalAlignment="Left" Padding="0,0,8,24">
        <StackPanel Spacing="12">
         <TextBlock Text="Appearance" Tag="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
-        <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
-         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-         <SymbolIcon Symbol="Setting" VerticalAlignment="Center"/>
-         <TextBlock Grid.Column="1" Text="App theme" Tag="App theme" TextWrapping="Wrap" VerticalAlignment="Center"/>
-         <ComboBox x:Name="ThemeChoice" Grid.Column="2" Width="180" SelectionChanged="AppearanceChanged"><ComboBoxItem Content="Dark" Tag="dark"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Use system setting" Tag="system"/></ComboBox>
-        </Grid></Border>
+        <Border Style="{StaticResource Panel}" Padding="20,16">
+         <StackPanel Spacing="12">
+          <Grid ColumnSpacing="16" MinHeight="36">
+           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+           <SymbolIcon Symbol="Setting" VerticalAlignment="Center"/>
+           <TextBlock Grid.Column="1" Text="App theme" Tag="App theme" TextWrapping="Wrap" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+          </Grid>
+          <Grid ColumnSpacing="10">
+           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+           <Button x:Name="ThemeDarkCard" Tag="Dark" Style="{StaticResource SubtleButtonStyle}" Padding="0" Click="ThemeDarkClick" AutomationProperties.Name="Dark">
+            <Border x:Name="ThemeDarkCardBorder" CornerRadius="9" BorderThickness="1" BorderBrush="#FF606060" Padding="7">
+             <StackPanel Spacing="8">
+              <Grid Height="62" ColumnSpacing="4">
+               <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+               <Border Background="#FF171717" CornerRadius="3"><StackPanel Padding="4" Spacing="5"><Border Height="4" Background="#FF797979"/><Border Height="4" Background="#FF797979"/><Border Height="4" Background="#FF797979"/></StackPanel></Border>
+               <Border Grid.Column="1" Background="#FF292929" CornerRadius="3" Padding="5"><StackPanel Spacing="5"><Border Height="5" Width="42" HorizontalAlignment="Left" Background="#FFB6B6B6"/><Border Height="4" Width="58" HorizontalAlignment="Left" Background="#FF747474"/><Border Height="4" Width="33" HorizontalAlignment="Left" Background="#FF747474"/><Border Height="10" Background="#FF3B3B3B" CornerRadius="2"/></StackPanel></Border>
+              </Grid>
+              <TextBlock Tag="Dark" Text="Dark" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+             </StackPanel>
+            </Border>
+           </Button>
+           <Button x:Name="ThemeLightCard" Grid.Column="1" Tag="Light" Style="{StaticResource SubtleButtonStyle}" Padding="0" Click="ThemeLightClick" AutomationProperties.Name="Light">
+            <Border x:Name="ThemeLightCardBorder" CornerRadius="9" BorderThickness="1" BorderBrush="#FFB8B8B8" Padding="7">
+             <StackPanel Spacing="8">
+              <Grid Height="62" ColumnSpacing="4">
+               <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+               <Border Background="#FFE5E5E5" CornerRadius="3"><StackPanel Padding="4" Spacing="5"><Border Height="4" Background="#FF737373"/><Border Height="4" Background="#FF737373"/><Border Height="4" Background="#FF737373"/></StackPanel></Border>
+               <Border Grid.Column="1" Background="#FFF7F7F7" CornerRadius="3" Padding="5"><StackPanel Spacing="5"><Border Height="5" Width="42" HorizontalAlignment="Left" Background="#FF454545"/><Border Height="4" Width="58" HorizontalAlignment="Left" Background="#FF969696"/><Border Height="4" Width="33" HorizontalAlignment="Left" Background="#FF969696"/><Border Height="10" Background="#FFE0E0E0" CornerRadius="2"/></StackPanel></Border>
+              </Grid>
+              <TextBlock Tag="Light" Text="Light" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+             </StackPanel>
+            </Border>
+           </Button>
+           <Button x:Name="ThemeSystemCard" Grid.Column="2" Tag="Use system setting" Style="{StaticResource SubtleButtonStyle}" Padding="0" Click="ThemeSystemClick" AutomationProperties.Name="Use system setting">
+            <Border x:Name="ThemeSystemCardBorder" CornerRadius="9" BorderThickness="1" BorderBrush="#FF606060" Padding="7">
+             <StackPanel Spacing="8">
+              <Grid Height="62" ColumnSpacing="4">
+               <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+               <Border Background="#FF242424" CornerRadius="3"><StackPanel Padding="4" Spacing="5"><Border Height="4" Background="#FFA0A0A0"/><Border Height="4" Background="#FFA0A0A0"/><Border Height="4" Background="#FFA0A0A0"/></StackPanel></Border>
+               <Grid Grid.Column="1" ColumnSpacing="2">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Background="#FF292929" CornerRadius="3"><StackPanel Padding="4" Spacing="5"><Border Height="4" Background="#FFE0E0E0"/><Border Height="4" Background="#FF858585"/><Border Height="10" Background="#FF444444" CornerRadius="2"/></StackPanel></Border>
+                <Border Grid.Column="1" Background="#FFF5F5F5" CornerRadius="3"><StackPanel Padding="4" Spacing="5"><Border Height="4" Background="#FF454545"/><Border Height="4" Background="#FF969696"/><Border Height="10" Background="#FFDDDDDD" CornerRadius="2"/></StackPanel></Border>
+               </Grid>
+              </Grid>
+              <TextBlock Tag="Use system setting" Text="Use system setting" HorizontalAlignment="Center" TextWrapping="Wrap" FontWeight="SemiBold"/>
+             </StackPanel>
+            </Border>
+           </Button>
+          </Grid>
+          <ComboBox x:Name="ThemeChoice" Visibility="Collapsed" SelectionChanged="AppearanceChanged"><ComboBoxItem Content="Dark" Tag="dark"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Use system setting" Tag="system"/></ComboBox>
+         </StackPanel>
+        </Border>
         <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="GlobalNavigationButton" VerticalAlignment="Center"/>

@@ -99,17 +99,32 @@ if ($Target -in @("All", "Installer")) {
  if (!(Test-Path "$setupPublish\Deadsmile.Setup.exe") -or !(Test-Path "$setupPublish\AppPayload.zip")) {
   throw "The native WinUI setup app or launcher payload is missing."
  }
- # Unpackaged WinUI 3 needs a PRI resource index beside the executable when it uses ms-appx resources.
- # The SDK does not consistently copy one to dotnet publish output for WindowsPackageType=None,
- # so generate the index with the Windows SDK tool documented for PRI creation.
+ # WinUI 3 unpackaged apps need a root resources.pri for ms-appx resource lookup.
+ # Build the index from app-owned assets only: indexing the self-contained publish directory
+ # recursively re-indexes Windows App SDK dependency PRI files and creates duplicate resources.
  $resourcesPri = Join-Path $setupPublish "resources.pri"
  if (!(Test-Path $resourcesPri)) {
   $makepri = FindTool "makepri.exe"
+  $resourceSource = Join-Path $artifacts "setup-resource-source"
+  if (Test-Path $resourceSource) { Remove-Item $resourceSource -Recurse -Force }
+  New-Item $resourceSource -ItemType Directory -Force | Out-Null
+  Copy-Item (Join-Path $projectRoot "src/Deadsmile.Setup/Assets") (Join-Path $resourceSource "Assets") -Recurse -Force
   $priConfig = Join-Path $artifacts "setup-priconfig.xml"
-  if (Test-Path $priConfig) { Remove-Item $priConfig -Force }
+  $generatedPri = Join-Path $artifacts "setup-resources.pri"
+  Remove-Item $priConfig, $generatedPri -Force -ErrorAction SilentlyContinue
   Native $makepri @("createconfig", "/cf", $priConfig, "/dq", "en-US", "/o")
-  Native $makepri @("new", "/pr", $setupPublish, "/cf", $priConfig, "/in", "Deadsmile.Setup", "/of", $resourcesPri, "/o")
-  Remove-Item $priConfig -Force -ErrorAction SilentlyContinue
+  [xml]$priXml = Get-Content $priConfig -Raw
+  foreach ($packagingNode in @($priXml.SelectNodes("//*[local-name()='packaging']"))) {
+   [void]$packagingNode.ParentNode.RemoveChild($packagingNode)
+  }
+  $priXml.Save($priConfig)
+  Native $makepri @("new", "/pr", $resourceSource, "/cf", $priConfig, "/of", $generatedPri, "/o")
+  if (!(Test-Path $generatedPri) -or (Get-Item $generatedPri).Length -lt 1024) {
+   throw "MakePri did not generate a valid app resource index."
+  }
+  Copy-Item $generatedPri $resourcesPri -Force
+  Remove-Item $priConfig, $generatedPri -Force -ErrorAction SilentlyContinue
+  Remove-Item $resourceSource -Recurse -Force -ErrorAction SilentlyContinue
  }
  if (!(Test-Path $resourcesPri) -or (Get-Item $resourcesPri).Length -lt 1024) {
   throw "The WinUI setup resource index could not be generated."

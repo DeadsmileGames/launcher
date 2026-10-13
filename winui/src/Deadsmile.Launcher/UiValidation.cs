@@ -331,7 +331,8 @@ public sealed partial class MainWindow
             page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(200);
             Check(SettingsPanel.Visibility == Visibility.Visible && AccountPanel.Visibility == Visibility.Collapsed, "Launcher preferences have a dedicated settings page");
             page = "account"; selected = null; profileLoaded = false; ShowPage(); await LoadProfileSettings(); await Task.Delay(300);
-            Check(AccountPanel.Visibility == Visibility.Visible && SettingsPanel.Visibility == Visibility.Collapsed && ProfileSettingsAvatar is not null, "Profile, email, security and privacy live on a separate account page");
+            var accountPageIsSeparate = AccountPanel.Visibility == Visibility.Visible && SettingsPanel.Visibility == Visibility.Collapsed && ProfileSettingsAvatar is not null;
+            Check(accountPageIsSeparate, $"Profile, email, security and privacy live on a separate account page (page={page}; account={AccountPanel.Visibility}; settings={SettingsPanel.Visibility}; avatarInitialized={ProfileSettingsAvatar is not null})");
             if (twoFactorStatusAvailable)
             {
                 var previousEnabled = twoFactorEnabled;

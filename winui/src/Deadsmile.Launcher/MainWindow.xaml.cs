@@ -365,6 +365,8 @@ public sealed partial class MainWindow : Window
     private void NavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (!ready || changingNavigation) return;
+        // My account is opened from the avatar menu and intentionally has no NavigationView item.
+        if (!args.IsSettingsSelected && args.SelectedItem is null && page == "account") return;
         RememberPage();
         page = args.IsSettingsSelected ? "settings" : (args.SelectedItem as NavigationViewItem)?.Tag as string ?? "explore";
         selected = null; detailRevision++; ShowPage();

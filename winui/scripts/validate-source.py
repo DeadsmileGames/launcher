@@ -206,7 +206,8 @@ check('Tapped="HomeHeroSurfaceTapped"' in main_xaml and "private async void Home
 check('x:Name="SettingsMenuItem"' in main_xaml and 'x:Name="MyAccountMenuItem"' in main_xaml and
       "SettingsClick" in portal_code and "MyAccountMenuItem.Visibility" in portal_code and
       'AccountActionLabel.Text = loggedIn ? Username.Text : Locale.T("Sign in")' in portal_code and
-      'page = "account"' in portal_code and 'AccountPanel.ChangeView(null, 0, null, true)' in portal_code,
+      'page = "account"' in portal_code and 'AccountPanel.ChangeView(null, 0, null, true)' in portal_code and
+      'args.SelectedItem is null && page == "account") return;' in main_code,
       "Account menu shows the username and opens a separate My account page")
 check('identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) })' in main_code and
       "Grid.SetColumn(heading, hasProductIcon ? 1 : 0)" in main_code and

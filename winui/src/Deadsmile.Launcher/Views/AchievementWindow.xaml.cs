@@ -2,6 +2,7 @@ using Deadsmile.Launcher.Services;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -13,7 +14,7 @@ public sealed partial class AchievementWindow : Window
     public AchievementWindow(MainWindow owner, string heading, string title, bool forceSolid = false, bool hint = false)
     {
         InitializeComponent(); Heading.Text = heading; AchievementTitle.Text = title;
-        if (hint) { ToastIcon.Glyph = "\uE7F4"; Heading.Visibility = Visibility.Collapsed; }
+        if (hint) { ToastIcon.Glyph = "\uE7F4"; Heading.Visibility = Visibility.Collapsed; AchievementTitle.FontSize = 16; }
         ToastRoot.RequestedTheme = owner.UiTheme;
         // Toasts can appear over full-screen games; keep their surface opaque regardless of
         // the launcher's Mica/acrylic preference so notification text remains legible.
@@ -28,13 +29,13 @@ public sealed partial class AchievementWindow : Window
     }
 #if UI_VALIDATION
     internal FrameworkElement ValidationRoot => ToastRoot;
-    internal bool ValidationSolid => ToastRoot.Background is SolidColorBrush brush && brush.Color.A == 255;
+    internal bool ValidationSolid => ToastRoot.Children.OfType<Border>().FirstOrDefault()?.Background is SolidColorBrush brush && brush.Color.A == 255;
 #endif
     public void ShowOn(IntPtr game, bool centered = false)
     {
         var monitor = NativeWindow.WorkAreaFor(game); var scale = NativeWindow.DpiScale(game, this);
-        var margin = (int)Math.Round(16 * scale); var width = Math.Min((int)Math.Round(centered ? 330 * scale : 360 * scale), monitor.Right - monitor.Left - margin * 2);
-        var height = (int)Math.Round((centered ? 76 : 104) * scale);
+        var margin = (int)Math.Round(16 * scale); var width = Math.Min((int)Math.Round(centered ? 344 * scale : 360 * scale), monitor.Right - monitor.Left - margin * 2);
+        var height = (int)Math.Round((centered ? 68 : 104) * scale);
         var rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
             Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
         NativeWindow.Place(this, rect);
@@ -42,8 +43,8 @@ public sealed partial class AchievementWindow : Window
         var actualScale = NativeWindow.DpiScale(IntPtr.Zero, this);
         if (Math.Abs(actualScale - scale) > 0.01)
         {
-            margin = (int)Math.Round(16 * actualScale); width = Math.Min((int)Math.Round(centered ? 330 * actualScale : 360 * actualScale), monitor.Right - monitor.Left - margin * 2);
-            height = (int)Math.Round((centered ? 76 : 104) * actualScale);
+            margin = (int)Math.Round(16 * actualScale); width = Math.Min((int)Math.Round(centered ? 344 * actualScale : 360 * actualScale), monitor.Right - monitor.Left - margin * 2);
+            height = (int)Math.Round((centered ? 68 : 104) * actualScale);
             rect = new NativeWindow.Rect { Left = monitor.Right - margin - width, Top = monitor.Bottom - margin - height,
                 Right = monitor.Right - margin, Bottom = monitor.Bottom - margin };
             NativeWindow.Place(this, rect);

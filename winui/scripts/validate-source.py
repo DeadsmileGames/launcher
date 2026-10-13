@@ -198,16 +198,27 @@ if quote_array is not None:
 check('x:Name="HomeHeroPreviousButton"' in main_xaml and 'x:Name="HomeHeroNextButton"' in main_xaml and
       "HomeHeroPreviousClick" in portal_code and "HomeHeroNextClick" in portal_code,
       "Home hero provides previous/next controls with handlers")
+check('Tapped="HomeHeroSurfaceTapped"' in main_xaml and "private async void HomeHeroSurfaceTapped" in main_code and
+      'HomeHeroPauseButton" Width="36"' in main_xaml and
+      "new SymbolIcon(homeHeroPaused ? Symbol.Play : Symbol.Pause)" in portal_code,
+      "Home hero surface opens game details and pause uses an icon")
 check('x:Name="SettingsMenuItem"' in main_xaml and 'x:Name="MyAccountMenuItem"' in main_xaml and
       "SettingsClick" in portal_code and "MyAccountMenuItem.Visibility" in portal_code and
-      'AccountActionLabel.Text = Locale.T(loggedIn ? "Settings" : "Sign in")' in portal_code,
-      "Account menu separates application settings from My account")
+      'AccountActionLabel.Text = loggedIn ? Username.Text : Locale.T("Sign in")' in portal_code and
+      'page = "account"' in portal_code and 'AccountPanel.ChangeView(null, 0, null, true)' in portal_code,
+      "Account menu shows the username and opens a separate My account page")
 check('identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) })' in main_code and
-      "Grid.SetColumn(heading, hasProductIcon ? 1 : 0)" in main_code,
-      "Game details do not leave an empty icon column")
+      "Grid.SetColumn(heading, hasProductIcon ? 1 : 0)" in main_code and
+      "internal static void ArrangeDetailColumns(Grid body, StackPanel main, StackPanel information)" in main_code and
+      "if (!hasMainContent || !hasInformationContent)" in main_code,
+      "Game details do not reserve empty icon or content columns")
 check("HorizontalContentAlignment = HorizontalAlignment.Center" in portal_code and
       "var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center }" in portal_code,
       "Newswire dialog centers its scrolling content")
+check('var host = new Grid { Width = dialogWidth, HorizontalAlignment = HorizontalAlignment.Center }' in gallery_code and
+      "Root.XamlRoot.Size.Height - 260" in gallery_code and
+      'dialog.Resources["ContentDialogMinWidth"] = host.Width' in gallery_code,
+      "Screenshot dialog centers its viewport and reserves room for navigation and zoom controls")
 check("EllipseGeometry" in profile_code and "viewport.PointerMoved" in profile_code and
       "CenterX = preview.Width / 2" in profile_code and "CenterY = preview.Height / 2" in profile_code,
       "Profile-photo editor uses centered circular crop, zoom and pointer-drag positioning")
@@ -218,13 +229,19 @@ check("twoFactorDisabling" in profile_code and
 check('"Zoom out"' in gallery_code and '"Zoom in"' in gallery_code and
       '"Reset zoom"' in gallery_code and "image.Width = viewportWidth * value" in gallery_code,
       "Screenshot gallery includes zoom and reset controls")
-check("if (owner.Games.Running.All(x => x.Process.HasExited))" in game_view_code and
-      "if (!owner.GameIsFocused &&" not in game_view_code,
-      "DeadBar stays open when the user changes foreground window and closes with the game process")
+check("ShouldDismissOverlay(bool processRunning, bool gameMinimized, bool gameFocused, bool focusLossGraceElapsed)" in game_view_code and
+      "owner.IsGameFocusedFor(game.Game.Id)" in game_view_code and
+      "NativeWindow.Minimized(gameWindow)" in game_view_code and
+      "FocusLossGrace" in game_view_code and "!processRunning || gameMinimized" in game_view_code,
+      "DeadBar closes on game exit, minimization or sustained loss of focus")
 check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMessage" in tray_code,
       "Notification-area menu uses native Windows popup menu APIs")
 check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
+check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
+      'Locale.T("Installed games")' in main_code and
+      'x:Key="LauncherMutedTextBrush"' in app_xaml,
+      "Downloads retain installed-game cards and theme resources provide readable secondary text")
 
 # Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")

@@ -60,6 +60,7 @@ public sealed class NativeWindow : IDisposable
         var h = WinRT.Interop.WindowNative.GetWindowHandle(window);
         var ex = GetWindowLongPtr(h, -20).ToInt64();
         SetWindowLongPtr(h, -20, new IntPtr((ex | 0x08000000 | 0x80 | 0x00200000) & ~0x40000));
+        RemoveNonClientFrame(h);
         var margins = new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
         DwmExtendFrameIntoClientArea(h, ref margins);
     }
@@ -74,6 +75,17 @@ public sealed class NativeWindow : IDisposable
         var h = WinRT.Interop.WindowNative.GetWindowHandle(window);
         var ex = GetWindowLongPtr(h, -20).ToInt64();
         SetWindowLongPtr(h, -20, new IntPtr(ex | 0x08000000 | 0x80 | 0x00200000));
+        RemoveNonClientFrame(h);
+    }
+    public static void RemoveNonClientFrame(Window window) =>
+        RemoveNonClientFrame(WinRT.Interop.WindowNative.GetWindowHandle(window));
+    private static void RemoveNonClientFrame(IntPtr h)
+    {
+        const int GwlStyle = -16;
+        const long FrameStyles = 0x00C00000L | 0x00800000L | 0x00400000L | 0x00040000L;
+        var style = GetWindowLongPtr(h, GwlStyle).ToInt64();
+        SetWindowLongPtr(h, GwlStyle, new IntPtr(style & ~FrameStyles));
+        SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020);
     }
     public static void RoundCorners(Window window)
     {

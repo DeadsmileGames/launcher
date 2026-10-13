@@ -146,6 +146,7 @@ public sealed partial class MainWindow
         exit.Click += async (_, _) => { menu.Close(); if (AllBusy) await ConfirmClose(); else { exiting = true; Close(); } };
         root.Children.Add(open); root.Children.Add(exit);
         if (menu.AppWindow.Presenter is OverlappedPresenter p) { p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsAlwaysOnTop = true; }
+        NativeWindow.RemoveNonClientFrame(menu);
         NativeWindow.RoundCorners(menu);
         var cursor = NativeWindow.CursorScreen();
         var area = NativeWindow.WorkAreaAt(cursor.X, cursor.Y); var scale = NativeWindow.DpiScale(IntPtr.Zero, this);

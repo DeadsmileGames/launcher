@@ -40,7 +40,21 @@ public sealed class UpdateService(Storage storage)
         if (asset is null || Urls.Https(asset.S("browser_download_url")) is not { Host: "github.com" }) return null;
         var digest = asset.S("digest");
         if (!System.Text.RegularExpressions.Regex.IsMatch(digest, "^sha256:[a-fA-F0-9]{64}$"))
-            throw new LauncherException("UPDATE_CHECKSUM_MISSING");
+        {
+            // GitHub API versions that omit asset.digest can still use the SHA-256 sidecar
+            // published alongside the unsigned setup. Match both digest and filename.
+            var sidecar = assets.FirstOrDefault(x =>
+                x.S("name").Equals(asset.S("name") + ".sha256", StringComparison.OrdinalIgnoreCase));
+            var sidecarUrl = Urls.Https(sidecar.S("browser_download_url"));
+            if (sidecar is null || sidecarUrl is null || sidecarUrl.Host != "github.com")
+                throw new LauncherException("UPDATE_CHECKSUM_MISSING");
+            var text = await http.GetStringAsync(sidecarUrl.AbsoluteUri);
+            var match = System.Text.RegularExpressions.Regex.Match(text.Trim(),
+                "^([a-fA-F0-9]{64})\\s+(.+)$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            if (!match.Success || !match.Groups[2].Value.Trim().Equals(asset.S("name"), StringComparison.Ordinal))
+                throw new LauncherException("UPDATE_CHECKSUM_MISSING");
+            digest = "sha256:" + match.Groups[1].Value.ToLowerInvariant();
+        }
         var size = asset.L("size");
         if (size <= 0 || size > 1024L * 1024 * 1024) throw new LauncherException("UPDATE_INVALID");
         return new(version, revision, asset.S("browser_download_url"), asset.S("name"), digest[7..].ToLowerInvariant(), size, release.S("body"));

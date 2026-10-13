@@ -199,7 +199,7 @@ public sealed partial class MainWindow
         if (!OverlayToggle.IsOn) return;
         for (var attempt = 0; attempt < 25 && !game.Process.HasExited && game.Process.MainWindowHandle == IntPtr.Zero; attempt++) { await Task.Delay(200); game.Process.Refresh(); }
         if (game.Process.HasExited) return;
-        var toast = new AchievementWindow(this, "DeadBar", Locale.T("Press {0} to open DeadBar").Replace("{0}", OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ")), hint: true);
+        var toast = new AchievementWindow(this, "DeadBar", Locale.T("Ctrl + D for DeadBar"), hint: true);
         toast.ShowOn(game.Process.MainWindowHandle, centered: true);
     }
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();

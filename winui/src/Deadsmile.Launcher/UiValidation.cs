@@ -51,7 +51,10 @@ internal sealed class UiValidationHandler : HttpMessageHandler
             data = new JsonObject { ["items"] = items, ["pagination"] = J.Obj(("totalPages", 1)) };
         }
         else if (path.EndsWith("/launcher")) data = J.Obj(("screenshots", new[] { J.Obj(("url", "https://fixture.invalid/launcher.png")) }));
-        else if (path.EndsWith("/newswire")) data = new JsonArray { J.Obj(("id", "news-ci"), ("slug", "a-new-adventure"), ("title", "Uma nova aventura"), ("excerpt", "Notícias da biblioteca"), ("image", "https://fixture.invalid/news.png")) };
+        else if (path.EndsWith("/newswire")) data = new JsonArray(Enumerable.Range(1, 8).Select(index => (JsonNode?)J.Obj(
+            ("id", "news-ci-" + index), ("slug", "a-new-adventure-" + index),
+            ("title", "Uma nova aventura " + index), ("excerpt", "Notícias da biblioteca " + index),
+            ("image", "https://fixture.invalid/news.png"))).ToArray());
         else if (path.Contains("/newswire/")) data = J.Obj(("slug", "a-new-adventure"), ("title", "Uma nova aventura"), ("excerpt", "Notícias da biblioteca"), ("body", "<p>Conteúdo seguro de teste.</p>"), ("image", "https://fixture.invalid/news.png"));
         else if (path.EndsWith("/wishlist")) data = new JsonArray { GameData() };
         else if (path.EndsWith("/videos")) data = new JsonArray { J.Obj(("title", "Trailer"), ("video_url", "https://fixture.invalid/video.mp4")) };
@@ -130,7 +133,7 @@ public sealed partial class MainWindow
             Check(User is null && Shell.Visibility == Visibility.Visible, "Guests enter directly after a successful public API boot");
             Check(BootPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Boot completes and back button remains visible");
             Check(AccountActionLabel.Text == Locale.T("Sign in"), "Guest account button offers sign-in");
-            Check(HomeNewsRows.Children.Count == 1, "Newswire is connected to the public API");
+            Check(HomeNewsRows.Children.Count == 2, "Newswire home section shows two compact posts");
             await Capture("01-guest-explore");
             var gate = RequireAccount(); await Task.Delay(500); Check(User is null, "Download account gate does not silently sign in");
             Check(accountDialog is not null, "Account benefits use a native ContentDialog");
@@ -215,7 +218,20 @@ public sealed partial class MainWindow
             NavigationChoice.SelectedIndex = 0;
             Check(storage.Read("winui-appearance.json", new Services.UiPreferences()).Theme == "dark", "Appearance preferences persist");
             foreach (var (item, expected) in new[] { (WishlistItem, "wishlist"), (NewsItem, "news") })
-            { Shell.SelectedItem = item; await Task.Delay(500); Check(page == expected && ContentPage.Visibility == Visibility.Visible && ContentRows.Children.Count > 0, "Connected native page: " + expected); await Capture("page-" + expected); }
+            {
+                Shell.SelectedItem = item; await Task.Delay(500);
+                Check(page == expected && ContentPage.Visibility == Visibility.Visible && ContentRows.Children.Count > 0, "Connected native page: " + expected);
+                if (expected == "news" && ContentRows.Children.OfType<Grid>().FirstOrDefault() is { } newsGrid)
+                {
+                    var wideColumns = newsGrid.ColumnDefinitions.Count;
+                    Check(wideColumns >= 2, "Newswire arranges posts in multiple columns on a wide window");
+                    await Resize(800, 600);
+                    Check(newsGrid.ColumnDefinitions.Count < wideColumns, "Newswire adapts columns to a narrower window");
+                    await Resize(1280, 800);
+                    Check(newsGrid.ColumnDefinitions.Count == wideColumns, "Newswire restores columns after resizing");
+                }
+                await Capture("page-" + expected);
+            }
             page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(500);
             Check(ProfileSettingsAvatar is not null, "Profile editor is part of native settings"); await Capture("page-account");
             var reading = ShowNews(newsItems[0]); await Task.Delay(400);

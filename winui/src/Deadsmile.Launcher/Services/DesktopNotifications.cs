@@ -16,7 +16,16 @@ public sealed class DesktopNotifications : IDisposable
     public bool Show(string title, string text)
     {
         if (!registered) return false;
-        try { AppNotificationManager.Default.Show(new AppNotificationBuilder().AddText(title).AddText(text).BuildNotification()); return true; }
+        try
+        {
+            var notification = new AppNotificationBuilder()
+                .SetAppLogoOverride(new Uri("ms-appx:///Assets/Square150x150Logo.png"), AppNotificationImageCrop.Circle)
+                .AddText(title)
+                .AddText(text)
+                .BuildNotification();
+            AppNotificationManager.Default.Show(notification);
+            return true;
+        }
         catch (Exception) { return false; }
     }
     public void Dispose()

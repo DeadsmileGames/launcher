@@ -99,6 +99,21 @@ if ($Target -in @("All", "Installer")) {
  if (!(Test-Path "$setupPublish\Deadsmile.Setup.exe") -or !(Test-Path "$setupPublish\AppPayload.zip")) {
   throw "The native WinUI setup app or launcher payload is missing."
  }
+ # Unpackaged WinUI 3 needs a PRI resource index beside the executable when it uses ms-appx resources.
+ # The SDK does not consistently copy one to dotnet publish output for WindowsPackageType=None,
+ # so generate the index with the Windows SDK tool documented for PRI creation.
+ $resourcesPri = Join-Path $setupPublish "resources.pri"
+ if (!(Test-Path $resourcesPri)) {
+  $makepri = FindTool "makepri.exe"
+  $priConfig = Join-Path $artifacts "setup-priconfig.xml"
+  if (Test-Path $priConfig) { Remove-Item $priConfig -Force }
+  Native $makepri @("createconfig", "/cf", $priConfig, "/dq", "en-US", "/o")
+  Native $makepri @("new", "/pr", $setupPublish, "/cf", $priConfig, "/in", "Deadsmile.Setup", "/of", $resourcesPri, "/o")
+  Remove-Item $priConfig -Force -ErrorAction SilentlyContinue
+ }
+ if (!(Test-Path $resourcesPri) -or (Get-Item $resourcesPri).Length -lt 1024) {
+  throw "The WinUI setup resource index could not be generated."
+ }
  Remove-Item $payload -Force
 
  $makensisCommand = Get-Command "makensis.exe" -ErrorAction SilentlyContinue

@@ -1,53 +1,12 @@
 using Microsoft.UI.Xaml;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Deadsmile.Setup;
 
 public partial class App : Application
 {
-    [ComImport]
-    [Guid("82BA7092-4C88-427D-A7BC-16DD93FEB67E")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IRestrictedErrorInfo
-    {
-        [PreserveSig]
-        int GetErrorDetails(
-            [MarshalAs(UnmanagedType.BStr)] out string description,
-            out int error,
-            [MarshalAs(UnmanagedType.BStr)] out string restrictedDescription,
-            [MarshalAs(UnmanagedType.BStr)] out string capabilitySid);
-
-        [PreserveSig]
-        int GetReference([MarshalAs(UnmanagedType.BStr)] out string reference);
-    }
-
-    [DllImport("combase.dll", ExactSpelling = true)]
-    private static extern int RoGetRestrictedErrorInfo(out IRestrictedErrorInfo? restrictedErrorInfo);
-
-    private static string ReadRestrictedErrorInfo()
-    {
-        try
-        {
-            var result = RoGetRestrictedErrorInfo(out var info);
-            if (result < 0 || info is null)
-                return "RoGetRestrictedErrorInfo HRESULT=0x" + result.ToString("X8");
-            var detailsResult = info.GetErrorDetails(
-                out var description, out var error, out var restrictedDescription, out var capabilitySid);
-            return "RestrictedErrorInfo HRESULT=0x" + detailsResult.ToString("X8") +
-                "; Error=0x" + error.ToString("X8") +
-                "; Description=" + description +
-                "; RestrictedDescription=" + restrictedDescription +
-                "; CapabilitySid=" + capabilitySid;
-        }
-        catch (Exception ex)
-        {
-            return "RestrictedErrorInfo retrieval failed: " + ex;
-        }
-    }
-
     private MainWindow? window;
 
     internal static void Log(string stage, Exception? exception = null)
@@ -79,13 +38,7 @@ public partial class App : Application
                     catch (Exception) { return null; }
                 })
                 .Where(value => !string.IsNullOrWhiteSpace(value));
-            var exceptionData = e.Exception.Data.Keys.Cast<object>()
-                .Select(key => key + "=" + e.Exception.Data[key]);
-            var inner = e.Exception.InnerException is null ? "" :
-                Environment.NewLine + "InnerException: " + e.Exception.InnerException;
-            Log(detail + (context.Any() ? Environment.NewLine + string.Join("; ", context) : "") +
-                (exceptionData.Any() ? Environment.NewLine + "Data: " + string.Join("; ", exceptionData) : "") +
-                inner + Environment.NewLine + ReadRestrictedErrorInfo(), e.Exception);
+            Log(detail + (context.Any() ? Environment.NewLine + string.Join("; ", context) : ""), e.Exception);
         };
         try
         {

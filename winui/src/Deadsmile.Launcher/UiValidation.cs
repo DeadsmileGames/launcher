@@ -81,6 +81,22 @@ internal sealed class UiValidationHandler : HttpMessageHandler
 
 public sealed partial class MainWindow
 {
+    private static double RelativeLuminance(Windows.UI.Color color)
+    {
+        static double Linear(byte value)
+        {
+            var channel = value / 255d;
+            return channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4);
+        }
+        return 0.2126 * Linear(color.R) + 0.7152 * Linear(color.G) + 0.0722 * Linear(color.B);
+    }
+    private static double ContrastRatio(Windows.UI.Color foreground, Windows.UI.Color background)
+    {
+        var a = RelativeLuminance(foreground);
+        var b = RelativeLuminance(background);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
     internal async Task ValidateNativeUi()
     {
         var output = Environment.GetEnvironmentVariable("DEADSMILE_UI_ARTIFACTS") ?? Path.Combine(AppContext.BaseDirectory, "ui-screenshots");
@@ -153,6 +169,7 @@ public sealed partial class MainWindow
             await Capture("03-sign-in-dialog", loginDialog!);
             EmailBox.Text = "layout@example.invalid"; PasswordBox.Password = "ci-layout-fixture"; await SignIn(); await signingIn; await Task.Delay(300);
             Check(User is not null && Shell.Visibility == Visibility.Visible, "Native sign-in opens the shell");
+            Check(AccountActionLabel.Text == Username.Text && AccountActionLabel.Text != Locale.T("Settings"), "Signed-in account control shows the username, not Settings");
             Check(ItchButton.IsEnabled && LogoutButton.IsEnabled, "Account controls re-enable after sign-in");
             Check(Shell is NavigationView && AppTitleBar is TitleBar, "Shell uses native NavigationView and TitleBar");
             Check(FeaturedSide.Visibility == Visibility.Collapsed && FeaturedSideColumn.Width.Value == 0,
@@ -167,6 +184,9 @@ public sealed partial class MainWindow
             homeHeroPaused = false;
             homeSlideIndex = 0;
             ShowPage();
+            Check(HomeHeroPauseButton.Content is SymbolIcon pauseIcon && pauseIcon.Symbol == Symbol.Pause, "Home hero pause uses an icon");
+            Check(HomeHeroSurface.IsTapEnabled && !IsHeroInteractiveSource(FeaturedTitle, HomeHeroSurface) && IsHeroInteractiveSource(FeaturedButton, HomeHeroSurface), "Home hero artwork opens details without hijacking child controls");
+            Check(OrderInstalledGames(Catalog, new[] { Catalog[0].Id }).Length == 1, "Downloads derive a persistent installed-games list from the catalog and install index");
             Check(NotificationsButton.Content is Grid notificationGrid &&
                 notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE7ED"),
                 "Notifications use the bell glyph rather than TVMonitor");
@@ -199,6 +219,13 @@ public sealed partial class MainWindow
             SearchBox.Text = ""; SearchBox.IsSuggestionListOpen = false;
             await LoadDetail(Catalog[0]); await Task.Delay(300);
             Check(DetailPanel.Visibility == Visibility.Visible && AppTitleBar.IsBackButtonEnabled, "Game details enable native back navigation");
+            var emptyMainColumn = new StackPanel();
+            var populatedInformationColumn = new StackPanel();
+            populatedInformationColumn.Children.Add(new TextBlock { Text = "Light fixture metadata" });
+            var oneSidedDetails = new Grid();
+            oneSidedDetails.Children.Add(emptyMainColumn); oneSidedDetails.Children.Add(populatedInformationColumn);
+            ArrangeDetailColumns(oneSidedDetails, emptyMainColumn, populatedInformationColumn);
+            Check(emptyMainColumn.Visibility == Visibility.Collapsed && Grid.GetColumn(populatedInformationColumn) == 0 && oneSidedDetails.ColumnDefinitions.Count == 1, "Game details collapse an empty column instead of leaving metadata aligned to the right");
             await Capture("06-game-details-1280");
             var productBanner = (Grid)DetailContent.Children[0];
             Check(Math.Abs(productBanner.ActualHeight - 360) < 1 && heroImage?.MaxHeight == 360 && heroImage.Clip is RectangleGeometry,
@@ -207,7 +234,9 @@ public sealed partial class MainWindow
             async Task GalleryCheck(string name, bool portrait)
             {
                 var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
-                var content = (StackPanel)dialog.Content;
+                Check(dialog.Content is Grid hostCheck && hostCheck.HorizontalAlignment == HorizontalAlignment.Center && dialog.HorizontalContentAlignment == HorizontalAlignment.Center && Math.Abs(dialog.MinWidth - dialog.MaxWidth) < 1, "Screenshot dialog uses a centered, width-bounded host");
+                var galleryHost = (Grid)dialog.Content;
+                var content = (StackPanel)galleryHost.Children[0];
                 var imageScroll = (ScrollViewer)content.Children[0];
                 var full = (Image)imageScroll.Content;
                 var navigation = (Grid)content.Children[1];
@@ -234,6 +263,8 @@ public sealed partial class MainWindow
                 var source = new BitmapImage(); await source.SetSourceAsync(pattern); full.Source = source;
                 var showing = dialog.ShowAsync(); await Task.Delay(600); content.UpdateLayout();
                 var bounds = full.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, full.ActualWidth, full.ActualHeight));
+                var hostBounds = galleryHost.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, galleryHost.ActualWidth, galleryHost.ActualHeight));
+                Check(Math.Abs((hostBounds.Left + hostBounds.Right) / 2 - Root.ActualWidth / 2) <= 32, "Screenshot popup is centered in the launcher window");
                 Check(full.Stretch == Stretch.Uniform && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
                     "Entire " + (portrait ? "portrait" : "panoramic") + " screenshot fits the native dialog in " + name);
                 await Capture(name, dialog); dialog.Hide(); await showing;
@@ -255,6 +286,10 @@ public sealed partial class MainWindow
             await Resize(640, 480); SettingsLanguage.StartBringIntoView(); await Task.Delay(300); Fits(SettingsLanguage, "Language setting fits at minimum width"); await Capture("11-settings-640");
             await Resize(1280, 800); ThemeChoice.SelectedIndex = 1; SettingsPanel.ChangeView(null, 0, null, true); await Task.Delay(300);
             Check(Root.RequestedTheme == ElementTheme.Light && ((SolidColorBrush)Root.Background).Color.R > 240, "Light theme applies immediately with native resources");
+            var lightPalette = (ResourceDictionary)Application.Current.Resources.ThemeDictionaries["Light"];
+            var mutedLightText = (SolidColorBrush)lightPalette["LauncherMutedTextBrush"];
+            var lightPageBackground = (SolidColorBrush)lightPalette["BaseBrush"];
+            Check(ContrastRatio(mutedLightText.Color, lightPageBackground.Color) >= 4.5, "Light theme secondary text meets WCAG AA contrast against the page background");
             Check(ThemeLightCardBorder.BorderThickness.Left == 2 && ThemeDarkCardBorder.BorderThickness.Left == 1, "Light theme preview visibly marks the selected card");
             await Capture("14-settings-light");
             AnimationToggle.IsOn = false;
@@ -290,20 +325,42 @@ public sealed partial class MainWindow
                 }
                 await Capture("page-" + expected);
             }
-            page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(500);
-            Check(ProfileSettingsAvatar is not null, "Profile editor is part of native settings"); await Capture("page-account");
+            page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(200);
+            Check(SettingsPanel.Visibility == Visibility.Visible && AccountPanel.Visibility == Visibility.Collapsed, "Launcher preferences have a dedicated settings page");
+            page = "account"; selected = null; profileLoaded = false; ShowPage(); await LoadProfileSettings(); await Task.Delay(300);
+            Check(AccountPanel.Visibility == Visibility.Visible && SettingsPanel.Visibility == Visibility.Collapsed && ProfileSettingsAvatar is not null, "Profile, email, security and privacy live on a separate account page");
+            if (twoFactorStatusAvailable)
+            {
+                var previousEnabled = twoFactorEnabled;
+                var previousDisabling = twoFactorDisabling;
+                var previousStatus = twoFactorStatusKey;
+                twoFactorEnabled = true; twoFactorDisabling = false;
+                TwoFactorActionClick(TwoFactorActionButton, new RoutedEventArgs());
+                Check(twoFactorDisabling && TwoFactorTokenBox.Visibility == Visibility.Visible && TwoFactorConfirmButton.Visibility == Visibility.Visible, "Disabling two-step verification requires the current authentication code");
+                TwoFactorActionClick(TwoFactorActionButton, new RoutedEventArgs());
+                twoFactorEnabled = previousEnabled; twoFactorDisabling = previousDisabling;
+                SetTwoFactorStatus(previousStatus); RefreshTwoFactorLabels();
+            }
+            await Capture("page-account");
             var reading = ShowNews(newsItems[0]); await Task.Delay(400);
-            Check(newsDialog is not null && newsDialog.Content is Grid newsHost && newsHost.HorizontalAlignment == HorizontalAlignment.Center && newsHost.Children.OfType<ScrollViewer>().Any(), "Newswire dialog is centered and uses a bounded native scrolling viewport");
+            Check(newsDialog is not null && newsDialog.Content is Grid newsHost && newsHost.HorizontalAlignment == HorizontalAlignment.Center && newsHost.Children.OfType<ScrollViewer>().Any() && newsDialog.HorizontalContentAlignment == HorizontalAlignment.Center && Math.Abs(newsDialog.MinWidth - newsDialog.MaxWidth) < 1, "Newswire dialog is centered and width-bounded to the window");
             await Capture("news-dialog", newsDialog!); newsDialog!.Hide(); await reading;
             var galleryValidation = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
-            Check(galleryValidation.Content is StackPanel galleryBody &&
-                galleryBody.Children.OfType<ScrollViewer>().Any() &&
-                galleryBody.Children.OfType<StackPanel>().Any(row => row.Children.OfType<Slider>().Any(slider =>
-                    AutomationProperties.GetName(slider) == Locale.T("Zoom"))) &&
-                galleryBody.Children.OfType<Grid>().Any(row => row.Children.OfType<Button>().Count() >= 3),
-                "Screenshot viewer has unclipped navigation controls and a zoom slider");
+            Check(galleryValidation.Content is Grid galleryHost && galleryHost.HorizontalAlignment == HorizontalAlignment.Center &&
+                galleryHost.Children.OfType<StackPanel>().Any(galleryBody =>
+                    galleryBody.Children.OfType<ScrollViewer>().Any() &&
+                    galleryBody.Children.OfType<StackPanel>().Any(row => row.Children.OfType<Slider>().Any(slider =>
+                        AutomationProperties.GetName(slider) == Locale.T("Zoom"))) &&
+                    galleryBody.Children.OfType<Grid>().Any(row => row.Children.OfType<Button>().Count() >= 3)),
+                "Screenshot viewer has centered, unclipped navigation controls and a zoom slider");
             SearchSuggestions("Abby"); SearchBox.IsSuggestionListOpen = true; await Task.Delay(300);
             Check(SearchBox.ItemsSource is SearchEntry[] results && results.Length == 1, "Native search popup presents game suggestions"); SearchBox.IsSuggestionListOpen = false;
+            Check(GameViewWindow.ShouldDismissOverlay(false, false, true, false) &&
+                GameViewWindow.ShouldDismissOverlay(true, true, true, false) &&
+                !GameViewWindow.ShouldDismissOverlay(true, false, false, false) &&
+                !GameViewWindow.ShouldDismissOverlay(true, false, true, true) &&
+                GameViewWindow.ShouldDismissOverlay(true, false, false, true),
+                "DeadBar lifetime follows game exit, minimization and sustained focus loss without hiding on transient focus changes");
             var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
             Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
             await Capture("15-game-view-widgets", widgetRoot);

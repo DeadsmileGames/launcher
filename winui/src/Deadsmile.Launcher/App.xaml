@@ -14,15 +14,17 @@
      <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#272727"/>
      <SolidColorBrush x:Key="WidgetBrush" Color="#272727"/>
      <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#202020"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="#FFB8B8B8"/>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Light">
-     <SolidColorBrush x:Key="SidebarBrush" Color="#F3F3F3"/>
-     <SolidColorBrush x:Key="BaseBrush" Color="#FAFAFA"/>
-     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#F3F3F3"/>
-     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#F3F3F3"/>
-     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FAFAFA"/>
-     <SolidColorBrush x:Key="WidgetBrush" Color="#FAFAFA"/>
-     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#F3F3F3"/>
+     <SolidColorBrush x:Key="SidebarBrush" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="BaseBrush" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#E7EBF1"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="#FF4B5563"/>
     </ResourceDictionary>
     <ResourceDictionary x:Key="HighContrast">
      <SolidColorBrush x:Key="SidebarBrush" Color="{ThemeResource SystemColorWindowColor}"/>
@@ -32,6 +34,7 @@
      <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}"/>
      <SolidColorBrush x:Key="WidgetBrush" Color="{ThemeResource SystemColorWindowColor}"/>
      <SolidColorBrush x:Key="WidgetHeaderBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="{ThemeResource SystemColorGrayTextColor}"/>
     </ResourceDictionary>
    </ResourceDictionary.ThemeDictionaries>
    <Style x:Key="Panel" TargetType="Border">

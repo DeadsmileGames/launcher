@@ -28,6 +28,8 @@ public sealed partial class GameViewWindow : Window
     private Border? dragging;
     private Point dragOrigin, panelOrigin;
     private DateTime lastClock;
+    private DateTime focusLostAt = DateTime.MinValue;
+    private static readonly TimeSpan FocusLossGrace = TimeSpan.FromMilliseconds(300);
     public bool IsOpen { get; private set; }
     private Border[] Widgets => [ProfilePanel, LibraryPanel, AchievementsPanel, CloudPanel, CapturePanel];
     private ToggleButton[] Toggles => [ProfileToggle, LibraryToggle, AchievementsToggle, CloudToggle, CaptureToggle];
@@ -72,9 +74,11 @@ public sealed partial class GameViewWindow : Window
     public void Show()
     {
         if (!owner.GameIsFocused) return;
-        var game = owner.Games.Running.FirstOrDefault(x => !x.Process.HasExited && !NativeWindow.Minimized(x.Process.MainWindowHandle));
+        var game = owner.Games.Running.FirstOrDefault(x => !x.Process.HasExited &&
+            !NativeWindow.Minimized(x.Process.MainWindowHandle) && owner.IsGameFocusedFor(x.Game.Id));
         if (game is null) return;
-        selected ??= game.Game.Id;
+        selected = game.Game.Id;
+        focusLostAt = DateTime.MinValue;
         NativeWindow.Place(this, NativeWindow.MonitorFor(game.Process.MainWindowHandle));
         OpenWidgets();
         NativeWindow.PassClicks(this, false);
@@ -112,13 +116,35 @@ public sealed partial class GameViewWindow : Window
         ClockLabel.Text = DateTime.Now.ToString("t");
         CaptureButton.Content = owner.Locale.T("Take screenshot"); ShareCaptureButton.Content = owner.Locale.T("Share screenshot"); CaptureButton.IsEnabled = !capturing && GameCapture.Supported;
     }
+    internal static bool ShouldDismissOverlay(bool processRunning, bool gameMinimized, bool gameFocused, bool focusLossGraceElapsed) =>
+        !processRunning || gameMinimized || (!gameFocused && focusLossGraceElapsed);
+
     private void Monitor()
     {
         if (!AppWindow.IsVisible) return;
 #if !UI_VALIDATION
-        // The overlay must not disappear when a click changes foreground window or minimizes
-        // a borderless game. Its lifetime follows the game process, not mouse focus.
-        if (owner.Games.Running.All(x => x.Process.HasExited))
+        var game = selected is null ? null : owner.Games.Running.FirstOrDefault(entry =>
+            entry.Game.Id.Equals(selected, StringComparison.OrdinalIgnoreCase));
+        var processRunning = false;
+        var gameMinimized = true;
+        var gameFocused = false;
+        if (game is not null)
+        {
+            try
+            {
+                game.Process.Refresh();
+                processRunning = !game.Process.HasExited;
+                var gameWindow = processRunning ? game.Process.MainWindowHandle : IntPtr.Zero;
+                gameMinimized = gameWindow == IntPtr.Zero || NativeWindow.Minimized(gameWindow);
+                gameFocused = processRunning && !gameMinimized && owner.IsGameFocusedFor(game.Game.Id);
+            }
+            catch (Exception) { processRunning = false; gameMinimized = true; }
+        }
+        var now = DateTime.UtcNow;
+        if (gameFocused) focusLostAt = DateTime.MinValue;
+        else if (focusLostAt == DateTime.MinValue) focusLostAt = now;
+        var graceElapsed = !gameFocused && focusLostAt != DateTime.MinValue && now - focusLostAt >= FocusLossGrace;
+        if (ShouldDismissOverlay(processRunning, gameMinimized, gameFocused, graceElapsed))
         { Hide(true); return; }
 #endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }

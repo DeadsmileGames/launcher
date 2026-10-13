@@ -110,8 +110,8 @@ public sealed partial class MainWindow
     {
         var loggedIn = User is not null;
         Username.Text = loggedIn ? User.S("username") : Locale.T("Guest"); Avatar.DisplayName = loggedIn ? Username.Text : "";
-        AccountActionLabel.Text = Locale.T(loggedIn ? "Settings" : "Sign in");
-        AutomationProperties.SetName(AccountButton, Locale.T(loggedIn ? "Settings" : "Sign in"));
+        AccountActionLabel.Text = loggedIn ? Username.Text : Locale.T("Sign in");
+        AutomationProperties.SetName(AccountButton, loggedIn ? Username.Text : Locale.T("Sign in"));
         SignInMenuItem.Visibility = loggedIn ? Visibility.Collapsed : Visibility.Visible;
         LogoutButton.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
         SettingsMenuItem.Visibility = Visibility.Visible; MyAccountMenuItem.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
@@ -168,9 +168,15 @@ public sealed partial class MainWindow
         }
         RememberPage();
         selected = null;
-        page = "settings";
+        var accountSearch = entry.Setting == "Profile";
+        page = accountSearch ? "account" : "settings";
         ShowPage();
-        SettingsPanel.ChangeView(null, 0, null, true);
+        if (accountSearch)
+        {
+            await LoadProfileSettings();
+            AccountPanel.ChangeView(null, 0, null, true);
+        }
+        else SettingsPanel.ChangeView(null, 0, null, true);
         FrameworkElement? target = entry.Setting switch
         {
             "App theme" => ThemeChoice,
@@ -232,7 +238,7 @@ public sealed partial class MainWindow
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
         var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
-        var width = Math.Max(220, Math.Min(560, availableWidth - 96));
+        var width = Math.Max(200, Math.Min(560, availableWidth - 128));
         var body = new StackPanel { Spacing = 10, Width = width, HorizontalAlignment = HorizontalAlignment.Center };
         body.Children.Add(Text(item.S("title"), 22, true));
         if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 16, true));
@@ -258,7 +264,8 @@ public sealed partial class MainWindow
     private ContentDialog NewsDialog(StackPanel body, double width)
     {
         body.HorizontalAlignment = HorizontalAlignment.Center;
-        var dialogWidth = width + 48;
+        var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
+        var dialogWidth = Math.Min(width + 48, Math.Max(248, availableWidth - 48));
         var article = new Border
         {
             Width = width + 8,
@@ -290,10 +297,12 @@ public sealed partial class MainWindow
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             MinWidth = dialogWidth,
-            MaxWidth = dialogWidth
+            MaxWidth = dialogWidth,
+            MaxHeight = Math.Max(240, (Root.XamlRoot?.Size.Height ?? Root.ActualHeight) - 96)
         };
         viewer.Resources["ContentDialogMaxWidth"] = dialogWidth;
         viewer.Resources["ContentDialogMinWidth"] = dialogWidth;
+        viewer.Resources["ContentDialogMaxHeight"] = Math.Max(240, (Root.XamlRoot?.Size.Height ?? Root.ActualHeight) - 96);
         return viewer;
     }
     private void SettingsClick(object sender, RoutedEventArgs e)
@@ -304,13 +313,10 @@ public sealed partial class MainWindow
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
     {
-        RememberPage(); selected = null; page = "settings"; profileLoaded = false; ShowPage();
-        if (User is null) await RequireAccount();
-        if (User is not null)
-        {
-            await LoadProfileSettings();
-            ProfileSettingsSection.StartBringIntoView();
-        }
+        RememberPage(); selected = null; page = "account"; profileLoaded = false; ShowPage();
+        await LoadProfileSettings();
+        AccountPanel.ChangeView(null, 0, null, true);
+        ProfileSettingsSection.StartBringIntoView();
     }
     private async Task RenderContentPage()
     {
@@ -433,11 +439,12 @@ public sealed partial class MainWindow
     }
     private void UpdateHomeHeroControls()
     {
-        HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
+        HomeHeroPauseButton.Content = new SymbolIcon(homeHeroPaused ? Symbol.Play : Symbol.Pause);
         AutomationProperties.SetName(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
         AutomationProperties.SetName(HomeHeroPreviousButton, Locale.T("Previous featured game"));
         AutomationProperties.SetName(HomeHeroNextButton, Locale.T("Next featured game"));
         ToolTipService.SetToolTip(HomeHeroPreviousButton, Locale.T("Previous featured game"));
+        ToolTipService.SetToolTip(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
         ToolTipService.SetToolTip(HomeHeroNextButton, Locale.T("Next featured game"));
     }
     private async void HomeHeroPreviousClick(object sender, RoutedEventArgs e) =>
@@ -456,7 +463,7 @@ public sealed partial class MainWindow
     private void HomeNewsDisableClick(object sender, RoutedEventArgs e)
     {
         RememberPage(); selected = null; page = "settings"; ShowPage();
-        _ = LoadProfileSettings(); NewswireToggle.StartBringIntoView();
+        SettingsPanel.ChangeView(null, 0, null, true); NewswireToggle.StartBringIntoView();
         Notify(Locale.T("Turn off Show Newswire on Home in settings."), InfoBarSeverity.Informational);
     }
     private void StopHomeVideo()

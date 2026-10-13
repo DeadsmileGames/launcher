@@ -336,7 +336,8 @@
     "Save your energy for the boss.": "Save your energy for the boss.",
     "Loading another life.": "Loading another life.",
     "The journey begins at the home screen.": "The journey begins at the home screen.",
-    "The real loot is the games we discover.": "The real loot is the games we discover."
+    "The real loot is the games we discover.": "The real loot is the games we discover.",
+    "Installed games": "Installed games"
   },
   "pt-BR": {
     "Achievement unlocked": "Conquista desbloqueada",
@@ -675,7 +676,8 @@
     "Save your energy for the boss.": "Guarde energia para o chefão.",
     "Loading another life.": "Carregando mais uma vida.",
     "The journey begins at the home screen.": "A jornada começa na tela inicial.",
-    "The real loot is the games we discover.": "O verdadeiro loot são os jogos que descobrimos."
+    "The real loot is the games we discover.": "O verdadeiro loot são os jogos que descobrimos.",
+    "Installed games": "Jogos instalados"
   },
   "es": {
     "Achievement unlocked": "Logro desbloqueado",
@@ -1014,6 +1016,7 @@
     "Save your energy for the boss.": "Guarda energía para el jefe final.",
     "Loading another life.": "Cargando otra vida.",
     "The journey begins at the home screen.": "La aventura comienza en la pantalla de inicio.",
-    "The real loot is the games we discover.": "El verdadero botín son los juegos que descubrimos."
+    "The real loot is the games we discover.": "El verdadero botín son los juegos que descubrimos.",
+    "Installed games": "Juegos instalados"
   }
 }

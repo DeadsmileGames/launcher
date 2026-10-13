@@ -10,8 +10,8 @@ public sealed partial class MainWindow
 {
     private ContentDialog CreateGallery(string[] images, int index)
     {
-        var viewportWidth = Math.Max(220, Math.Min(760, Root.XamlRoot.Size.Width - 64));
-        var viewportHeight = Math.Max(120, Math.Min(440, Root.XamlRoot.Size.Height - 210));
+        var viewportWidth = Math.Max(200, Math.Min(760, Root.XamlRoot.Size.Width - 128));
+        var viewportHeight = Math.Max(120, Math.Min(440, Root.XamlRoot.Size.Height - 260));
         const double minZoom = 1;
         var zoomValue = minZoom;
         var image = new Image { Width = viewportWidth, Height = viewportHeight, Stretch = Stretch.Uniform };
@@ -124,15 +124,16 @@ public sealed partial class MainWindow
         body.Children.Add(imageScroll);
         body.Children.Add(nav);
         body.Children.Add(zoomRow);
-        Show(0);
-
         var dialogWidth = viewportWidth + 48;
+        var host = new Grid { Width = dialogWidth, HorizontalAlignment = HorizontalAlignment.Center };
+        host.Children.Add(body);
+        Show(0);
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
             RequestedTheme = Root.RequestedTheme,
             Title = Locale.T("Screenshots"),
-            Content = body,
+            Content = host,
             CloseButtonText = Locale.T("Close"),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             MaxWidth = dialogWidth,
@@ -149,8 +150,9 @@ public sealed partial class MainWindow
             body.Width = nav.Width = imageScroll.Width = viewportWidth;
             imageScroll.Height = viewportHeight;
             zoom.Width = Math.Clamp(viewportWidth * 0.30, 84, 150);
-            dialog.MaxWidth = dialog.MinWidth = viewportWidth + 48;
-            dialog.Resources["ContentDialogMaxWidth"] = viewportWidth + 48;
+            dialog.MaxWidth = dialog.MinWidth = host.Width = viewportWidth + 48;
+            dialog.Resources["ContentDialogMaxWidth"] = host.Width;
+            dialog.Resources["ContentDialogMinWidth"] = host.Width;
             ApplyZoom(zoom.Value, preserveCenter: false);
         }
         dialog.Opened += (_, _) => Root.SizeChanged += ResizeViewer;

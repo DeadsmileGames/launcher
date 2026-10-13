@@ -229,7 +229,11 @@ public sealed partial class GameViewWindow : Window
     internal async Task<Grid> ValidationShow()
     {
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800)); selected = owner.Catalog.FirstOrDefault()?.Id;
-        Activate(); OpenWidgets(); await Reload(); return OverlayRoot;
+        OpenWidgets();
+        NativeWindow.PassClicks(this, false);
+        NativeWindow.ShowInactive(this);
+        await Reload();
+        return OverlayRoot;
     }
     internal bool ValidationWidgetsOpaque => Widgets.All(x => x.Background is SolidColorBrush brush && brush.Color.A == 255);
     internal bool ValidationLabelsNative => ProfileHeading.Text == owner.Locale.T("Profile") && LibraryRows.Children.Count > 0 && AchievementRows.Children.Count > 0;

@@ -207,7 +207,16 @@ public sealed partial class MainWindow
             async Task GalleryCheck(string name, bool portrait)
             {
                 var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
-                var content = (Grid)dialog.Content; var full = (Image)content.Children[0];
+                var content = (StackPanel)dialog.Content;
+                var imageScroll = (ScrollViewer)content.Children[0];
+                var full = (Image)imageScroll.Content;
+                var navigation = (Grid)content.Children[1];
+                var zoomControls = (StackPanel)content.Children[2];
+                Check(navigation.Children.OfType<Button>().Count() == 3 &&
+                    zoomControls.Children.OfType<Button>().Count() == 2 &&
+                    zoomControls.Children.OfType<Slider>().Any(slider =>
+                        AutomationProperties.GetName(slider) == Locale.T("Zoom")),
+                    "Screenshot viewer keeps previous/next/reset buttons and zoom controls");
                 // Extreme source aspect ratios expose oversized natural-size image layout.
                 var w = portrait ? 180 : 1200; var h = portrait ? 1200 : 180;
                 var pixels = new byte[w * h * 4];

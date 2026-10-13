@@ -8,7 +8,7 @@
    Background="#151515" IsPaneToggleButtonVisible="False" IsBackButtonVisible="False"/>
   <Grid Grid.Row="1" ColumnSpacing="0">
    <Grid.ColumnDefinitions><ColumnDefinition Width="0.92*"/><ColumnDefinition Width="1.08*"/></Grid.ColumnDefinitions>
-   <Grid Grid.Column="0" ClipToBounds="True" Background="#202020">
+   <Grid Grid.Column="0" Background="#202020">
     <Image Source="Assets/InstallerHero.png" Stretch="UniformToFill"/>
     <Border>
      <Border.Background>

@@ -216,7 +216,17 @@
     "The image is saved and copied. Paste or attach it in the selected network to publish.": "The image is saved and copied. Paste or attach it in the selected network to publish.",
     "Save a copy": "Save a copy",
     "X / Twitter": "X / Twitter",
-    "WhatsApp": "WhatsApp"
+    "WhatsApp": "WhatsApp",
+    "Adjust profile photo": "Adjust profile photo",
+    "Use photo": "Use photo",
+    "Rotate left": "Rotate left",
+    "Rotate right": "Rotate right",
+    "Zoom": "Zoom",
+    "Scan this QR code with your authenticator app, or enter the secret manually.": "Scan this QR code with your authenticator app, or enter the secret manually.",
+    "Read all notifications": "Read all notifications",
+    "Open notification": "Open notification",
+    "Dismiss notification": "Dismiss notification",
+    "Game ready to claim or purchase": "Game ready to claim or purchase"
   },
   "pt-BR": {
     "Achievement unlocked": "Conquista desbloqueada",
@@ -435,7 +445,17 @@
     "The image is saved and copied. Paste or attach it in the selected network to publish.": "A imagem está salva e copiada. Cole ou anexe na rede escolhida para publicar.",
     "Save a copy": "Salvar uma cópia",
     "X / Twitter": "X / Twitter",
-    "WhatsApp": "WhatsApp"
+    "WhatsApp": "WhatsApp",
+    "Adjust profile photo": "Ajustar foto do perfil",
+    "Use photo": "Usar foto",
+    "Rotate left": "Girar à esquerda",
+    "Rotate right": "Girar à direita",
+    "Zoom": "Zoom",
+    "Scan this QR code with your authenticator app, or enter the secret manually.": "Leia este QR code com seu aplicativo autenticador ou digite a chave manualmente.",
+    "Read all notifications": "Marcar todas como lidas",
+    "Open notification": "Abrir notificação",
+    "Dismiss notification": "Dispensar notificação",
+    "Game ready to claim or purchase": "Jogo pronto para resgatar ou comprar"
   },
   "es": {
     "Achievement unlocked": "Logro desbloqueado",
@@ -654,6 +674,16 @@
     "The image is saved and copied. Paste or attach it in the selected network to publish.": "La imagen está guardada y copiada. Pégala o adjúntala en la red elegida para publicar.",
     "Save a copy": "Guardar una copia",
     "X / Twitter": "X / Twitter",
-    "WhatsApp": "WhatsApp"
+    "WhatsApp": "WhatsApp",
+    "Adjust profile photo": "Ajustar foto de perfil",
+    "Use photo": "Usar foto",
+    "Rotate left": "Girar a la izquierda",
+    "Rotate right": "Girar a la derecha",
+    "Zoom": "Zoom",
+    "Scan this QR code with your authenticator app, or enter the secret manually.": "Escanea este código QR con tu aplicación de autenticación o introduce la clave manualmente.",
+    "Read all notifications": "Marcar todas como leídas",
+    "Open notification": "Abrir notificación",
+    "Dismiss notification": "Descartar notificación",
+    "Game ready to claim or purchase": "Juego listo para reclamar o comprar"
   }
 }

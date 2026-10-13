@@ -45,7 +45,12 @@ try {
  if (!$package -or $package.Status -ne 'Ok') {
   throw "MSIX package did not register successfully for identity $identityName."
  }
+ $expectedVersion = "1.0.$($env:GITHUB_RUN_NUMBER).0"
+ if ($package.Version.ToString() -ne $expectedVersion) {
+  throw "Expected a uniquely versioned CI MSIX ($expectedVersion), got $($package.Version)."
+ }
  Write-Host "PASS MSIX installation and package registration: $($package.PackageFullName)"
+ Write-Host "PASS MSIX package version advances with workflow run: $($package.Version)"
 
  $aumid = "$($package.PackageFamilyName)!$appId"
  $startedAt = Get-Date
@@ -68,6 +73,20 @@ try {
   throw "Unexpected launcher window title: $($launchedProcess.MainWindowTitle)"
  }
  Write-Host "PASS MSIX launches native WinUI window: $($launchedProcess.MainWindowTitle)"
+
+ Start-Process -FilePath (Join-Path $env:WINDIR 'explorer.exe') -ArgumentList "shell:AppsFolder\$aumid" | Out-Null
+ Start-Sleep -Seconds 2
+ $launchedProcess.Refresh()
+ if ($launchedProcess.HasExited -or $launchedProcess.MainWindowHandle -eq 0 -or
+     $launchedProcess.MainWindowTitle -notmatch 'Deadsmile') {
+  throw 'A second Start-menu activation failed to reach the already-running launcher window.'
+ }
+ $activeLaunchers = @(Get-Process -Name 'Deadsmile.Launcher' -ErrorAction SilentlyContinue |
+  Where-Object { try { !$_.HasExited -and $_.StartTime -ge $startedAt.AddSeconds(-2) } catch { $false } })
+ if ($activeLaunchers.Count -ne 1) {
+  throw "Expected one active launcher process after second activation, found $($activeLaunchers.Count)."
+ }
+ Write-Host "PASS second Start-menu activation reaches the running launcher instance"
  Stop-Process -Id $launchedProcess.Id -Force -ErrorAction SilentlyContinue
  $launchedProcess = $null
 

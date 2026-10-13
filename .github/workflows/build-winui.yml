@@ -58,7 +58,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Build the single development MSIX
-        run: ./scripts/build-windows.ps1 -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -DevelopmentCertificate
+        run: ./scripts/build-windows.ps1 -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -PackageVersion ("1.0.{0}.0" -f $env:GITHUB_RUN_NUMBER) -DevelopmentCertificate
       - name: Test MSIX installation, startup and uninstallation
         run: ./scripts/test-msix.ps1
       - name: Validate native WinUI navigation and layout

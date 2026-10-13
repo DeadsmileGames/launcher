@@ -321,6 +321,12 @@ build_script = (root / "scripts" / "build-windows.ps1").read_text()
 check("makensis" not in build_script.lower() and ".nsi" not in build_script.lower(), "MSIX build must not invoke NSIS")
 build_workflow = (root.parent / ".github" / "workflows" / "build-winui.yml").read_text()
 release_workflow = (root.parent / ".github" / "workflows" / "release-winui.yml").read_text()
+msix_test_code = (root / "scripts" / "test-msix.ps1").read_text()
+check('PackageVersion ("1.0.{0}.0" -f $env:GITHUB_RUN_NUMBER)' in build_workflow,
+      "Each CI development MSIX receives a monotonically increasing package version")
+check('$expectedVersion = "1.0.$($env:GITHUB_RUN_NUMBER).0"' in msix_test_code and
+      "PASS second Start-menu activation reaches the running launcher instance" in msix_test_code,
+      "MSIX smoke test verifies increasing package versions and a second Start-menu activation")
 check("*.exe" not in build_workflow.lower() and "setup-x64" not in build_workflow.lower(), "CI distribution artifacts must not include an EXE installer")
 check("*.exe" not in release_workflow.lower() and "Setup EXE" not in release_workflow, "Production release must not depend on an EXE installer")
 check(not (root / "scripts" / "test-installers.ps1").exists(), "Installer smoke tests must be replaced by MSIX-only tests")

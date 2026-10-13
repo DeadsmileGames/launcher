@@ -408,7 +408,7 @@ public sealed partial class MainWindow : Window
         if (DownloadsPanel.ActualWidth > 0)
         {
             DownloadRows.Width = Math.Max(0, DownloadsPanel.ActualWidth - 16);
-            foreach (var grid in DownloadRows.Children.OfType<WrapGrid>()) grid.Width = Math.Max(grid.ItemWidth, DownloadRows.Width - 8);
+            foreach (var grid in DownloadRows.Children.OfType<GridView>()) grid.Width = Math.Max(252, DownloadRows.Width - 8);
         }
         if (SettingsPanel.ActualWidth > 0) SettingsBody.Width = Math.Max(0, SettingsPanel.ActualWidth - 16);
         if (AccountPanel.ActualWidth > 0) AccountBody.Width = Math.Max(0, AccountPanel.ActualWidth - 16);
@@ -1014,7 +1014,15 @@ public sealed partial class MainWindow : Window
         {
             DownloadRows.Children.Add(Text(Locale.T("Installed games"), 24, true));
             var pageWidth = DownloadsPanel.ActualWidth > 0 ? DownloadsPanel.ActualWidth : PageLayout.ActualWidth;
-            var installedGrid = new WrapGrid { Orientation = Orientation.Horizontal, ItemWidth = 252, ItemHeight = 350, Width = Math.Max(252, pageWidth - 40) };
+            var installedGrid = new GridView
+            {
+                Width = Math.Max(252, pageWidth - 40),
+                SelectionMode = ListViewSelectionMode.None,
+                IsItemClickEnabled = false,
+                IsTabStop = false,
+                Padding = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
             foreach (var game in installedGames)
             {
                 if (!installs.Installed.TryGetValue(game.Id, out var installed) &&
@@ -1060,7 +1068,7 @@ public sealed partial class MainWindow : Window
                     actions.Children.Add(play);
                 }
                 content.Children.Add(actions);
-                installedGrid.Children.Add(new Border { Width = 240, Height = 338, Margin = new Thickness(0, 0, 12, 12), Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(10), Child = content });
+                installedGrid.Items.Add(new Border { Width = 240, Height = 338, Margin = new Thickness(0, 0, 12, 12), Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(10), Child = content });
             }
             DownloadRows.Children.Add(installedGrid);
         }

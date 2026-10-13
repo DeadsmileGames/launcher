@@ -254,7 +254,7 @@ check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'Locale.T("Installed games")' in main_code and
-      "var jobs = downloads.Jobs.Where" in main_code and "var installedGrid = new WrapGrid" in main_code and
+      "var jobs = downloads.Jobs.Where" in main_code and "var installedGrid = new GridView" in main_code and
       "SettingsBody.Width = Math.Max(0, SettingsPanel.ActualWidth - 16)" in main_code and
       "DetailContent.Width = Math.Max(0, DetailPanel.ActualWidth - 16)" in main_code and
       'LauncherMutedTextBrush' in app_xaml and 'LauncherMutedTextBrush' in main_xaml,

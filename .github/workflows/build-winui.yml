@@ -60,7 +60,7 @@ jobs:
           choco install nsis --yes --no-progress
           if ($LASTEXITCODE -ne 0) { throw "NSIS installation failed." }
       - name: Build app, MSIX and EXE
-        run: ./scripts/build-windows.ps1 -Target All -DevelopmentCertificate
+        run: ./scripts/build-windows.ps1 -Target All -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -DevelopmentCertificate
       - name: Test installation, startup and uninstallation
         run: ./scripts/test-installers.ps1
       - name: Validate native WinUI navigation and layout

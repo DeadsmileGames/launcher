@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
  [ValidateSet("All", "App", "Msix", "Installer")][string]$Target = "All",
- [string]$IdentityName = "DeadsmileGames.Launcher.Development",
- [string]$Publisher = "CN=Deadsmile Games Development",
+ [string]$IdentityName = "DeadsmileGames.DeadsmileGamesLauncher",
+ [string]$Publisher = "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE",
  [string]$PublisherDisplayName = "Deadsmile Games",
  [string]$CertificateThumbprint = "",
  [switch]$DevelopmentCertificate
@@ -74,7 +74,7 @@ if ($Target -in @("All", "Msix")) {
  $msix = Join-Path $artifacts "Deadsmile-Games-Launcher-WinUI-$version-x64.msix"
  Native (FindTool "makeappx.exe") @("pack", "/d", $packageDir, "/p", $msix, "/o")
  if ($CertificateThumbprint) { Native $signTool @("sign", "/fd", "SHA256", "/sha1", $CertificateThumbprint, $msix) }
- else { Write-Warning "MSIX is unsigned and cannot be installed directly. Sign it or submit with the correct Store identity." }
+ else { Write-Warning "This unsigned MSIX is intended for Microsoft Store submission. It cannot be sideloaded directly; the Store signs it after certification." }
 }
 if ($Target -in @("All", "Installer")) {
  $makensisCommand = Get-Command "makensis.exe" -ErrorAction SilentlyContinue

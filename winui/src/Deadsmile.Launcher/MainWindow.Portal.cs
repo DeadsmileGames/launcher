@@ -166,17 +166,16 @@ public sealed partial class MainWindow
             await Guard(() => LoadDetail(game));
             return;
         }
+        if (entry.Setting == "Profile")
+        {
+            await OpenAccountPage();
+            return;
+        }
         RememberPage();
         selected = null;
-        var accountSearch = entry.Setting == "Profile";
-        page = accountSearch ? "account" : "settings";
+        page = "settings";
         ShowPage();
-        if (accountSearch)
-        {
-            await LoadProfileSettings();
-            AccountPanel.ChangeView(null, 0, null, true);
-        }
-        else SettingsPanel.ChangeView(null, 0, null, true);
+        SettingsPanel.ChangeView(null, 0, null, true);
         FrameworkElement? target = entry.Setting switch
         {
             "App theme" => ThemeChoice,
@@ -184,7 +183,6 @@ public sealed partial class MainWindow
             "Language" => SettingsLanguage,
             "DeadBar" => OverlayToggle,
             "Notifications" => NotificationsToggle,
-            "Profile" => ProfileSettingsSection,
             "Newswire" => NewswireToggle,
             "Support" => SupportSection,
             _ => SettingsBody
@@ -307,13 +305,16 @@ public sealed partial class MainWindow
         SettingsPanel.ChangeView(null, 0, null, true);
         SettingsBody.StartBringIntoView();
     }
-    private async void AccountClick(object sender, RoutedEventArgs e)
+    private async Task OpenAccountPage()
     {
+        if (!await RequireAccount()) return;
         RememberPage(); selected = null; page = "account"; profileLoaded = false; ShowPage();
         await LoadProfileSettings();
         AccountPanel.ChangeView(null, 0, null, true);
         ProfileSettingsSection.StartBringIntoView();
     }
+
+    private async void AccountClick(object sender, RoutedEventArgs e) => await OpenAccountPage();
     private async Task RenderContentPage()
     {
         var revision = ++pageRevision; var current = page; arrangeNewswire = null; ContentRows.Children.Clear();

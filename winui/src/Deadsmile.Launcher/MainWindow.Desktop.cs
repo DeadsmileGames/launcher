@@ -101,6 +101,15 @@ public sealed partial class MainWindow
             newsItems.FirstOrDefault(story => story.S("slug") == notification.Slug) is { } story)
             await Guard(() => ShowNews(story));
     }
+    private void UpdateNotificationsIcon(bool enabled)
+    {
+        NotificationIcon.Glyph = enabled ? "\uE7E7" : "\uE7ED";
+        var accessibleName = Locale.T(enabled ? "Notifications" : "Notifications disabled");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(NotificationsButton, accessibleName);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(NotificationIcon, accessibleName);
+        ToolTipService.SetToolTip(NotificationsButton, accessibleName);
+    }
+
     private void NotificationsClick(object sender, RoutedEventArgs e) => RefreshNotificationMenu();
     private void MinimizeToTray()
     {

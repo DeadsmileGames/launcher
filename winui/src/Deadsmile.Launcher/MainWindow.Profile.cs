@@ -59,10 +59,17 @@ public sealed partial class MainWindow
             return;
         }
         if (profileLoaded) return;
+        var requestedUserId = User.S("id");
+        if (string.IsNullOrWhiteSpace(requestedUserId))
+        {
+            Notify(Locale.T("Sign in to manage your profile."));
+            return;
+        }
         profileLoading = true;
         try
         {
             var account = await Api.Get("/account");
+            if (User is null || User.S("id") != requestedUserId) return;
             if (account is null) throw new LauncherException("INVALID_RESPONSE");
             ProfileFullName.Text = account.S("fullName", "full_name");
             ProfileUsername.Text = account.S("username"); ProfileBio.Text = account.S("bio");
@@ -76,12 +83,14 @@ public sealed partial class MainWindow
             if (!privacyLoaded)
             {
                 var privacy = await Api.Get("/account/privacy");
+                if (User is null || User.S("id") != requestedUserId) return;
                 ShareGameActivityToggle.IsOn = privacy.B("shareGameActivity"); SharePlaytimeToggle.IsOn = privacy.B("sharePlaytime");
                 ShareAchievementsToggle.IsOn = privacy.B("shareAchievements"); privacyLoaded = true;
             }
             try
             {
                 var totp = await Api.Get("/account/totp/status");
+                if (User is null || User.S("id") != requestedUserId) return;
                 twoFactorEnabled = totp.B("enabled");
                 twoFactorDisabling = false; twoFactorStatusAvailable = true;
                 TwoFactorTokenBox.Text = "";
@@ -96,6 +105,7 @@ public sealed partial class MainWindow
                 RefreshTwoFactorLabels();
             }
             var sessions = await Api.Get("/account/sessions");
+            if (User is null || User.S("id") != requestedUserId) return;
             SessionsRows.Children.Clear();
             foreach (var session in sessions.At("sessions").Items())
             {
@@ -121,6 +131,7 @@ public sealed partial class MainWindow
                 SessionsRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(12), Child = row });
             }
             if (SessionsRows.Children.Count == 0) SessionsRows.Children.Add(Text(Locale.T("No other active sessions.")));
+            if (User is null || User.S("id") != requestedUserId) return;
             User = account.DeepClone(); UpdateAccount(); profileLoaded = true;
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }

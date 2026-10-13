@@ -43,7 +43,7 @@ public sealed partial class GameViewWindow : Window
         { presenter.SetBorderAndTitleBar(false, false); presenter.IsResizable = false; presenter.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(this);
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(16);
-        timer.Tick += (_, _) => Monitor(); timer.Start();
+        timer.Tick += (_, _) => Monitor();
         Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); windowHook.Dispose(); };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         foreach (var widget in Widgets)
@@ -100,7 +100,9 @@ public sealed partial class GameViewWindow : Window
     }
     private void OpenWidgets()
     {
-        IsOpen = true; ToolbarPanel.Visibility = Visibility.Visible;
+        IsOpen = true;
+        if (!timer.IsRunning) timer.Start();
+        ToolbarPanel.Visibility = Visibility.Visible;
         for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         ApplyPreferences(); if (!positioned) ResetLayout(); ReloadLabels();
     }
@@ -108,7 +110,12 @@ public sealed partial class GameViewWindow : Window
     {
         captureDialog?.Hide(); request++; IsOpen = false; ToolbarPanel.Visibility = Visibility.Collapsed;
         for (var i = 0; i < Widgets.Length; i++) Widgets[i].Visibility = !force && Pins[i].IsChecked == true && Toggles[i].IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        if (force || Widgets.All(x => x.Visibility == Visibility.Collapsed)) AppWindow.Hide();
+        if (force || Widgets.All(x => x.Visibility == Visibility.Collapsed))
+        {
+            AppWindow.Hide();
+            timer.Stop();
+        }
+        else if (!timer.IsRunning) timer.Start();
     }
     private void ReloadLabels()
     {
@@ -189,6 +196,11 @@ public sealed partial class GameViewWindow : Window
     {
         var name = ((Button)sender).Tag.ToString(); var i = Array.FindIndex(Widgets, x => x.Tag.ToString() == name);
         Pins[i].IsChecked = false; Toggles[i].IsChecked = false; Widgets[i].Visibility = Visibility.Collapsed;
+        if (!IsOpen && Widgets.All(x => x.Visibility == Visibility.Collapsed))
+        {
+            AppWindow.Hide();
+            timer.Stop();
+        }
     }
     private void ResetLayoutClick(object sender, RoutedEventArgs e) => ResetLayout();
     private void ResetLayout()
@@ -306,6 +318,7 @@ public sealed partial class GameViewWindow : Window
     internal bool ValidationLabelsNative => ProfileHeading.Text == owner.Locale.T("Profile") && LibraryRows.Children.Count > 0 && AchievementRows.Children.Count > 0;
     internal void ValidationPinAndHide() { ProfilePin.IsChecked = true; Hide(); }
     internal bool ValidationPinned => !IsOpen && ProfilePanel.Visibility == Visibility.Visible && LibraryPanel.Visibility == Visibility.Collapsed;
+    internal bool ValidationTimerRunning => timer.IsRunning;
 #endif
     private async void ReloadClick(object sender, RoutedEventArgs e) => await Reload();
     private void CloseClick(object sender, RoutedEventArgs e) => Hide(true);

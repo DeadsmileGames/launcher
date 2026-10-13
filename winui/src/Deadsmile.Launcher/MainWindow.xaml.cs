@@ -376,6 +376,12 @@ public sealed partial class MainWindow : Window
     private void TitlePaneToggleRequested(TitleBar sender, object args) => Shell.IsPaneOpen = !Shell.IsPaneOpen;
     private void ShowPage()
     {
+        // A stale history entry must never expose private account content after sign-out.
+        if (page == "account" && User is null)
+        {
+            page = "explore";
+            selected = null;
+        }
         if (selected is null) { heroImage = null; heroImages = []; bannerPlayer?.Dispose(); bannerPlayer = null; }
         if (selected is not null || page != "explore") StopHomeVideo();
         CatalogPanel.Visibility = selected is null && (page is "explore" or "library") ? Visibility.Visible : Visibility.Collapsed;
@@ -1176,6 +1182,7 @@ public sealed partial class MainWindow : Window
             AppearanceLabels();
             UpdateHomeHeroControls(); RefreshTwoFactorLabels();
             AutomationProperties.SetName(AccountButton, Locale.T(User is null ? "Sign in" : "Settings"));
+            UpdateNotificationsIcon(Preferences.Notifications);
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
             AutomationProperties.SetName(CollapseButton, Locale.T("Collapse navigation"));
             AutomationProperties.SetName(NavigationCompactCard, Locale.T("Compact navigation layout"));

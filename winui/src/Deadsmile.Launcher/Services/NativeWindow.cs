@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.UI.Xaml;
 
 namespace Deadsmile.Launcher.Services;
@@ -6,8 +7,10 @@ namespace Deadsmile.Launcher.Services;
 public sealed class NativeWindow : IDisposable
 {
     private readonly IntPtr hwnd;
-    private readonly WndProc handler;
-    private readonly IntPtr previous;
+    private static long nextSubclassId;
+    private readonly SubclassProc handler;
+    private readonly UIntPtr subclassId;
+    private bool subclassed;
     private bool registered;
     private readonly bool noActivate;
     private string registeredShortcut = "";
@@ -19,8 +22,11 @@ public sealed class NativeWindow : IDisposable
         this.noActivate = noActivate;
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
         handler = Procedure;
-        previous = SetWindowLongPtr(hwnd, -4, Marshal.GetFunctionPointerForDelegate(handler));
-        if (previous == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        subclassId = new UIntPtr(unchecked((uint)Interlocked.Increment(ref nextSubclassId)));
+        // Preserve the WinUI window-procedure chain and remove this hook explicitly at disposal.
+        if (!SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        subclassed = true;
     }
     public bool Register(bool enabled, string shortcut = "Control+D")
     {
@@ -36,29 +42,39 @@ public sealed class NativeWindow : IDisposable
                 if (flag == 0) return false; modifiers |= flag;
             }
             var keyName = parts.LastOrDefault()?.ToUpperInvariant() ?? "";
-            uint key = keyName.Length == 1 && char.IsAsciiLetterOrDigit(keyName[0]) ? keyName[0] :
-                keyName.StartsWith('F') && int.TryParse(keyName[1..], out var function) && function is >= 1 and <= 24 ? (uint)(111 + function) : 0;
+            uint key = VirtualKey(keyName);
             if (key == 0) return false;
             registered = RegisterHotKey(hwnd, 0x4453, modifiers, key); registeredShortcut = shortcut;
         }
         return !enabled || registered;
     }
-    private IntPtr Procedure(IntPtr h, uint message, IntPtr wp, IntPtr lp)
+    internal static uint VirtualKey(string keyName)
     {
-        try { Message?.Invoke(message, wp, lp); } catch { /* Never unwind a managed callback across WndProc. */ }
+        var normalized = keyName.ToUpperInvariant();
+        // Microsoft reserves F12 for debugger/JIT debugger use.
+        if (normalized == "F12") return 0;
+        return normalized.Length == 1 && char.IsAsciiLetterOrDigit(normalized[0]) ? normalized[0] :
+            normalized.StartsWith('F') && int.TryParse(normalized[1..], out var function) && function is >= 1 and <= 24
+                ? (uint)(111 + function) : 0;
+    }
+
+    private IntPtr Procedure(IntPtr h, uint message, IntPtr wp, IntPtr lp, UIntPtr id, UIntPtr refData)
+    {
+        // Never unwind a managed exception through the native Windows message loop.
+        try { Message?.Invoke(message, wp, lp); } catch (Exception) { }
         if (message == 0x0312 && wp.ToInt64() == 0x4453)
         {
             try { Hotkey?.Invoke(); }
-            catch (Exception) { /* Never unwind a managed callback across the native WndProc boundary. */ }
+            catch (Exception) { /* Hotkey callbacks only enqueue UI work. */ }
             return IntPtr.Zero;
         }
         if (noActivate && message == 0x0021) return new IntPtr(3);
-        if (message == 0x0024)
+        if (message == 0x0024 && lp != IntPtr.Zero)
         {
             var s = Scale?.Invoke() ?? 1;
             Marshal.WriteInt32(lp, 24, (int)(640 * s)); Marshal.WriteInt32(lp, 28, (int)(480 * s));
         }
-        return CallWindowProc(previous, h, message, wp, lp);
+        return DefSubclassProc(h, message, wp, lp);
     }
     public static void Overlay(Window window)
     {
@@ -153,18 +169,31 @@ public sealed class NativeWindow : IDisposable
     public static void ShowInactive(Window window) => ShowWindow(WinRT.Interop.WindowNative.GetWindowHandle(window), 4);
     public void Dispose()
     {
-        Register(false); SetWindowLongPtr(hwnd, -4, previous);
+        Register(false);
+        if (subclassed)
+        {
+            RemoveWindowSubclass(hwnd, handler, subclassId);
+            subclassed = false;
+        }
     }
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct Point { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] private struct Margins { public int Left, Right, Top, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
-    [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate IntPtr WndProc(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate IntPtr SubclassProc(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp, UIntPtr subclassId, UIntPtr refData);
+    [DllImport("comctl32.dll", SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowSubclass(IntPtr hWnd, SubclassProc callback, UIntPtr subclassId, UIntPtr refData);
+    [DllImport("comctl32.dll", SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool RemoveWindowSubclass(IntPtr hWnd, SubclassProc callback, UIntPtr subclassId);
+    [DllImport("comctl32.dll", ExactSpelling = true)]
+    private static extern IntPtr DefSubclassProc(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)] private static extern IntPtr SetWindowLongPtr(IntPtr h, int index, IntPtr value);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr h);
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr h, int attribute, ref int value, int size);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
-    [DllImport("user32.dll", EntryPoint = "CallWindowProcW")] private static extern IntPtr CallWindowProc(IntPtr proc, IntPtr h, uint msg, IntPtr wp, IntPtr lp);
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint key);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int height, uint flags);

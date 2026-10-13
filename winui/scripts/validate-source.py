@@ -184,6 +184,8 @@ main_xaml = (launcher / "MainWindow.xaml").read_text(encoding="utf-8")
 app_xaml = (launcher / "App.xaml").read_text(encoding="utf-8")
 main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
 portal_code = (launcher / "MainWindow.Portal.cs").read_text(encoding="utf-8")
+appearance_code = (launcher / "MainWindow.Appearance.cs").read_text(encoding="utf-8")
+desktop_code = (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
 gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
 game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
@@ -198,6 +200,31 @@ check("native.Hotkey += QueueOverlayToggle;" in main_code and
       "ValidationQueueOverlayToggle" in main_code and
       "try { Hotkey?.Invoke(); }" in native_code,
       "Ctrl+D handling is dispatched to WinUI instead of opening/closing windows inside native WndProc")
+check("if (!timer.IsRunning) timer.Start();" in game_view_code and
+      "timer.Stop();" in game_view_code and "ValidationTimerRunning => timer.IsRunning" in game_view_code,
+      "DeadBar focus polling runs only while the overlay is visible or has pinned widgets")
+check("SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero)" in native_code and
+      "DefSubclassProc(h, message, wp, lp)" in native_code and
+      "RemoveWindowSubclass(hwnd, handler, subclassId)" in native_code and
+      "SetWindowLongPtr(hwnd, -4, Marshal.GetFunctionPointerForDelegate(handler))" not in native_code,
+      "Native HWND hooks use removable common-controls subclassing and preserve the WinUI WndProc chain")
+check('if (normalized == "F12") return 0;' in native_code and "uint key = VirtualKey(keyName);" in native_code,
+      "DeadBar key parsing rejects the F12 key reserved by Windows for debuggers")
+check('x:Name="NotificationIcon"' in main_xaml and 'Glyph="&#xE7E7;"' in main_xaml and
+      'UpdateNotificationsIcon(Preferences.Notifications)' in appearance_code and
+      "NotificationIcon.Glyph = enabled ?" in desktop_code and
+      all(locale.get("Notifications disabled") for locale in messages.values()),
+      "Notification glyph and accessible name reflect the enabled/disabled preference in all languages")
+check('var requestedUserId = User.S("id");' in profile_code and
+      'if (User is null || User.S("id") != requestedUserId) return;' in profile_code and
+      profile_code.find("requestedUserId) return;") < profile_code.find("User = account.DeepClone();"),
+      "Profile loading cannot restore stale account data after logout/session invalidation")
+check('if (entry.Setting == "Profile")' in portal_code and
+      "await OpenAccountPage();" in portal_code and
+      "private async Task OpenAccountPage()" in portal_code and
+      "if (!await RequireAccount()) return;" in portal_code and
+      'if (page == "account" && User is null)' in main_code,
+      "All profile entry points require authentication and stale account routes fall back safely")
 check('Glyph="&#xEA80;"' in (launcher / "Views" / "AchievementWindow.xaml").read_text(encoding="utf-8") and
       'ShortcutIcon.Glyph = "\\uEA80";' in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
       "ApplyShortcutTheme(owner.UiTheme)" in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and

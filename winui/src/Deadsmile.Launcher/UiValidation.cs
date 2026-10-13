@@ -171,6 +171,25 @@ public sealed partial class MainWindow
             Check(accountDialog is not null, "Account benefits use a native ContentDialog");
             await Capture("02-account-benefits", accountDialog!); accountDialog!.Hide();
             Check(!await gate, "Cancel preserves visitor mode");
+            var pageBeforeProfileAttempt = page;
+            page = "account"; selected = null; ShowPage();
+            Check(page == "explore" && AccountPanel.Visibility == Visibility.Collapsed,
+                "A stale private-profile route is discarded after sign-out");
+            page = pageBeforeProfileAttempt; ShowPage();
+            var profileSearchGate = ChooseSearch(new SearchEntry(Locale.T("Profile"), setting: "Profile"));
+            await Task.Delay(500);
+            Check(accountDialog is not null && page != "account",
+                "Guest profile search is stopped at the account sign-in gate");
+            accountDialog?.Hide();
+            await profileSearchGate;
+            Check(page == pageBeforeProfileAttempt, "Canceling profile sign-in preserves the current page");
+            var profileMenuGate = OpenAccountPage();
+            await Task.Delay(500);
+            Check(accountDialog is not null && page != "account",
+                "My account cannot open private profile content while signed out");
+            accountDialog?.Hide();
+            await profileMenuGate;
+            Check(page == pageBeforeProfileAttempt, "Canceling the account-menu gate preserves the current page");
             var signingIn = OpenSignIn(); await Task.Delay(500);
             Check(loginDialog is not null && LoginPanel.Visibility == Visibility.Collapsed, "Sign-in is a native dialog rather than a separate page");
             Check(LoginButton.Style == (Style)Application.Current.Resources["AccentButtonStyle"], "Login uses native AccentButtonStyle");
@@ -195,9 +214,19 @@ public sealed partial class MainWindow
             Check(HomeHeroPauseButton.Content is SymbolIcon pauseIcon && pauseIcon.Symbol == Symbol.Pause, "Home hero pause uses an icon");
             Check(HomeHeroSurface.IsTapEnabled && !IsHeroInteractiveSource(FeaturedTitle, HomeHeroSurface) && IsHeroInteractiveSource(FeaturedButton, HomeHeroSurface), "Home hero artwork opens details without hijacking child controls");
             Check(OrderInstalledGames(Catalog, new[] { Catalog[0].Id }).Length == 1, "Downloads derive a persistent installed-games list from the catalog and install index");
-            Check(NotificationsButton.Content is Grid notificationGrid &&
-                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE7ED"),
-                "Notifications use the bell glyph rather than TVMonitor");
+            Check(Services.NativeWindow.VirtualKey("F12") == 0 &&
+                Services.NativeWindow.VirtualKey("F11") == 122 &&
+                Services.NativeWindow.VirtualKey("D") == (uint)'D',
+                "DeadBar shortcut validation rejects debugger-reserved F12 and maps supported keys");
+            var configuredNotificationState = Preferences.Notifications;
+            UpdateNotificationsIcon(true);
+            var enabledNotificationsGlyph = NotificationIcon.Glyph == "\uE7E7";
+            UpdateNotificationsIcon(false);
+            var disabledNotificationsGlyph = NotificationIcon.Glyph == "\uE7ED";
+            UpdateNotificationsIcon(configuredNotificationState);
+            Check(enabledNotificationsGlyph && disabledNotificationsGlyph &&
+                NotificationIcon.Glyph == (configuredNotificationState ? "\uE7E7" : "\uE7ED"),
+                "Notifications use the active bell when enabled and the silent glyph only when disabled");
             var originalLanguage = Locale.Language;
             Locale.Language = "pt-BR"; ApplyLanguage();
             Check(ProfileFullName.Header?.ToString() == "Nome completo", "Profile field headers translate to Portuguese");
@@ -386,9 +415,13 @@ public sealed partial class MainWindow
                 GameViewWindow.ShouldDismissOverlay(true, false, false, true),
                 "DeadBar lifetime follows game exit, minimization and sustained focus loss without hiding on transient focus changes");
             var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
+            Check(view.ValidationTimerRunning, "DeadBar starts focus monitoring when visible");
             Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
             await Capture("15-game-view-widgets", widgetRoot);
-            view.ValidationPinAndHide(); Check(view.ValidationPinned, "Pinned widget remains visible when Game View closes"); view.Close();
+            view.ValidationPinAndHide();
+            Check(view.ValidationPinned && view.ValidationTimerRunning, "Pinned widget remains visible and keeps focus monitoring active");
+            view.Close();
+            Check(!view.ValidationTimerRunning, "DeadBar focus timer stops when its window closes");
             var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), "Uma conquista com um título longo, para conferir a leitura do aviso", forceSolid: true);
             toast.ShowOn(IntPtr.Zero); await Task.Delay(300);
             Check(toast.ValidationSolid, "Windows 10 achievement fallback always has an opaque background");

@@ -36,6 +36,7 @@ public sealed partial class MainWindow
             DetailContent.ChildrenTransitions = MotionEnabled ? new TransitionCollection { new ContentThemeTransition() } : null;
             GameGrid.ItemContainerTransitions = MotionEnabled ? new TransitionCollection { new EntranceThemeTransition(), new RepositionThemeTransition() } : null;
             UpdateThemeCardSelection();
+            UpdateNotificationsIcon(Preferences.Notifications);
             ApplyCaptionColors(); overlay?.ApplyPreferences();
         }
         finally { applyingAppearance = false; }

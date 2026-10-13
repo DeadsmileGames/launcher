@@ -188,9 +188,10 @@ public sealed partial class MainWindow
             Shell.SelectedItem = LibraryItem; await Task.Delay(200);
             Check(page == "library" && CatalogPanel.Visibility == Visibility.Visible, "Native library selection navigates");
             await Capture("05-library-1280");
+            var catalogCountBeforeSuggestions = GameGrid.Items.Count;
             SearchSuggestions("Abby");
             Check(searchResults.Count == 1, "Search suggestions match the one game containing Abby");
-            Check(GameGrid.Items.Count == 5, "Opening suggestions does not replace the catalog");
+            Check(GameGrid.Items.Count == catalogCountBeforeSuggestions, "Opening suggestions does not replace the catalog");
             SearchSuggestions("no-match-ci"); Check(searchResults.Count > 0 && searchResults.All(x => x.Setting is not null), "Search falls back to settings suggestions");
             SearchBox.Text = ""; SearchBox.IsSuggestionListOpen = false;
             await LoadDetail(Catalog[0]); await Task.Delay(300);

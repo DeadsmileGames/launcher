@@ -387,7 +387,7 @@ public sealed partial class MainWindow : Window
         var query = page is "explore" or "library" ? SearchBox.Text?.Trim() ?? "" : "";
         var items = Catalog.Where(x => (page != "library" || x.InLibrary) &&
             (!(InstalledFilter.IsChecked ?? false) || installs.Installed.ContainsKey(x.Id)) &&
-            (x.Title + " " + x.Genres + " " + x.Data.S("developer", "publisher")).Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
+            x.SearchText.Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
         GameGrid.ItemsSource = items;
         featuredGame = page == "explore" && selected is null && query.Length == 0 && !(InstalledFilter.IsChecked ?? false) && items.Length > 0
             ? items[homeSlideIndex % items.Length] : null;
@@ -418,9 +418,11 @@ public sealed partial class MainWindow : Window
     private void NavigationInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
         if (!ready) return;
-        if (args.InvokedItemContainer is NavigationViewItem item && item.Tag?.ToString() == page && selected is null)
+        if (args.InvokedItemContainer is NavigationViewItem item && item.Tag?.ToString() == page)
         {
-            detailRevision++; ShowPage();
+            selected = null;
+            detailRevision++;
+            ShowPage();
             if (page is "news" or "wishlist") UI(RenderContentPage);
         }
     }

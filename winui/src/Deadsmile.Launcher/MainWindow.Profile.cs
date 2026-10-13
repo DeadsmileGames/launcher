@@ -30,9 +30,11 @@ public sealed partial class MainWindow
         {
             var account = await Api.Get("/account");
             if (account is null) throw new LauncherException("INVALID_RESPONSE");
+            ProfileFullName.Text = account.S("fullName", "full_name");
             ProfileUsername.Text = account.S("username"); ProfileBio.Text = account.S("bio");
             ProfileWebsite.Text = account.S("websiteUrl"); ProfileLocation.Text = account.S("location");
-            ProfileAvatarUrl.Text = account.S("avatarUrl"); ProfileDisplayName.Text = account.S("username");
+            ProfileAvatarUrl.Text = account.S("avatarUrl");
+            ProfileDisplayName.Text = account.S("fullName", "full_name", "username");
             ProfileDisplayEmail.Text = account.S("email");
             await SetProfilePicture(ProfileSettingsAvatar, account.S("avatarUrl"));
             ProfileFields.Visibility = Visibility.Visible; ProfileSignInPrompt.Visibility = Visibility.Collapsed;
@@ -116,13 +118,16 @@ public sealed partial class MainWindow
         {
             var result = await Api.Patch("/account", new
             {
+                fullName = ProfileFullName.Text.Trim(),
                 username = ProfileUsername.Text.Trim(), bio = ProfileBio.Text,
                 websiteUrl = ProfileWebsite.Text.Trim(), location = ProfileLocation.Text.Trim(),
                 avatarUrl = ProfileAvatarUrl.Text.Trim()
             });
             if (result is null) throw new LauncherException("INVALID_RESPONSE");
             User = result.DeepClone();
-            ProfileDisplayName.Text = result.S("username"); ProfileDisplayEmail.Text = result.S("email");
+            ProfileDisplayName.Text = result.S("fullName", "full_name", "username");
+            ProfileDisplayEmail.Text = result.S("email");
+            Username.Text = result.S("username");
             await SetProfilePicture(ProfileSettingsAvatar, result.S("avatarUrl"));
             await SetProfilePicture(Avatar, result.S("avatarUrl"));
             profileLoaded = true; Notify(Locale.T("Profile updated."), InfoBarSeverity.Success);

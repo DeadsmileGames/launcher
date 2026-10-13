@@ -134,7 +134,7 @@ public sealed partial class MainWindow
         searchResults.Clear(); query = query.Trim();
         if (query.Length > 0)
         {
-            foreach (var game in Catalog.Where(x => (x.Title + " " + x.Genres + " " + x.Data.S("developer", "publisher")).Contains(query, StringComparison.CurrentCultureIgnoreCase)).Take(8))
+            foreach (var game in Catalog.Where(x => x.SearchText.Contains(query, StringComparison.CurrentCultureIgnoreCase)).Take(8))
                 searchResults.Add(new SearchEntry(game.Title, game));
             if (searchResults.Count == 0)
             {
@@ -151,8 +151,29 @@ public sealed partial class MainWindow
     {
         if (value is not SearchEntry entry) return;
         SearchBox.IsSuggestionListOpen = false;
-        if (entry.Game is { } game) await Guard(() => LoadDetail(game));
-        else { RememberPage(); selected = null; page = "settings"; ShowPage(); SettingsPanel.ChangeView(null, 0, null, true); }
+        if (entry.Game is { } game)
+        {
+            await Guard(() => LoadDetail(game));
+            return;
+        }
+        RememberPage();
+        selected = null;
+        page = "settings";
+        ShowPage();
+        SettingsPanel.ChangeView(null, 0, null, true);
+        FrameworkElement? target = entry.Setting switch
+        {
+            "App theme" => ThemeChoice,
+            "Animations" => AnimationToggle,
+            "Language" => SettingsLanguage,
+            "DeadBar" => OverlayToggle,
+            "Notifications" => NotificationsToggle,
+            "Profile" => ProfileSettingsSection,
+            "Newswire" => NewswireToggle,
+            "Support" => SupportSection,
+            _ => SettingsBody
+        };
+        target?.StartBringIntoView();
     }
     private async Task LoadNews()
     {

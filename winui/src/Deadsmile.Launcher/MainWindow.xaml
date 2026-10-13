@@ -271,6 +271,7 @@
           <Button Content="Sign in" Click="ProfileSignInClick" HorizontalAlignment="Left"/>
          </StackPanel>
          <StackPanel x:Name="ProfileFields" Spacing="12" Visibility="Collapsed">
+          <TextBox x:Name="ProfileFullName" Header="Full name" MaxLength="80"/>
           <TextBox x:Name="ProfileUsername" Header="Username" MaxLength="24"/>
           <TextBox x:Name="ProfileBio" Header="Bio" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"/>
           <TextBox x:Name="ProfileWebsite" Header="Website URL" MaxLength="2000"/>
@@ -323,7 +324,7 @@
          <ToggleSwitch x:Name="NewswireToggle" Grid.Column="2" Toggled="AppearanceToggled"/>
         </Grid></Border>
        </StackPanel>
-       <StackPanel Spacing="12">
+       <StackPanel x:Name="SupportSection" Spacing="12">
         <TextBlock Text="Help and support" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="10">
          <TextBlock Text="Need help? Open Deadsmile Games support." TextWrapping="Wrap"/>

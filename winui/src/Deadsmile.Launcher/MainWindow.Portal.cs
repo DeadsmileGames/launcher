@@ -260,7 +260,8 @@ public sealed partial class MainWindow
                     var rows = (newsItems.Length + columns - 1) / columns;
                     for (var i = 0; i < rows; i++) newsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                     for (var i = 0; i < newsGrid.Children.Count; i++)
-                    { Grid.SetColumn(newsGrid.Children[i], i % columns); Grid.SetRow(newsGrid.Children[i], i / columns); }
+                    if (newsGrid.Children[i] is FrameworkElement child)
+                    { Grid.SetColumn(child, i % columns); Grid.SetRow(child, i / columns); }
                 }
                 foreach (var child in newsGrid.Children)
                     if (child is Button button && button.Content is StackPanel stack)

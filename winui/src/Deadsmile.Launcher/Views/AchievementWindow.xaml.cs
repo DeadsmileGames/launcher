@@ -15,9 +15,8 @@ public sealed partial class AchievementWindow : Window
         InitializeComponent(); Heading.Text = heading; AchievementTitle.Text = title;
         if (hint) { ToastIcon.Symbol = Microsoft.UI.Xaml.Controls.Symbol.GlobalNavigationButton; Heading.Visibility = Visibility.Collapsed; }
         ToastRoot.RequestedTheme = owner.UiTheme;
-        // Mica is opaque, including its system fallback. Windows 10 always retains the solid XAML surface.
-        if (!forceSolid && owner.Preferences.WindowsMaterials && OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000) && MicaController.IsSupported())
-        { SystemBackdrop = new MicaBackdrop(); ToastRoot.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent); }
+        // Toasts can appear over full-screen games; keep their surface opaque regardless of
+        // the launcher's Mica/acrylic preference so notification text remains legible.
         if (owner.MotionEnabled) ToastRoot.ChildrenTransitions = new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 20 } };
         if (AppWindow.Presenter is OverlappedPresenter p)
         { p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsAlwaysOnTop = true; }

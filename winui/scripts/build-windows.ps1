@@ -117,8 +117,8 @@ if ($Target -in @("All", "Installer")) {
    throw "The WinUI XAML compiler emitted no .xbf resources; refusing to build an incomplete installer."
   }
   foreach ($xamlFile in $compiledXamlFiles) {
-   $target = Join-Path $resourceSource $xamlFile.Name
-   if (!(Test-Path $target)) { Copy-Item $xamlFile.FullName $target -Force }
+   $xamlDestination = Join-Path $resourceSource $xamlFile.Name
+   if (!(Test-Path $xamlDestination)) { Copy-Item $xamlFile.FullName $xamlDestination -Force }
   }
   $priConfig = Join-Path $artifacts "setup-priconfig.xml"
   $generatedPri = Join-Path $artifacts "setup-resources.pri"

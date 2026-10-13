@@ -21,7 +21,7 @@ public sealed partial class AchievementWindow : Window
         if (owner.MotionEnabled) ToastRoot.ChildrenTransitions = new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 20 } };
         if (AppWindow.Presenter is OverlappedPresenter p)
         { p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsAlwaysOnTop = true; }
-        NativeWindow.Overlay(this); NativeWindow.PassClicks(this, true);
+        NativeWindow.FloatingWindow(this); NativeWindow.PassClicks(this, true);
         NativeWindow.RoundCorners(this);
         timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromSeconds(6);
         timer.Tick += (_, _) => { timer.Stop(); Close(); };

@@ -69,6 +69,12 @@ public sealed class NativeWindow : IDisposable
         var ex = GetWindowLongPtr(h, -20).ToInt64();
         SetWindowLongPtr(h, -20, new IntPtr(pass ? ex | 0x20 : ex & ~0x20));
     }
+    public static void FloatingWindow(Window window)
+    {
+        var h = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        var ex = GetWindowLongPtr(h, -20).ToInt64();
+        SetWindowLongPtr(h, -20, new IntPtr(ex | 0x08000000 | 0x80 | 0x00200000));
+    }
     public static void RoundCorners(Window window)
     {
         if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;

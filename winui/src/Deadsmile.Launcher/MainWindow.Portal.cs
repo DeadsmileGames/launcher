@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Media.Streaming.Adaptive;
+using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 
 namespace Deadsmile.Launcher;
@@ -454,7 +455,85 @@ public sealed partial class MainWindow
         catch (Exception) { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; }
 #endif
     }
-    private async void AddVideoBackground(Game game, Grid hero, Image fallback)
+    private static readonly HttpClient ArtworkAccentClient = new() { Timeout = TimeSpan.FromSeconds(4) };
+
+    private static LinearGradientBrush CreateHeroShade(Windows.UI.Color accent)
+    {
+        var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
+        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(232, accent.R, accent.G, accent.B), Offset = 0 });
+        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 22, 22, 22), Offset = 0.48 });
+        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(45, 15, 15, 15), Offset = 1 });
+        return shade;
+    }
+
+    private static async Task<Windows.UI.Color?> DetectArtworkAccentAsync(string imageUrl)
+    {
+#if UI_VALIDATION
+        return Windows.UI.Color.FromArgb(255, 74, 49, 40);
+#else
+        try
+        {
+            var safe = Urls.Image(imageUrl);
+            if (safe is null || Urls.Https(safe) is not { } uri) return null;
+            using var response = await ArtworkAccentClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength is > 4_000_000) return null;
+            await using var source = await response.Content.ReadAsStreamAsync();
+            using var input = new MemoryStream();
+            var buffer = new byte[8192];
+            int read;
+            while ((read = await source.ReadAsync(buffer)) > 0)
+            {
+                if (input.Length + read > 4_000_000) return null;
+                await input.WriteAsync(buffer.AsMemory(0, read));
+            }
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream))
+            {
+                writer.WriteBytes(input.ToArray());
+                await writer.StoreAsync();
+                writer.DetachStream();
+            }
+            stream.Seek(0);
+            var decoder = await BitmapDecoder.CreateAsync(stream);
+            var transform = new BitmapTransform { ScaledWidth = 48, ScaledHeight = 48 };
+            var pixels = (await decoder.GetPixelDataAsync(
+                BitmapPixelFormat.Rgba8, BitmapAlphaMode.Ignore, transform,
+                ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage)).DetachPixelData();
+
+            var counts = new int[24];
+            var red = new long[24]; var green = new long[24]; var blue = new long[24];
+            for (var i = 0; i + 3 < pixels.Length; i += 4)
+            {
+                var r = (int)pixels[i]; var g = (int)pixels[i + 1]; var b = (int)pixels[i + 2];
+                var max = Math.Max(r, Math.Max(g, b)); var min = Math.Min(r, Math.Min(g, b));
+                var delta = max - min;
+                if (max < 50 || max > 245 || delta < 28) continue;
+                double hue;
+                if (max == r) hue = 60 * (((g - b) / (double)delta) % 6);
+                else if (max == g) hue = 60 * (((b - r) / (double)delta) + 2);
+                else hue = 60 * (((r - g) / (double)delta) + 4);
+                if (hue < 0) hue += 360;
+                var bin = Math.Clamp((int)(hue / 15), 0, 23);
+                counts[bin]++; red[bin] += r; green[bin] += g; blue[bin] += b;
+            }
+            var dominant = Array.IndexOf(counts, counts.Max());
+            if (dominant < 0 || counts[dominant] < 3) return null;
+            return Windows.UI.Color.FromArgb(255, (byte)(red[dominant] / counts[dominant]),
+                (byte)(green[dominant] / counts[dominant]), (byte)(blue[dominant] / counts[dominant]));
+        }
+        catch (Exception) { return null; }
+#endif
+    }
+
+    private async void ApplyHeroAccentAsync(Game game, Grid hero, Border overlay)
+    {
+        var revision = detailRevision;
+        var accent = await DetectArtworkAccentAsync(game.Cover);
+        if (revision != detailRevision || !DetailContent.Children.Contains(hero) || accent is not { } color) return;
+        overlay.Background = CreateHeroShade(color);
+    }
+
+    private async void AddVideoBackground(Game game, Grid hero, Image fallback, Border accentOverlay)
     {
         bannerPlayer?.Dispose(); bannerPlayer = null;
         if (!Preferences.VideoBackgrounds || !MotionEnabled || game.BackgroundVideo.Length == 0) return;
@@ -480,7 +559,7 @@ public sealed partial class MainWindow
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 12, 0)
             };
-            video.SetMediaPlayer(player); hero.Children.Insert(1, video);
+            video.SetMediaPlayer(player); hero.Children.Add(video);
             var contentStack = hero.Children.OfType<StackPanel>().FirstOrDefault(stack => stack.MaxWidth == 640);
             void LayoutVideo()
             {

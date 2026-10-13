@@ -37,7 +37,7 @@ public sealed partial class GameViewWindow : Window
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         { presenter.SetBorderAndTitleBar(false, false); presenter.IsResizable = false; presenter.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(this);
-        timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(60);
+        timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(16);
         timer.Tick += (_, _) => Monitor(); timer.Start();
         Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); windowHook.Dispose(); };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
@@ -57,7 +57,11 @@ public sealed partial class GameViewWindow : Window
         if (game is null) return;
         selected ??= game.Game.Id;
         NativeWindow.Place(this, NativeWindow.MonitorFor(game.Process.MainWindowHandle));
-        OpenWidgets(); NativeWindow.ShowInactive(this); _ = Reload();
+        OpenWidgets();
+        NativeWindow.PassClicks(this, false);
+        NativeWindow.ShowInactive(this);
+        Monitor();
+        _ = Reload();
     }
     private void OpenWidgets()
     {

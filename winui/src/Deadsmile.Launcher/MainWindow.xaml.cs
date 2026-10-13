@@ -57,6 +57,8 @@ public sealed partial class MainWindow : Window
         {
             var foreground = GetForegroundWindow();
             if (foreground == IntPtr.Zero) return false;
+            if (overlay is { IsOpen: true } activeOverlay &&
+                foreground == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
             _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
             return foregroundProcessId != 0 && Games.Running.Any(game =>
                 !game.Process.HasExited && (uint)game.Process.Id == foregroundProcessId &&
@@ -658,7 +660,7 @@ public sealed partial class MainWindow : Window
         hero.Background = Root.Background;
         heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
-        SetImage(heroImage, game.HeroImages.FirstOrDefault() ?? game.Cover);
+        SetImage(heroImage, game.Cover);
         hero.Children.Add(heroImage);
         var accentOverlay = new Border
         {
@@ -736,6 +738,7 @@ public sealed partial class MainWindow : Window
             contents.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - (video is null ? 0 : video.Width + 36)));
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };
+        ApplyHeroAccentAsync(game, hero, accentOverlay);
         AddVideoBackground(game, hero, banner, accentOverlay);
         if (heroImages.Length > 1 && game.BackgroundVideo.Length == 0)
         {

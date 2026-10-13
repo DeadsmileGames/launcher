@@ -35,6 +35,7 @@ public sealed partial class MainWindow
                 surface.Transitions = MotionEnabled ? new TransitionCollection { new EntranceThemeTransition { FromVerticalOffset = 24, IsStaggeringEnabled = false } } : null;
             DetailContent.ChildrenTransitions = MotionEnabled ? new TransitionCollection { new ContentThemeTransition() } : null;
             GameGrid.ItemContainerTransitions = MotionEnabled ? new TransitionCollection { new EntranceThemeTransition(), new RepositionThemeTransition() } : null;
+            UpdateThemeCardSelection();
             ApplyCaptionColors(); overlay?.ApplyPreferences();
         }
         finally { applyingAppearance = false; }
@@ -51,6 +52,26 @@ public sealed partial class MainWindow
         if (Preferences.Theme == "system") { ApplyAppearance(); if (selected is not null) RenderDetail(selected); }
     });
     private void AppearanceChanged(object sender, SelectionChangedEventArgs e) => SaveAppearance();
+    private void ThemeDarkClick(object sender, RoutedEventArgs e) => ThemeChoice.SelectedIndex = 0;
+    private void ThemeLightClick(object sender, RoutedEventArgs e) => ThemeChoice.SelectedIndex = 1;
+    private void ThemeSystemClick(object sender, RoutedEventArgs e) => ThemeChoice.SelectedIndex = 2;
+
+    private void UpdateThemeCardSelection()
+    {
+        var theme = Preferences.Theme is "light" or "system" ? Preferences.Theme : "dark";
+        var isLight = Root.ActualTheme == ElementTheme.Light;
+        var idleStroke = Windows.UI.Color.FromArgb(255, isLight ? (byte)190 : (byte)82, isLight ? (byte)190 : (byte)82, isLight ? (byte)190 : (byte)82);
+        var idleFill = Windows.UI.Color.FromArgb(255, isLight ? (byte)250 : (byte)40, isLight ? (byte)250 : (byte)40, isLight ? (byte)250 : (byte)40);
+        void Mark(Border border, bool selected)
+        {
+            border.BorderThickness = new Thickness(selected ? 2 : 1);
+            border.BorderBrush = new SolidColorBrush(selected ? Windows.UI.Color.FromArgb(255, 132, 216, 0) : idleStroke);
+            border.Background = new SolidColorBrush(selected ? Windows.UI.Color.FromArgb(28, 132, 216, 0) : idleFill);
+        }
+        Mark(ThemeDarkCardBorder, theme == "dark");
+        Mark(ThemeLightCardBorder, theme == "light");
+        Mark(ThemeSystemCardBorder, theme == "system");
+    }
     private void AppearanceToggled(object sender, RoutedEventArgs e) => SaveAppearance();
     private void SaveAppearance()
     {

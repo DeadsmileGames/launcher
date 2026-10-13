@@ -227,11 +227,14 @@ public sealed partial class MainWindow
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
         var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
-        var width = Math.Max(280, Math.Min(680, availableWidth - 64));
-        var body = new StackPanel { Spacing = 16, Width = width };
-        body.Children.Add(Text(item.S("title"), 28, true));
-        if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 20, true));
-        var image = new Image { Width = width, Height = width * 9 / 16, Stretch = Stretch.UniformToFill }; SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
+        var width = Math.Max(280, Math.Min(600, availableWidth - 80));
+        var body = new StackPanel { Spacing = 12, Width = width };
+        body.Children.Add(Text(item.S("title"), 24, true));
+        if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 17, true));
+        var pictureWidth = Math.Min(width, 480);
+        var image = new Image { Width = pictureWidth, Height = pictureWidth * 9 / 16, Stretch = Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Center };
+        SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
         // API HTML is rendered as native text, never evaluated as HTML/XAML.
         var text = Regex.Replace(item.S("body"), @"</(p|div|li|h[1-6])>|<br\s*/?>", "\n\n", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"<[^>]+>", ""); body.Children.Add(Text(WebUtility.HtmlDecode(text)));
@@ -260,7 +263,7 @@ public sealed partial class MainWindow
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 HorizontalScrollMode = ScrollMode.Disabled
             } };
-        viewer.Resources["ContentDialogMaxWidth"] = width + 48; return viewer;
+        viewer.Resources["ContentDialogMaxWidth"] = width + 32; return viewer;
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
     {

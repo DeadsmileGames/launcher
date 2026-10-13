@@ -21,6 +21,24 @@ function RunSetup([string]$File, [string[]]$Arguments) {
  }
  if ($process.ExitCode -ne 0) { throw "Installer failed: $File (exit $($process.ExitCode))" }
 }
+function CheckSetupUi([string]$File) {
+ $process = Start-Process -FilePath $File -PassThru
+ try {
+  $deadline = (Get-Date).AddSeconds(20)
+  do {
+   Start-Sleep -Milliseconds 250
+   $process.Refresh()
+   if ($process.HasExited) { throw "Setup UI exited before creating a window (exit $($process.ExitCode))." }
+  } until ($process.MainWindowHandle -ne 0 -or (Get-Date) -gt $deadline)
+  if ($process.MainWindowHandle -eq 0) { throw 'Setup EXE did not open its WinUI 3 installation window.' }
+  if ($process.MainWindowTitle -notmatch 'Deadsmile.*Setup|Setup.*Deadsmile') {
+   throw "Unexpected setup window title: $($process.MainWindowTitle)"
+  }
+  Write-Host "PASS interactive WinUI setup opens: $($process.MainWindowTitle)"
+ } finally {
+  if (!$process.HasExited) { Stop-Process -Id $process.Id -Force }
+ }
+}
 function CheckStartup([string]$File) {
  $process = Start-Process -FilePath $File -PassThru
  try {
@@ -42,6 +60,7 @@ try {
  New-Item $testRoot -ItemType Directory -Force | Out-Null
  New-Item $userData -ItemType Directory -Force | Out-Null
  [IO.File]::WriteAllText($sentinel, 'Installer must preserve user data.')
+ CheckSetupUi $setup
  RunSetup $setup @('--silent', '--target', $installDir)
  if (!(Test-Path "$installDir\deadsmile.install") -or !(Test-Path "$installDir\Microsoft.UI.Xaml.dll")) {
   throw 'WinUI setup did not deploy the app and bundled runtime.'

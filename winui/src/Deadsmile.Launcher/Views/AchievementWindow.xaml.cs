@@ -14,7 +14,7 @@ public sealed partial class AchievementWindow : Window
     public AchievementWindow(MainWindow owner, string heading, string title, bool forceSolid = false, bool hint = false)
     {
         InitializeComponent(); Heading.Text = heading; AchievementTitle.Text = title;
-        if (hint) { ToastIcon.Glyph = "\uE7F4"; Heading.Visibility = Visibility.Collapsed; AchievementTitle.FontSize = 16; }
+        if (hint) { ToastIcon.Glyph = "\uEA8F"; Heading.Visibility = Visibility.Collapsed; AchievementTitle.FontSize = 16; }
         ToastRoot.RequestedTheme = owner.UiTheme;
         // Toasts can appear over full-screen games; keep their surface opaque regardless of
         // the launcher's Mica/acrylic preference so notification text remains legible.

@@ -34,8 +34,8 @@ public sealed partial class GameViewWindow
     {
         if (lastCapture is null || captureDialog is not null) return;
         var file = lastCapture;
-        var width = Math.Min(560, OverlayRoot.XamlRoot.Size.Width - 112);
-        var body = new StackPanel { Width = width, Spacing = 16 };
+        var width = Math.Clamp(OverlayRoot.XamlRoot.Size.Width - 180, 300, 420);
+        var body = new StackPanel { Width = width, Spacing = 10 };
         var picture = new Image { Width = width, Height = width * 9 / 16, Stretch = Stretch.Uniform };
         using (var stream = await file.OpenReadAsync()) { var source = new BitmapImage(); await source.SetSourceAsync(stream); picture.Source = source; }
         body.Children.Add(picture);
@@ -71,8 +71,15 @@ public sealed partial class GameViewWindow
             var destination = await picker.PickSaveFileAsync(); if (destination is not null) await file.CopyAndReplaceAsync(destination);
         });
         captureDialog = new ContentDialog { XamlRoot = OverlayRoot.XamlRoot, RequestedTheme = owner.UiTheme,
-            Title = owner.Locale.T("Share screenshot"), Content = new ScrollViewer { Content = body, MaxHeight = OverlayRoot.XamlRoot.Size.Height - 180 }, CloseButtonText = owner.Locale.T("Close") };
-        captureDialog.Resources["ContentDialogMaxWidth"] = width + 48;
+            Title = owner.Locale.T("Share screenshot"), Content = new ScrollViewer
+            {
+                Content = body,
+                Height = Math.Min(430, OverlayRoot.XamlRoot.Size.Height - 150),
+                MaxHeight = Math.Max(200, OverlayRoot.XamlRoot.Size.Height - 150),
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            }, CloseButtonText = owner.Locale.T("Close") };
+        captureDialog.Resources["ContentDialogMaxWidth"] = width + 36;
         try { await captureDialog.ShowAsync(); } finally { captureDialog = null; }
     }
 }

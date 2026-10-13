@@ -131,14 +131,22 @@ public sealed partial class MainWindow
         // The tray menu itself is XAML/WinUI rather than a second UI framework.
         var menu = new Window(); var root = new StackPanel { Spacing = 4, Padding = new Thickness(8), RequestedTheme = UiTheme };
         var background = new Microsoft.UI.Xaml.Media.SolidColorBrush(UiTheme == ElementTheme.Light ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(255, 39, 39, 39));
-        var frame = new Border { Background = background, Child = root }; menu.Content = frame;
+        var frame = new Border
+        {
+            Background = background,
+            BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 62, 62, 62)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Child = root
+        };
+        menu.Content = frame;
         var open = new Button { Content = Locale.T("Open launcher"), HorizontalAlignment = HorizontalAlignment.Stretch };
         var exit = new Button { Content = Locale.T("Exit"), HorizontalAlignment = HorizontalAlignment.Stretch };
         open.Click += (_, _) => { menu.Close(); RestoreFromTray(); };
         exit.Click += async (_, _) => { menu.Close(); if (AllBusy) await ConfirmClose(); else { exiting = true; Close(); } };
         root.Children.Add(open); root.Children.Add(exit);
         if (menu.AppWindow.Presenter is OverlappedPresenter p) { p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsAlwaysOnTop = true; }
-        NativeWindow.Overlay(menu); NativeWindow.RoundCorners(menu);
+        NativeWindow.RoundCorners(menu);
         var cursor = NativeWindow.CursorScreen();
         var area = NativeWindow.WorkAreaAt(cursor.X, cursor.Y); var scale = NativeWindow.DpiScale(IntPtr.Zero, this);
         var width = (int)Math.Round(236 * scale); var height = (int)Math.Round(104 * scale); var margin = (int)Math.Round(8 * scale);

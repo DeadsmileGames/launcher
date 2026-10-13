@@ -1,4 +1,4 @@
-name: Build Deadsmile WinUI
+name: Build Deadsmile WinUI MSIX
 
 on:
   workflow_dispatch:
@@ -6,11 +6,13 @@ on:
     paths:
       - 'winui/**'
       - '.github/workflows/build-winui.yml'
+      - '.github/workflows/release-winui.yml'
   push:
     branches: [main, master]
     paths:
       - 'winui/**'
       - '.github/workflows/build-winui.yml'
+      - '.github/workflows/release-winui.yml'
 
 permissions:
   contents: read
@@ -34,13 +36,13 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-      - name: Validate source
+      - name: Validate source and MSIX manifest
         run: python3 scripts/validate-source.py
       - name: Run C# tests
         run: dotnet run --project tests/Deadsmile.Core.Tests -c Release
 
   windows:
-    name: Windows x64 installer
+    name: Windows x64 MSIX
     needs: core-tests
     runs-on: windows-2025
     timeout-minutes: 45
@@ -55,50 +57,17 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-      - name: Install NSIS
-        run: |
-          $installed = $false
-          for ($attempt = 1; $attempt -le 3; $attempt++) {
-            $tool = Get-Command "makensis.exe" -ErrorAction SilentlyContinue
-            $candidate = Join-Path ([Environment]::GetEnvironmentVariable("ProgramFiles(x86)")) "NSIS\makensis.exe"
-            if ($tool -or (Test-Path $candidate)) { $installed = $true; break }
-            choco install nsis --yes --no-progress --execution-timeout=1800
-            if ($LASTEXITCODE -eq 0) { $installed = $true; break }
-            if ($attempt -lt 3) { Start-Sleep -Seconds (10 * $attempt) }
-          }
-          if (!$installed) { throw "NSIS installation failed after three attempts." }
-      - name: Build app, MSIX and EXE
-        run: ./scripts/build-windows.ps1 -Target All -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -DevelopmentCertificate
-      - name: Test installation, startup and uninstallation
-        run: ./scripts/test-installers.ps1
+      - name: Build the single development MSIX
+        run: ./scripts/build-windows.ps1 -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -DevelopmentCertificate
+      - name: Test MSIX installation, startup and uninstallation
+        run: ./scripts/test-msix.ps1
       - name: Validate native WinUI navigation and layout
         run: ./scripts/test-native-ui.ps1
-      - name: Upload native UI screenshots
-        if: always()
+      - name: Upload the MSIX package
         uses: actions/upload-artifact@v7
         with:
-          name: Deadsmile-WinUI-UI-Validation
-          path: winui/artifacts/ui-screenshots/*
-          if-no-files-found: ignore
-          retention-days: 30
-      - name: Upload EXE installer
-        uses: actions/upload-artifact@v7
-        with:
-          name: Deadsmile-WinUI-Setup-x64
-          path: |
-            winui/artifacts/*Setup*.exe
-            winui/artifacts/*Setup*.exe.sha256
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
-      - name: Upload development MSIX
-        uses: actions/upload-artifact@v7
-        with:
-          name: Deadsmile-WinUI-MSIX-Development-x64
-          path: |
-            winui/artifacts/*.msix
-            winui/artifacts/*.msix.sha256
-            winui/artifacts/*.cer
+          name: Deadsmile-WinUI-MSIX-x64
+          path: winui/artifacts/*.msix
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -110,4 +79,3 @@ jobs:
           path: winui/artifacts/*.binlog
           if-no-files-found: ignore
           retention-days: 7
-

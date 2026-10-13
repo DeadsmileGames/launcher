@@ -40,7 +40,6 @@ public sealed partial class MainWindow : Window
     private readonly DispatcherQueueTimer downloadTimer;
     private readonly DispatcherQueueTimer heroTimer;
     private readonly DispatcherQueueTimer appToastTimer;
-    private readonly UpdateService updater;
     private GameViewWindow? overlay;
     private Game? selected;
     private Game? featuredGame;
@@ -105,7 +104,6 @@ public sealed partial class MainWindow : Window
         Games = new GameService(Api, installs, saves, achievements);
         downloads = new DownloadService(Api, installs, Games.Busy);
         Games.DownloadBusy = downloads.Busy;
-        updater = new UpdateService(storage);
         live = new LiveLibrary(Api);
         native = new NativeWindow(this) { Scale = () => Root.XamlRoot?.RasterizationScale ?? 1 };
         native.Hotkey += ToggleOverlay;
@@ -166,7 +164,7 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
-            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); updateTimer?.Stop(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
+            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
             downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
@@ -1098,26 +1096,11 @@ public sealed partial class MainWindow : Window
     }
     private void OpenGamesClick(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", "\"" + storage.Games + "\"") { UseShellExecute = true });
-    private async void UpdateClick(object sender, RoutedEventArgs e)
+    private void UpdateClick(object sender, RoutedEventArgs e)
     {
         if (AllBusy) return;
-        commandBusy = true; UpdateBusy();
-        try
-        {
-            if (DesktopIntegration.Packaged)
-            { Notify(Locale.T("Updates are managed by App Installer or Microsoft Store."), InfoBarSeverity.Informational); return; }
-            var update = await updater.Check();
-            if (update is null) { Notify(Locale.T("No update available."), InfoBarSeverity.Informational); return; }
-            var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.RequestedTheme,
-                Title = Locale.T("Update available") + " " + update.Version, Content = update.Notes,
-                PrimaryButtonText = Locale.T("Update"), CloseButtonText = Locale.T("Cancel") };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            var file = await updater.Download(update);
-            updater.Install(file, update.Sha256);
-            commandBusy = false; exiting = true; Close();
-        }
-        catch (Exception ex) { Notify(Locale.Error(ex)); }
-        finally { commandBusy = false; UpdateBusy(); }
+        Notify(Locale.T("Install updates using the same source you used to install the launcher."),
+            InfoBarSeverity.Informational);
     }
     private async Task ConfirmClose()
     {

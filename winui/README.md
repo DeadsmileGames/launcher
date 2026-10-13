@@ -1,6 +1,6 @@
 # Deadsmile Games Launcher — WinUI 3
 
-Implementação nativa em C# e XAML para Windows, com .NET 10 e Windows App SDK. Este repositório não inclui o website nem a API.
+Implementação nativa em C# e XAML para Windows, com .NET 10 e Windows App SDK. O único formato de distribuição desta linha é MSIX: o pipeline não cria instalador EXE, MSI, NSIS ou outro pacote de instalação.
 
 ## Desenvolvimento e validação
 
@@ -10,13 +10,17 @@ Em um computador Windows x64 com o SDK .NET 10 instalado:
     dotnet run --project tests/Deadsmile.Core.Tests -c Release
     python scripts/validate-source.py
 
-O build de produção usa Windows SDK e NSIS 3:
+O build de empacotamento é feito com o Windows SDK:
 
-    .\scripts\build-windows.ps1 -Target All
+    .\scripts\build-windows.ps1
 
-O build gera o app autocontido, o MSIX com a identidade oficial e um EXE de backup. O EXE abre um assistente de instalação feito em WinUI 3, com arte da Deadsmile Games, seleção de pasta, progresso, atalhos e desinstalador. O pequeno contêiner NSIS não mostra uma UI própria; a experiência visível é o assistente WinUI 3.
+O script publica o launcher autocontido, prepara o manifesto MSIX e usa `MakeAppx.exe` para gerar um único arquivo de distribuição `.msix`. Os EXEs e DLLs produzidos pelo .NET são componentes internos necessários ao pacote, não instaladores independentes nem artefatos publicados. O teste no Windows instala esse MSIX, confirma a abertura da janela WinUI e desinstala o pacote, verificando que os dados do usuário foram preservados.
 
-O EXE é intencionalmente não assinado e pode mostrar um aviso do SmartScreen ou ser bloqueado por políticas locais. A Microsoft Store é a forma recomendada de obter o launcher. O MSIX de produção sai sem assinatura local para ser enviado ao Partner Center; a Store assina o pacote após a certificação. Para testar o MSIX localmente, use apenas a variante de desenvolvimento assinada pelo certificado de teste, gerada explicitamente com `-DevelopmentCertificate`.
+## Pacote de desenvolvimento
+
+O workflow do GitHub Actions assina temporariamente o MSIX de teste com um certificado de desenvolvimento, instala esse pacote no runner, testa a inicialização e publica somente o arquivo `.msix` como artefato. O certificado fica restrito ao runner de CI e não é publicado junto ao pacote.
+
+Esse MSIX de desenvolvimento usa identidade diferente da versão da Store e serve para validar build e instalação; não é o pacote de produção. Não confie em certificados de teste desconhecidos nem use esse artefato como distribuição pública.
 
 ## Identidade da Microsoft Store
 
@@ -24,10 +28,18 @@ O EXE é intencionalmente não assinado e pode mostrar um aviso do SmartScreen o
 - Publisher: `CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE`
 - PublisherDisplayName: `Deadsmile Games`
 
-A versão pública/GitHub permanece `1.0.0`. A versão interna do MSIX usa quatro campos e avança nas publicações de produção para permitir atualizações válidas na Microsoft Store.
+Por padrão, o build usa a identidade oficial e produz o MSIX sem assinatura local para envio ao Partner Center. A Microsoft Store assina o pacote depois da certificação. O arquivo pré-submissão não é diretamente instalável em um computador de usuário até ser assinado por uma cadeia confiável. Para um pacote assinado de desenvolvimento, passe explicitamente `-DevelopmentCertificate` e uma identidade de teste cujo Publisher coincida com o Subject do certificado.
+
+A versão pública/GitHub permanece `1.0.0`. A versão interna MSIX usa quatro campos e avança nas publicações de produção para permitir atualizações válidas na Microsoft Store.
 
 ## Publicação
 
-Após a integração à `main`, o workflow **Build Deadsmile WinUI** valida a fonte, roda os testes C#, compila no Windows, testa instalação/desinstalação e executa a validação visual. Só um build bem-sucedido aciona a atualização automática da release `v1.0.0`, incluindo o ZIP do código nativo `winui/`, o EXE de backup, o MSIX destinado ao Partner Center e os SHA-256.
+Após a integração à `main`, o workflow **Build Deadsmile WinUI MSIX** valida a fonte, executa os testes C#, compila no Windows, testa instalação/inicialização/desinstalação do MSIX e executa a validação visual nativa. Só um build bem-sucedido aciona a atualização automática da release `v1.0.0`, que contém somente o MSIX de produção para o Partner Center.
 
-O workflow não envia nem aprova uma submissão da Store; essa etapa continua sendo feita no Partner Center. O número público permanece `1.0.0`, enquanto o número interno do pacote é incrementado.
+O workflow não envia nem aprova uma submissão da Store; essa etapa continua sendo feita no Partner Center.
+
+## Referências oficiais
+
+- [Opções de empacotamento e distribuição de aplicativos Windows](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/)
+- [Gerar manualmente os componentes de um pacote MSIX](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-manual-conversion)
+- [Implantação do Windows App SDK para aplicativos autocontidos](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/self-contained-deploy/deploy-self-contained-apps)

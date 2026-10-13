@@ -1,2 +1,0 @@
-Structural checks: 86; failures: 0
-C# compilation, C# tests, packaging and Windows UI tests: NOT RUN by this validator.

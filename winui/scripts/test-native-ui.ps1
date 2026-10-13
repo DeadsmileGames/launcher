@@ -9,7 +9,7 @@ $productionAssembly = Join-Path $artifacts 'app-x64/Deadsmile.Launcher.dll'
 if ([Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($productionAssembly)).Contains('UiValidationHandler')) {
  throw 'Production binary contains the test-only fixture.'
 }
-Write-Host 'PASS Production installer excludes UI fixtures'
+Write-Host 'PASS Production application excludes UI fixtures'
 $validation = Join-Path $artifacts 'ui-validation'
 dotnet publish src/Deadsmile.Launcher/Deadsmile.Launcher.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:ValidateNativeUi=true "-bl:$artifacts/ui-validation.binlog" -o $validation
 if ($LASTEXITCODE -ne 0) { throw 'UI validation build failed.' }

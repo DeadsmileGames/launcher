@@ -11,7 +11,7 @@
  <Properties><DisplayName>Deadsmile Games Launcher</DisplayName><PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/></Dependencies>
  <Resources><Resource Language="pt-BR"/><Resource Language="en-US"/><Resource Language="es-ES"/></Resources>
- <Applications><Application Id="DeadsmileGamesLauncher" Executable="Deadsmile.Launcher.exe" EntryPoint="Windows.FullTrustApplication"
+ <Applications><Application Id="DeadsmileGamesLauncher" Executable="Deadsmile.Launcher.exe"
    uap10:RuntimeBehavior="packagedClassicApp" uap10:TrustLevel="mediumIL">
   <uap:VisualElements DisplayName="Deadsmile Games Launcher" Description="Discover, download and manage Deadsmile Games"
     BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">

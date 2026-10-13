@@ -108,7 +108,9 @@ public sealed partial class MainWindow
             var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync(surface);
             var buffer = await bitmap.GetPixelsAsync(); var bytes = new byte[buffer.Length];
             using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(bytes);
-            Check(bitmap.PixelWidth > 0 && bitmap.PixelHeight > 0 && bytes.Any(x => x != 0), "Rendered " + name);
+            var nonZeroBytes = bytes.Count(x => x != 0);
+            var rendered = bitmap.PixelWidth > 0 && bitmap.PixelHeight > 0 && nonZeroBytes > 0;
+            Check(rendered, $"Rendered {name} (pixels {bitmap.PixelWidth}x{bitmap.PixelHeight}; surface {surface.ActualWidth:0.##}x{surface.ActualHeight:0.##}; root {Root.ActualWidth:0.##}x{Root.ActualHeight:0.##}; nonzero bytes {nonZeroBytes}/{bytes.Length})");
             if (surface == Root && Root.RequestedTheme == ElementTheme.Dark && Shell.Visibility == Visibility.Visible && !Shell.IsPaneOpen)
             {
                 var scale = bitmap.PixelWidth / Root.ActualWidth;

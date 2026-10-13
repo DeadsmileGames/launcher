@@ -1,21 +1,21 @@
 # Validação obrigatória no Windows
 
-Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos dados relevantes. **Validação automatizada mais recente:** [Actions #74, commit `a9270fd`](https://github.com/DeadsmileGames/launcher/actions/runs/38397849520) passou em 13/10/2026 no runner Windows Server 2025: validação estrutural, 30 testes Core, build/empacotamento, smoke tests dos instaladores e testes automatizados de navegação/layout WinUI. Isso não substitui homologação manual em desktops Windows 10/11 nem testes com conta/jogos reais; os cenários abaixo continuam como checklist manual.
+Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos dados relevantes. Consulte o [workflow Build Deadsmile WinUI MSIX](https://github.com/DeadsmileGames/launcher/actions/workflows/build-winui.yml) para o resultado da revisão atual. A execução #107 (pré-migração) compilou o antigo instalador EXE, mas falhou ao abrir sua janela WinUI; o assistente EXE foi removido e essa execução não conta como validação do fluxo MSIX-only. O novo fluxo só deve ser considerado aprovado quando o CI confirmar instalação, abertura da janela principal, desinstalação e preservação de dados. Isso não substitui homologação manual em desktops Windows 10/11 nem testes com conta/jogos reais.
 
 ## Build e instalação
 
-- [x] Executar os 30 testes Core; 30/30 passaram no run #74. Repetir após qualquer mudança de código.
-- [x] Publicar x64 e compilar XAML/C# sem erros no run #74.
-- [x] Gerar EXE e MSIX de desenvolvimento; smoke tests de instalação, inicialização e desinstalação passaram no runner.
+- [ ] Executar os testes Core no commit atual; repetir após qualquer mudança de código.
+- [ ] Publicar x64 e compilar XAML/C# sem erros no Actions do commit atual.
+- [ ] Gerar somente o MSIX de desenvolvimento; smoke tests de instalação, inicialização e desinstalação precisam passar no runner.
 - [ ] Confirmar que o app abre em Windows 10 22H2 e Windows 11 em desktops físicos sem SDK de desenvolvimento instalado.
 - [ ] Verificar identidade e versão do MSIX de produção antes do envio ao Partner Center; a assinatura de produção/certificação ocorre no fluxo da Store. Não confundir o certificado de desenvolvimento com assinatura de produção.
 - [ ] Verificar atualização com launcher fechado, arquivos em uso, falta de espaço e interrupção.
 - [ ] Confirmar que jogos e saves não são apagados ao remover o launcher.
-- [ ] Não instalar MSIX e EXE juntos antes de verificar as prioridades do protocolo.
+- [ ] Confirmar que o registro do protocolo `deadsmile://` funciona quando o MSIX é o único pacote instalado.
 
 ## Interface
 
-- [x] CI conferiu navegação, busca, detalhes, galeria, cores, preferências, localização PT/ES e responsividade da Newswire (3→2→3 colunas).
+- [ ] CI deve conferir navegação, busca, detalhes, galeria, cores, preferências, localização PT/ES e responsividade da Newswire (3→2→3 colunas) na execução atual.
 - [ ] Comparar com as referências WinUI Gallery, Microsoft Store e Xbox Game Bar em 1280 × 800.
 - [ ] Conferir mínimo de janela, maximização, restauração e arraste da barra de título.
 - [ ] Testar 100%, 125%, 150% e 200%, inclusive em monitores com escalas diferentes.
@@ -65,8 +65,8 @@ Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos da
 
 ## Atualização e publicação
 
-- O atualizador EXE seleciona apenas o artefato WinUI x64.
-- Falta de hash, hash inválido, assinatura ausente, revogada ou de outra chave são rejeitados.
-- Validar instalador assinado com certificado de produção confiável.
+- Confirmar que o fluxo de distribuição e a release oferecem apenas um arquivo MSIX, sem instalador EXE, MSI, NSIS, ZIP ou bundle alternativo.
+- Validar identidade oficial, versão de quatro campos e manifesto antes do envio ao Partner Center.
+- Confirmar instalação, inicialização e desinstalação com MSIX assinado por certificado confiável; não usar certificado de desenvolvimento como assinatura de produção.
 - Configurar identidade, assinatura e canal de atualização reais antes de distribuir.
 - Se houver publicação na Store, revisar as regras de catálogo/classificação e realizar o fluxo de certificação.

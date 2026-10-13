@@ -14,9 +14,7 @@ public sealed partial class MainWindow
 {
     private TrayService? tray;
     private DesktopNotifications? notifications;
-    private DispatcherQueueTimer? updateTimer;
-    private bool exiting, checkingUpdate;
-    private string? announcedUpdate;
+    private bool exiting;
     private readonly HashSet<int> hintedGames = [];
     private readonly HashSet<long> notifiedEvents = [];
     private void InitializeDesktop()
@@ -28,8 +26,6 @@ public sealed partial class MainWindow
             notifications = new DesktopNotifications(); notifications.Invoked += () => DispatcherQueue.TryEnqueue(RestoreFromTray);
         }
         catch (Exception) { storage.Log("TRAY_UNAVAILABLE"); }
-        updateTimer = DispatcherQueue.CreateTimer(); updateTimer.Interval = TimeSpan.FromMinutes(5);
-        updateTimer.Tick += async (_, _) => await CheckBackgroundUpdate(); updateTimer.Start();
 #endif
     }
     private bool Foreground => AppWindow.IsVisible && GetForegroundWindow() == WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -158,22 +154,6 @@ public sealed partial class MainWindow
         NativeWindow.Place(menu, new NativeWindow.Rect { Left = left, Top = top, Right = left + width, Bottom = top + height });
         menu.Activate(); var timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromSeconds(5); timer.Tick += (_, _) => { timer.Stop(); menu.Close(); };
         menu.Closed += (_, _) => timer.Stop(); timer.Start();
-    }
-    private async Task CheckBackgroundUpdate()
-    {
-        if (checkingUpdate || booting) return; checkingUpdate = true;
-        try
-        {
-            var update = await updater.Check();
-            var updateKey = update is null ? null : update.Version + ":" + update.Revision;
-            if (update is not null && updateKey != announcedUpdate)
-            {
-                announcedUpdate = updateKey;
-                DesktopNotice(Locale.T("Launcher update available"), update.Version);
-            }
-        }
-        catch (Exception) { /* Routine polling never interrupts games or repeats a network error toast. */ }
-        finally { checkingUpdate = false; }
     }
     private void ContentNotification(JsonNode item)
     {

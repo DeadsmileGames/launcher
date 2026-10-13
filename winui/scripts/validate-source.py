@@ -41,7 +41,7 @@ for path in launcher.rglob("*.xaml"):
     for resource in re.findall(r"(?:Assets/[A-Za-z0-9_./-]+\.(?:png|svg|ttf|ico))", path.read_text()):
         check((launcher / resource).is_file(), f"Missing XAML asset: {resource}")
 
-manifest = ET.parse(root / "installer" / "AppxManifest.template.xml")
+manifest = ET.parse(root / "packaging" / "AppxManifest.template.xml")
 for element in manifest.iter():
     for key, value in element.attrib.items():
         if key in {"Logo", "Square150x150Logo", "Square44x44Logo", "Wide310x150Logo", "Image"}:
@@ -50,6 +50,7 @@ ns = {
     "p": "http://schemas.microsoft.com/appx/manifest/foundation/windows10",
     "desktop": "http://schemas.microsoft.com/appx/manifest/desktop/windows10",
     "com": "http://schemas.microsoft.com/appx/manifest/com/windows10",
+    "uap10": "http://schemas.microsoft.com/appx/manifest/uap/windows10/10",
 }
 family = manifest.find("p:Dependencies/p:TargetDeviceFamily", ns)
 check(family is not None and family.attrib["MinVersion"] == "10.0.19041.0", "Unexpected minimum OS")
@@ -60,6 +61,13 @@ check(toast_activation is not None and toast_activation.attrib.get("ToastActivat
       "MSIX manifest has the documented app-notification activation CLSID")
 check(com_server is not None and com_server.attrib.get("Executable") == "Deadsmile.Launcher.exe" and
       com_server.attrib.get("Arguments") == "----AppNotificationActivated:", "MSIX notification COM activation targets the launcher")
+packaged_app = manifest.find(".//p:Application", ns)
+check(packaged_app is not None and
+      packaged_app.attrib.get("{http://schemas.microsoft.com/appx/manifest/uap/windows10/10}RuntimeBehavior") == "packagedClassicApp" and
+      packaged_app.attrib.get("{http://schemas.microsoft.com/appx/manifest/uap/windows10/10}TrustLevel") == "mediumIL",
+      "MSIX declares a packaged WinUI desktop app using RuntimeBehavior and TrustLevel")
+check(packaged_app is not None and "EntryPoint" not in packaged_app.attrib,
+      "MSIX does not redundantly combine EntryPoint with RuntimeBehavior")
 
 for path in (launcher / "Assets" / "Fonts").glob("*.ttf"):
     header = path.read_bytes()[:12]
@@ -115,11 +123,17 @@ for name, catalog in texts.items():
     for lang in ["pt-BR", "es"]:
         check(set(catalog["en"]).issubset(catalog[lang]), f"{name}: incomplete {lang}")
 
-setup_project = ET.parse(root / "src" / "Deadsmile.Setup" / "Deadsmile.Setup.csproj")
-setup_props = setup_project.find("PropertyGroup")
-check(setup_props is not None and setup_props.findtext("UseWinUI") == "true", "Setup project must use WinUI")
-check(setup_props is not None and setup_props.findtext("EnableMsixTooling") == "true", "Setup project must generate WinUI resource index")
-check(setup_props is not None and setup_props.findtext("WindowsPackageType") == "None", "Setup project must remain unpackaged")
+check(not (root / "src" / "Deadsmile.Setup").exists(), "Separate setup EXE project must not remain in the MSIX-only pipeline")
+check(not (launcher / "Services" / "UpdateService.cs").exists(), "Standalone EXE-based launcher updater must not remain in the MSIX-only pipeline")
+check(all("UpdateService" not in p.read_text() for p in launcher.rglob("*.cs")), "Launcher source must not reference the removed EXE updater")
+check(not list(root.rglob("*.nsi")), "NSIS EXE installer scripts must not be present")
+build_script = (root / "scripts" / "build-windows.ps1").read_text()
+check("makensis" not in build_script.lower() and ".nsi" not in build_script.lower(), "MSIX build must not invoke NSIS")
+build_workflow = (root.parent / ".github" / "workflows" / "build-winui.yml").read_text()
+release_workflow = (root.parent / ".github" / "workflows" / "release-winui.yml").read_text()
+check("*.exe" not in build_workflow.lower() and "setup-x64" not in build_workflow.lower(), "CI distribution artifacts must not include an EXE installer")
+check("*.exe" not in release_workflow.lower() and "Setup EXE" not in release_workflow, "Production release must not depend on an EXE installer")
+check(not (root / "scripts" / "test-installers.ps1").exists(), "Installer smoke tests must be replaced by MSIX-only tests")
 
 csproj = ET.parse(launcher / "Deadsmile.Launcher.csproj")
 check(csproj.findtext(".//UseWinUI") == "true", "WinUI must be enabled")

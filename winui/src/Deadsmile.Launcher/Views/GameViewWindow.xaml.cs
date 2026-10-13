@@ -96,8 +96,10 @@ public sealed partial class GameViewWindow : Window
     private void Monitor()
     {
         if (!AppWindow.IsVisible) return;
+#if !UI_VALIDATION
         if (owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
         { Hide(true); return; }
+#endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
         var point = NativeWindow.Cursor(this); var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
         point = new(point.X / scale, point.Y / scale);
@@ -228,10 +230,12 @@ public sealed partial class GameViewWindow : Window
 #if UI_VALIDATION
     internal async Task<Grid> ValidationShow()
     {
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800)); selected = owner.Catalog.FirstOrDefault()?.Id;
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
+        selected = owner.Catalog.FirstOrDefault()?.Id;
+        // RenderTargetBitmap needs the secondary XamlRoot activated in the UI test runner.
+        // This method is compiled only for UI_VALIDATION; normal Game View stays non-activating.
+        Activate();
         OpenWidgets();
-        NativeWindow.PassClicks(this, false);
-        NativeWindow.ShowInactive(this);
         await Reload();
         return OverlayRoot;
     }

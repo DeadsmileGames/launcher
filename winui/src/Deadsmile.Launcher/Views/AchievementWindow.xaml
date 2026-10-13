@@ -4,7 +4,7 @@
   <Border Background="#F5222222" BorderBrush="#FF454545" BorderThickness="1" Padding="12,10" CornerRadius="18">
    <Grid ColumnSpacing="20">
     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Viewbox Width="28" Height="28" VerticalAlignment="Center"><SymbolIcon x:Name="ToastIcon" Symbol="Favorite" Foreground="{ThemeResource SystemControlHighlightAccentBrush}"/></Viewbox>
+    <Viewbox Width="28" Height="28" VerticalAlignment="Center"><FontIcon x:Name="ToastIcon" Glyph="&#xE734;" FontFamily="Segoe Fluent Icons" Foreground="{ThemeResource SystemControlHighlightAccentBrush}"/></Viewbox>
     <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
      <TextBlock x:Name="Heading" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"/>
      <TextBlock x:Name="AchievementTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>

@@ -163,7 +163,7 @@ public sealed partial class MainWindow : Window
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
         Root.SizeChanged += (_, _) => AdjustLayout();
         GameGrid.SizeChanged += (_, _) => AdjustLayout();
-        ContentPage.SizeChanged += ContentPageSizeChanged;
+        PageLayout.SizeChanged += PageLayoutSizeChanged;
         Shell.SelectedItem = ExploreItem;
         ready = true;
         ApplyAppearance();

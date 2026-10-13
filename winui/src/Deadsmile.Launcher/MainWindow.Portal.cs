@@ -26,7 +26,7 @@ public sealed partial class MainWindow
     private readonly Stack<(string Page, Game? Game)> history = new();
     private JsonNode[] newsItems = [];
     private Action? arrangeNewswire;
-    private void ContentPageSizeChanged(object sender, SizeChangedEventArgs e)
+    private void PageLayoutSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (page == "news") arrangeNewswire?.Invoke();
     }
@@ -282,7 +282,10 @@ public sealed partial class MainWindow
             var newsGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, ColumnSpacing = 16, RowSpacing = 18 };
             void ArrangeNews()
             {
-                var viewport = ContentPage.ActualWidth > 0 ? ContentPage.ActualWidth : PageLayout.ActualWidth;
+                // The ScrollViewer's content can report its extent rather than the host viewport.
+                // PageLayout is the window-bound element and changes whenever the native window is resized.
+                var viewport = PageLayout.ActualWidth;
+                if (viewport <= 0) viewport = ContentPage.ActualWidth;
                 var width = Math.Max(260, viewport - 48);
                 var columns = Math.Clamp((int)((width + 16) / 332), 1, 4);
                 var cellWidth = Math.Clamp((width - 16 * (columns - 1)) / columns, 240, 420);

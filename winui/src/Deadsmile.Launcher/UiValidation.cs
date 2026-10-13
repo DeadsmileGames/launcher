@@ -240,11 +240,19 @@ public sealed partial class MainWindow
                 if (expected == "news" && ContentRows.Children.OfType<Grid>().FirstOrDefault() is { } newsGrid)
                 {
                     var wideColumns = newsGrid.ColumnDefinitions.Count;
+                    var wideViewport = PageLayout.ActualWidth;
                     Check(wideColumns >= 2, "Newswire arranges posts in multiple columns on a wide window");
                     await Resize(960, 640);
-                    Check(newsGrid.ColumnDefinitions.Count < wideColumns, "Newswire adapts columns to a narrower window");
+                    var narrowColumns = newsGrid.ColumnDefinitions.Count;
+                    var narrowViewport = PageLayout.ActualWidth;
+                    Check(narrowViewport < wideViewport,
+                        $"Native page viewport shrinks on resize ({wideViewport:0} -> {narrowViewport:0} DIPs)");
+                    Check(narrowColumns < wideColumns,
+                        $"Newswire adapts columns to a narrower window ({wideColumns} -> {narrowColumns}; viewport {wideViewport:0} -> {narrowViewport:0}; scroll viewport {ContentPage.ActualWidth:0})");
                     await Resize(1280, 800);
-                    Check(newsGrid.ColumnDefinitions.Count == wideColumns, "Newswire restores columns after resizing");
+                    Check(PageLayout.ActualWidth > narrowViewport, "Native page viewport expands when the window is restored");
+                    Check(newsGrid.ColumnDefinitions.Count == wideColumns,
+                        $"Newswire restores columns after resizing ({narrowColumns} -> {newsGrid.ColumnDefinitions.Count})");
                 }
                 await Capture("page-" + expected);
             }

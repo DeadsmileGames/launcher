@@ -43,6 +43,7 @@ Native "dotnet" @("publish", "src/Deadsmile.Launcher/Deadsmile.Launcher.csproj",
 if (!(Test-Path "$publish\Deadsmile.Launcher.exe") -or !(Test-Path "$publish\Microsoft.UI.Xaml.dll")) {
  throw "Published app or WinUI runtime is missing."
 }
+Get-ChildItem $publish -Recurse -File | Where-Object { $_.Extension -in @(".pdb", ".xml") } | Remove-Item -Force
 $certificate = $null
 if ($DevelopmentCertificate) {
  $options = @{
@@ -80,13 +81,27 @@ if ($Target -in @("All", "Msix")) {
  else { Write-Warning "This unsigned MSIX is intended for Microsoft Store submission. It cannot be sideloaded directly; the Store signs it after certification." }
 }
 if ($Target -in @("All", "Installer")) {
+ $payload = Join-Path $artifacts "AppPayload.zip"
+ if (Test-Path $payload) { Remove-Item $payload -Force }
+ Compress-Archive -Path "$publish\*" -DestinationPath $payload -CompressionLevel Optimal -Force
+
+ $setupPublish = Join-Path $artifacts "setup-publish"
+ if (Test-Path $setupPublish) { Remove-Item $setupPublish -Recurse -Force }
+ Native "dotnet" @("publish", "src/Deadsmile.Setup/Deadsmile.Setup.csproj", "-c", "Release", "-r", "win-x64",
+  "--self-contained", "true", "-p:Platform=x64", "-p:WindowsPackageType=None", "-p:WindowsAppSDKSelfContained=true",
+  "-p:PublishTrimmed=false", "-p:PublishSingleFile=false", "-bl:$artifacts/setup-publish.binlog", "-o", $setupPublish)
+ if (!(Test-Path "$setupPublish\Deadsmile.Setup.exe") -or !(Test-Path "$setupPublish\AppPayload.zip")) {
+  throw "The native WinUI setup app or launcher payload is missing."
+ }
+ Remove-Item $payload -Force
+
  $makensisCommand = Get-Command "makensis.exe" -ErrorAction SilentlyContinue
  $makensis = if ($makensisCommand) { $makensisCommand.Source } else {
   Join-Path ([Environment]::GetEnvironmentVariable("ProgramFiles(x86)")) "NSIS\makensis.exe"
  }
- if (!(Test-Path $makensis)) { throw "Install NSIS 3 to generate Setup.exe." }
+ if (!(Test-Path $makensis)) { throw "Install NSIS 3 to package the native WinUI setup app." }
  $setup = Join-Path $artifacts "Deadsmile-Games-Launcher-WinUI-Setup-$version-x64.exe"
- Native $makensis @("/DPUBLISH_DIR=$publish", "/DOUT_FILE=$setup", "/DAPP_VERSION=$version", "installer/launcher.nsi")
+ Native $makensis @("/DSETUP_DIR=$setupPublish", "/DOUT_FILE=$setup", "/DAPP_VERSION=$version", "installer/launcher.nsi")
  if ($CertificateThumbprint) { Native $signTool @("sign", "/fd", "SHA256", "/sha1", $CertificateThumbprint, $setup) }
 }
 Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".msix", ".exe") } | ForEach-Object {

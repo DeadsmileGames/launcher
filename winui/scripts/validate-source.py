@@ -181,6 +181,7 @@ for path in launcher.rglob("*.xaml"):
 
 # Guard UX regressions for native overlay lifetime, windows and localization.
 main_xaml = (launcher / "MainWindow.xaml").read_text(encoding="utf-8")
+app_xaml = (launcher / "App.xaml").read_text(encoding="utf-8")
 main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
 portal_code = (launcher / "MainWindow.Portal.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
@@ -240,7 +241,7 @@ check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'Locale.T("Installed games")' in main_code and
-      'LauncherMutedTextBrush' in main_xaml and 'LauncherMutedTextBrush' in main_code,
+      'LauncherMutedTextBrush' in app_xaml and 'LauncherMutedTextBrush' in main_code,
       "Downloads retain installed-game cards and the new contrast brush is used by UI text")
 
 # Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.

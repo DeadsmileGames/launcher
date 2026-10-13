@@ -229,11 +229,11 @@ public sealed partial class MainWindow
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
         var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
-        var width = Math.Max(280, Math.Min(600, availableWidth - 80));
-        var body = new StackPanel { Spacing = 12, Width = width };
-        body.Children.Add(Text(item.S("title"), 24, true));
-        if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 17, true));
-        var pictureWidth = Math.Min(width, 480);
+        var width = Math.Max(280, Math.Min(560, availableWidth - 72));
+        var body = new StackPanel { Spacing = 10, Width = width };
+        body.Children.Add(Text(item.S("title"), 22, true));
+        if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 16, true));
+        var pictureWidth = Math.Min(width - 16, 440);
         var image = new Image { Width = pictureWidth, Height = pictureWidth * 9 / 16, Stretch = Stretch.UniformToFill,
             HorizontalAlignment = HorizontalAlignment.Center };
         SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
@@ -258,14 +258,17 @@ public sealed partial class MainWindow
             Content = new ScrollViewer
             {
                 Content = new Border { Padding = new Thickness(0, 0, 8, 24), Child = body },
-                Height = Math.Max(180, Math.Min(680, Root.XamlRoot.Size.Height - 160)),
-                MaxHeight = Math.Max(180, Root.XamlRoot.Size.Height - 128),
+                Height = Math.Max(180, Math.Min(560, Root.XamlRoot.Size.Height - 144)),
+                MaxHeight = Math.Max(180, Math.Min(600, Root.XamlRoot.Size.Height - 96)),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 VerticalScrollMode = ScrollMode.Enabled,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 HorizontalScrollMode = ScrollMode.Disabled
             } };
-        viewer.Resources["ContentDialogMaxWidth"] = width + 32; return viewer;
+        viewer.Resources["ContentDialogMaxWidth"] = width + 32;
+        viewer.Resources["ContentDialogMinWidth"] = 0d;
+        viewer.MaxWidth = width + 32;
+        return viewer;
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
     {

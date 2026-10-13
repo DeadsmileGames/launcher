@@ -153,9 +153,19 @@ public sealed partial class MainWindow
             Check(ItchButton.IsEnabled && LogoutButton.IsEnabled, "Account controls re-enable after sign-in");
             Check(Shell is NavigationView && AppTitleBar is TitleBar, "Shell uses native NavigationView and TitleBar");
             Check(FeaturedSide.Visibility == Visibility.Collapsed && FeaturedSideColumn.Width.Value == 0,
-                "Home hero presents one featured game without duplicate side tiles");
+                "Home hero presents one large featured game rather than a tiled collage");
+            var firstHero = featuredGame?.Id;
+            homeHeroPaused = true;
+            homeSlideIndex = 1;
+            ShowPage();
+            Check(featuredGame is not null && featuredGame.Id != firstHero &&
+                !GameGrid.Items.Cast<Game>().Any(game => game.Id.Equals(featuredGame.Id, StringComparison.OrdinalIgnoreCase)),
+                "Home slider advances to the next featured game without duplicating it");
+            homeHeroPaused = false;
+            homeSlideIndex = 0;
+            ShowPage();
             Check(NotificationsButton.Content is Grid notificationGrid &&
-                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uEA8F"),
+                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE7E7"),
                 "Notifications use the Ringer glyph rather than TVMonitor");
             var originalLanguage = Locale.Language;
             Locale.Language = "pt-BR"; ApplyLanguage();
@@ -170,7 +180,9 @@ public sealed partial class MainWindow
             Check(Shell.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftCompact, "Store compact navigation is enabled");
             Check(((SolidColorBrush)Root.Background).Color == Windows.UI.Color.FromArgb(255, 39, 39, 39), "Body color is exactly 272727");
             Check(((SolidColorBrush)Shell.Background).Color == Windows.UI.Color.FromArgb(255, 32, 32, 32), "Sidebar color is exactly 202020");
-            Check(GameGrid.Items.Count == 6, "Catalog items render from the existing API contract");
+            Check(GameGrid.Items.Count == 5 && featuredGame is not null &&
+                !GameGrid.Items.Cast<Game>().Any(game => game.Id.Equals(featuredGame.Id, StringComparison.OrdinalIgnoreCase)),
+                "Home hero shows its featured game once and keeps remaining catalog items");
             await Capture("03-explore-1280");
             Shell.IsPaneOpen = true; await Capture("04-navigation-expanded"); Shell.IsPaneOpen = false;
             Shell.SelectedItem = LibraryItem; await Task.Delay(200);
@@ -178,7 +190,7 @@ public sealed partial class MainWindow
             await Capture("05-library-1280");
             SearchSuggestions("Abby");
             Check(searchResults.Count == 1, "Search suggestions match the one game containing Abby");
-            Check(GameGrid.Items.Count == 6, "Opening suggestions does not replace the catalog");
+            Check(GameGrid.Items.Count == 5, "Opening suggestions does not replace the catalog");
             SearchSuggestions("no-match-ci"); Check(searchResults.Count > 0 && searchResults.All(x => x.Setting is not null), "Search falls back to settings suggestions");
             SearchBox.Text = ""; SearchBox.IsSuggestionListOpen = false;
             await LoadDetail(Catalog[0]); await Task.Delay(300);

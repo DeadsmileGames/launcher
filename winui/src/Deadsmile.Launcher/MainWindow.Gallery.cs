@@ -9,8 +9,8 @@ public sealed partial class MainWindow
 {
     private ContentDialog CreateGallery(string[] images, int index)
     {
-        var width = Math.Max(200, Math.Min(960, Root.XamlRoot.Size.Width - 112));
-        var height = Math.Max(120, Math.Min(600, Root.XamlRoot.Size.Height - 260));
+        var width = Math.Max(200, Math.Min(760, Root.XamlRoot.Size.Width - 64));
+        var height = Math.Max(120, Math.Min(440, Root.XamlRoot.Size.Height - 180));
         var image = new Image { Name = "FullScreenshot", Width = width, Height = height, Stretch = Stretch.Uniform };
         AutomationProperties.SetName(image, Locale.T("Screenshots"));
         var panel = new Grid { Width = width, RowSpacing = 16 };
@@ -33,15 +33,14 @@ public sealed partial class MainWindow
         var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = Root.RequestedTheme,
             Title = Locale.T("Screenshots"), Content = panel, CloseButtonText = Locale.T("Close"),
             HorizontalContentAlignment = HorizontalAlignment.Stretch, MaxHeight = Root.XamlRoot.Size.Height - 32 };
-        // The native default is 548 DIPs. The image and dialog must share the same explicit constraint.
-        dialog.Resources["ContentDialogMaxWidth"] = width + 48;
+        dialog.Resources["ContentDialogMaxWidth"] = width + 32;
         dialog.Resources["ContentDialogMinWidth"] = 0d;
         dialog.Resources["ContentDialogMaxHeight"] = Root.XamlRoot.Size.Height - 32;
         void ResizeViewer(object sender, SizeChangedEventArgs args)
         {
-            panel.Width = image.Width = Math.Max(200, Math.Min(960, Root.XamlRoot.Size.Width - 112));
-            image.Height = Math.Max(120, Math.Min(600, Root.XamlRoot.Size.Height - 260));
-            dialog.MaxWidth = panel.Width + 48; dialog.MaxHeight = Root.XamlRoot.Size.Height - 32;
+            panel.Width = image.Width = Math.Max(200, Math.Min(760, Root.XamlRoot.Size.Width - 64));
+            image.Height = Math.Max(120, Math.Min(440, Root.XamlRoot.Size.Height - 180));
+            dialog.MaxWidth = panel.Width + 32; dialog.MaxHeight = Root.XamlRoot.Size.Height - 32;
         }
         dialog.Opened += (_, _) => Root.SizeChanged += ResizeViewer;
         dialog.Closed += (_, _) => Root.SizeChanged -= ResizeViewer;

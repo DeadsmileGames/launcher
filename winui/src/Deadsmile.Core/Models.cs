@@ -74,16 +74,32 @@ public sealed class Game(JsonNode data)
                 "game_modes", "accessibilityFeatures"
             })
             {
-                if (Data.At(key) is { } metadata) values.Add(metadata.ToJsonString());
-                if (Store.At(key) is { } storeMetadata) values.Add(storeMetadata.ToJsonString());
+                CollectSearchValues(Data.At(key), values);
+                CollectSearchValues(Store.At(key), values);
             }
             if (Store is { } store)
             {
                 values.Add(store.S("title", "productTitle"));
                 values.Add(store.S("publisher", "developer"));
-                if (store.At("properties") is { } properties) values.Add(properties.ToJsonString());
+                CollectSearchValues(store.At("properties"), values);
             }
             return string.Join(" ", values.Where(value => !string.IsNullOrWhiteSpace(value)));
+        }
+    }
+    private static void CollectSearchValues(JsonNode? node, List<string> values)
+    {
+        if (node is JsonArray array)
+        {
+            foreach (var item in array) CollectSearchValues(item, values);
+        }
+        else if (node is JsonObject obj)
+        {
+            foreach (var item in obj) CollectSearchValues(item.Value, values);
+        }
+        else if (node is not null)
+        {
+            var text = node.S();
+            if (!string.IsNullOrWhiteSpace(text)) values.Add(text);
         }
     }
     public bool DownloadAvailable => Data.B("downloadAvailable");

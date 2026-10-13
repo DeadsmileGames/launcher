@@ -241,7 +241,7 @@ public sealed partial class MainWindow
                 {
                     var wideColumns = newsGrid.ColumnDefinitions.Count;
                     var wideViewport = PageLayout.ActualWidth;
-                    Check(wideColumns >= 2, "Newswire arranges posts in multiple columns on a wide window");
+                    Check(wideColumns >= 3, $"Newswire uses three columns at the wide viewport ({wideViewport:0} DIPs, {wideColumns} columns)");
                     await Resize(960, 640);
                     var narrowColumns = newsGrid.ColumnDefinitions.Count;
                     var narrowViewport = PageLayout.ActualWidth;

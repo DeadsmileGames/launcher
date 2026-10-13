@@ -240,8 +240,8 @@ check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'Locale.T("Installed games")' in main_code and
-      'x:Key="LauncherMutedTextBrush"' in app_xaml,
-      "Downloads retain installed-game cards and theme resources provide readable secondary text")
+      'LauncherMutedTextBrush' in main_xaml and 'LauncherMutedTextBrush' in main_code,
+      "Downloads retain installed-game cards and the new contrast brush is used by UI text")
 
 # Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")

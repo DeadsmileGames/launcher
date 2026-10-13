@@ -165,8 +165,8 @@ public sealed partial class MainWindow
             homeSlideIndex = 0;
             ShowPage();
             Check(NotificationsButton.Content is Grid notificationGrid &&
-                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE7E7"),
-                "Notifications use the Ringer glyph rather than TVMonitor");
+                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE7ED"),
+                "Notifications use the bell glyph rather than TVMonitor");
             var originalLanguage = Locale.Language;
             Locale.Language = "pt-BR"; ApplyLanguage();
             Check(ProfileFullName.Header?.ToString() == "Nome completo", "Profile field headers translate to Portuguese");

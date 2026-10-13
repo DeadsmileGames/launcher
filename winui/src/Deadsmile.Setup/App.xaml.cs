@@ -31,19 +31,9 @@ public partial class App : Application
             RequestedTheme = ApplicationTheme.Dark;
             InitializeComponent();
             Log("Application XAML initialized");
-        }
-        catch (Exception ex)
-        {
-            Log("Application initialization failed", ex);
-            throw;
-        }
-    }
-
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
-    {
-        Log("OnLaunched entered");
-        try
-        {
+            // Keep startup ordering identical to the known-working WinUI 3 unpackaged entry point.
+            // Creating the native setup window from OnLaunched was failing before that callback ran
+            // in the published self-contained installer on the Windows CI runner.
             window = new MainWindow(Program.Arguments);
             Log("MainWindow constructor returned");
             window.Activate();
@@ -51,7 +41,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Log("OnLaunched failed", ex);
+            Log("Application startup failed", ex);
             throw;
         }
     }

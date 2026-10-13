@@ -37,7 +37,7 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
             {
                 if (running.ContainsKey(id)) throw new LauncherException("GAME_ALREADY_RUNNING");
                 if (DownloadBusy(id)) throw new LauncherException("GAME_DOWNLOAD_IN_PROGRESS");
-                var library = await api.Get("/library");
+                var library = await api.Get("/library/catalog");
                 var libraryItem = library.At("items").Items().FirstOrDefault(item =>
                     item.S("id").Equals(id, StringComparison.OrdinalIgnoreCase));
                 if (libraryItem is null) throw new LauncherException("GAME_ACCESS_UNAVAILABLE");

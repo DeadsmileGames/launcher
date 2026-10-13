@@ -25,6 +25,11 @@ public sealed partial class MainWindow
     private ContentDialog? newsDialog;
     private readonly Stack<(string Page, Game? Game)> history = new();
     private JsonNode[] newsItems = [];
+    private Action? arrangeNewswire;
+    private void ContentPageSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (page == "news") arrangeNewswire?.Invoke();
+    }
     private readonly List<SearchEntry> searchResults = new();
     private MediaPlayer? bannerPlayer;
     private int pageRevision;
@@ -188,23 +193,40 @@ public sealed partial class MainWindow
         cardWidth = Math.Clamp(cardWidth, 240, 420);
         var innerWidth = cardWidth - 24;
         var stack = new StackPanel { Spacing = 10, Width = innerWidth, MinWidth = 0 };
-        var image = new Image { Width = innerWidth, Height = innerWidth * 9 / 16, Stretch = Stretch.UniformToFill,
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var image = new Image
+        {
+            Width = innerWidth, Height = innerWidth * 9 / 16, Stretch = Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+        };
         SetImage(image, Urls.Image(item.S("image", "coverImage", "cover_image")) ?? "");
-        stack.Children.Add(new Border { Width = innerWidth, Height = innerWidth * 9 / 16, CornerRadius = new CornerRadius(8), Child = image });
-        var title = Text(item.S("title"), 20, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(title);
-        if (item.S("excerpt").Length > 0) { var excerpt = Text(item.S("excerpt")); excerpt.MaxLines = 3; excerpt.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(excerpt); }
+        stack.Children.Add(new Border
+        {
+            Width = innerWidth, Height = innerWidth * 9 / 16, CornerRadius = new CornerRadius(8), Child = image
+        });
+        var title = Text(item.S("title"), 20, true);
+        title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(title);
+        if (item.S("excerpt").Length > 0)
+        {
+            var excerpt = Text(item.S("excerpt"));
+            excerpt.MaxLines = 2; excerpt.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(excerpt);
+        }
         var published = item.S("published_at", "publishedAt", "created_at", "createdAt", "date");
         if (published.Length > 0) stack.Children.Add(Text(FormatDate(published), 12));
-        var button = new Button { Content = stack, Width = cardWidth, MinWidth = 0, MaxWidth = cardWidth,
-            MinHeight = 330, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Top, Padding = new Thickness(12) };
-        button.Click += async (_, _) => await Guard(() => ShowNews(item)); return button;
+        var button = new Button
+        {
+            Content = stack, Width = cardWidth, Height = 390, MinWidth = 0, MaxWidth = cardWidth,
+            MinHeight = 390, MaxHeight = 390, HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top,
+            Padding = new Thickness(12)
+        };
+        button.Click += async (_, _) => await Guard(() => ShowNews(item));
+        return button;
     }
     private async Task ShowNews(JsonNode summary)
     {
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
-        var item = await Api.Get("/newswire/" + slug); var width = Math.Max(280, Math.Min(680, Root.XamlRoot.Size.Width - 64));
+        var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
+        var width = Math.Max(280, Math.Min(680, availableWidth - 64));
         var body = new StackPanel { Spacing = 16, Width = width };
         body.Children.Add(Text(item.S("title"), 28, true));
         if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 20, true));
@@ -227,7 +249,16 @@ public sealed partial class MainWindow
     private ContentDialog NewsDialog(StackPanel body, double width)
     {
         var viewer = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme, CloseButtonText = Locale.T("Close"),
-            Content = new ScrollViewer { Content = body, Height = Math.Max(180, Math.Min(680, Root.XamlRoot.Size.Height - 140)), MaxHeight = Math.Max(180, Root.XamlRoot.Size.Height - 120), VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollMode = ScrollMode.Enabled, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+            Content = new ScrollViewer
+            {
+                Content = new Border { Padding = new Thickness(0, 0, 8, 24), Child = body },
+                Height = Math.Max(180, Math.Min(680, Root.XamlRoot.Size.Height - 160)),
+                MaxHeight = Math.Max(180, Root.XamlRoot.Size.Height - 128),
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollMode = ScrollMode.Enabled,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                HorizontalScrollMode = ScrollMode.Disabled
+            } };
         viewer.Resources["ContentDialogMaxWidth"] = width + 48; return viewer;
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
@@ -242,7 +273,7 @@ public sealed partial class MainWindow
     }
     private async Task RenderContentPage()
     {
-        var revision = ++pageRevision; var current = page; ContentRows.Children.Clear();
+        var revision = ++pageRevision; var current = page; arrangeNewswire = null; ContentRows.Children.Clear();
         if (current is "wishlist" or "account" && User is null)
         { ContentRows.Children.Add(Text(Locale.T("Sign in to manage your account."))); ContentRows.Children.Add(Action("Sign in", async () => { if (await RequireAccount()) await RenderContentPage(); }, true)); return; }
         if (current == "news")
@@ -250,9 +281,11 @@ public sealed partial class MainWindow
             var newsGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, ColumnSpacing = 16, RowSpacing = 18 };
             void ArrangeNews()
             {
-                var width = Math.Max(260, ContentPage.ActualWidth - 36);
+                var viewport = ContentPage.ActualWidth > 0 ? ContentPage.ActualWidth : PageLayout.ActualWidth;
+                var width = Math.Max(260, viewport - 48);
                 var columns = Math.Clamp((int)((width + 16) / 332), 1, 4);
-                var cellWidth = (width - 16 * (columns - 1)) / columns;
+                var cellWidth = Math.Clamp((width - 16 * (columns - 1)) / columns, 240, 420);
+                newsGrid.Width = width;
                 if (newsGrid.ColumnDefinitions.Count != columns)
                 {
                     newsGrid.ColumnDefinitions.Clear(); newsGrid.RowDefinitions.Clear();
@@ -274,7 +307,7 @@ public sealed partial class MainWindow
             }
             foreach (var item in newsItems) newsGrid.Children.Add(NewsCard(item, 300));
             ContentRows.Children.Add(newsGrid);
-            newsGrid.SizeChanged += (_, _) => ArrangeNews();
+            arrangeNewswire = ArrangeNews;
             DispatcherQueue.TryEnqueue(ArrangeNews);
             return;
         }
@@ -303,7 +336,8 @@ public sealed partial class MainWindow
                     var card = new Grid { ColumnSpacing = 16 };
                     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
                     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    var image = new Image { Width = 112, Height = 168, Stretch = Stretch.UniformToFill };
+                    var image = new Image { Width = 112, Height = 168, Stretch = Stretch.UniformToFill,
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
                     SetImage(image, coverUrl ?? "");
                     card.Children.Add(new Border { Width = 112, Height = 168, CornerRadius = new CornerRadius(8), Child = image });
                     var details = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };

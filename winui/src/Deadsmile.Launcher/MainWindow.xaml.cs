@@ -158,6 +158,7 @@ public sealed partial class MainWindow : Window
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
         Root.SizeChanged += (_, _) => AdjustLayout();
         GameGrid.SizeChanged += (_, _) => AdjustLayout();
+        ContentPage.SizeChanged += ContentPageSizeChanged;
         Shell.SelectedItem = ExploreItem;
         ready = true;
         ApplyAppearance();
@@ -378,11 +379,9 @@ public sealed partial class MainWindow : Window
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
-        // Restore the original single full-width featured hero.
-        FeaturedPanel.ColumnSpacing = 0;
-        FeaturedPanel.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-        FeaturedSide.Visibility = Visibility.Collapsed;
-        FeaturedSideColumn.Width = new GridLength(0);
+        var showSide = GameGrid.ActualWidth >= 880 && featuredGames[0] is not null;
+        FeaturedSide.Visibility = showSide ? Visibility.Visible : Visibility.Collapsed;
+        FeaturedSideColumn.Width = showSide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
     }
     private void RenderCatalog()
     {

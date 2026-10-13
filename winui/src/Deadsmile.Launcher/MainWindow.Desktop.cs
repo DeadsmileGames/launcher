@@ -28,7 +28,6 @@ public sealed partial class MainWindow
 #endif
     }
     private bool Foreground => AppWindow.IsVisible && GetForegroundWindow() == WinRT.Interop.WindowNative.GetWindowHandle(this);
-    internal bool IsLauncherForeground => Foreground;
     private void DesktopNotice(string title, string text, string kind = "", string? entityId = null, string? slug = null)
     {
         if (!Preferences.Notifications) return;

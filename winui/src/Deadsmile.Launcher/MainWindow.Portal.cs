@@ -160,7 +160,7 @@ public sealed partial class MainWindow
         if (list is not JsonArray) throw new LauncherException("INVALID_RESPONSE"); newsItems = list.Items().Select(x => x.DeepClone()).ToArray();
         HomeNewsRows.Children.Clear();
         foreach (var item in newsItems.Take(2)) HomeNewsRows.Children.Add(NewsCard(item, true));
-        HomeNews.Visibility = page == "explore" && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        HomeNews.Visibility = page == "explore" && Preferences.ShowNewswireOnHome && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     private Button NewsCard(JsonNode item, bool horizontal = false)
     {

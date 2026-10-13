@@ -276,7 +276,10 @@
           <TextBox x:Name="ProfileBio" Header="Bio" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"/>
           <TextBox x:Name="ProfileWebsite" Header="Website URL" MaxLength="2000"/>
           <TextBox x:Name="ProfileLocation" Header="Location" MaxLength="120"/>
-          <TextBox x:Name="ProfileAvatarUrl" Header="Profile image URL (optional)" MaxLength="500000"/>
+          <TextBox x:Name="ProfileAvatarUrl" Header="Profile image URL (optional)" MaxLength="500000"
+           Height="62" MinHeight="62" MaxHeight="62" AcceptsReturn="True" TextWrapping="Wrap"
+           ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Enabled"
+           VerticalContentAlignment="Top"/>
           <Button x:Name="SaveProfileButton" Content="Save profile" Click="SaveProfileClick" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
          </StackPanel>
         </StackPanel></Border>
@@ -296,8 +299,14 @@
         <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="12">
          <TextBlock x:Name="TwoFactorStatus" Text="Two-step verification status" TextWrapping="Wrap"/>
          <Button x:Name="TwoFactorActionButton" Content="Set up two-step verification" Click="TwoFactorActionClick" HorizontalAlignment="Left"/>
-         <StackPanel x:Name="TwoFactorSecretPanel" Spacing="6" Visibility="Collapsed">
-          <TextBlock Text="Authenticator secret" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+         <StackPanel x:Name="TwoFactorSecretPanel" Spacing="10" Visibility="Collapsed">
+          <TextBlock Text="Scan this QR code with your authenticator app, or enter the secret manually."
+           Tag="Scan this QR code with your authenticator app, or enter the secret manually."
+           TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+          <Border Background="White" CornerRadius="12" Padding="12" HorizontalAlignment="Left">
+           <Image x:Name="TwoFactorQr" Width="196" Height="196" Stretch="Uniform" AutomationProperties.Name="Two-factor authentication QR code"/>
+          </Border>
+          <TextBlock Text="Authenticator secret" Tag="Authenticator secret" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
           <TextBlock x:Name="TwoFactorSecret" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
          </StackPanel>
          <TextBox x:Name="TwoFactorTokenBox" Header="Authentication code" MaxLength="16" Visibility="Collapsed"/>
@@ -381,26 +390,13 @@
    </Grid>
   </NavigationView>
   <Grid x:Name="AppToast" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24,52,24,0" Width="360" MaxWidth="360" Visibility="Collapsed" IsHitTestVisible="True">
-   <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="14">
+   <Border Background="#F0242424" BorderBrush="#FF454545" BorderThickness="1" CornerRadius="16" Padding="16">
     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-     <FontIcon Glyph="&#xE7F4;" FontSize="22" VerticalAlignment="Top"/>
+     <FontIcon Glyph="&#xE7ED;" FontSize="22" VerticalAlignment="Top"/>
      <StackPanel Grid.Column="1" Spacing="4"><TextBlock x:Name="AppToastTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap"/><TextBlock x:Name="AppToastMessage" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis"/></StackPanel>
      <Button Grid.Column="2" Style="{StaticResource SubtleButtonStyle}" Padding="4" Click="DismissAppToastClick" VerticalAlignment="Top"><SymbolIcon Symbol="Cancel"/></Button>
     </Grid>
    </Border>
-  </Grid>
-  <Grid x:Name="LaunchSequenceOverlay" Grid.RowSpan="2" Background="#E9080808" Visibility="Collapsed" IsHitTestVisible="True">
-   <Grid RowSpacing="20" Padding="32"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
-     <TextBlock x:Name="LaunchShip" Text="🚀" FontSize="92" HorizontalAlignment="Center"><TextBlock.RenderTransform><TranslateTransform x:Name="LaunchShipTransform"/></TextBlock.RenderTransform></TextBlock>
-     <ProgressRing IsActive="True" Width="28" Height="28" HorizontalAlignment="Center"/>
-    </StackPanel>
-    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Spacing="6" Margin="0,0,0,36">
-     <TextBlock Text="NOW LAUNCHING" Foreground="#B8FFFFFF" FontSize="12" CharacterSpacing="180" HorizontalAlignment="Center"/>
-     <TextBlock x:Name="LaunchSequenceTitle" Style="{StaticResource TitleLargeTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2"/>
-     <TextBlock Text="Deadsmile Games" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
-    </StackPanel>
-   </Grid>
   </Grid>
  </Grid>
 </Window>

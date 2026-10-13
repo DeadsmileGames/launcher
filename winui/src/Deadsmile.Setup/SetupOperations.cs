@@ -319,7 +319,8 @@ internal static class SetupOperations
         start.ArgumentList.Add("Bypass");
         start.ArgumentList.Add("-File");
         start.ArgumentList.Add(scriptPath);
-        Process.Start(start) ?? throw new InvalidOperationException("Não foi possível iniciar a limpeza da desinstalação.");
+        if (Process.Start(start) is null)
+            throw new InvalidOperationException("Não foi possível iniciar a limpeza da desinstalação.");
     }
 
     private static void TryDeleteFile(string path)

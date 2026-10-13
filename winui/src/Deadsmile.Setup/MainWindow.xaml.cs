@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.UI.Xaml;
+using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
@@ -27,10 +28,7 @@ public sealed partial class MainWindow : Window
         appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(id);
         appWindow.Resize(new SizeInt32(930, 620));
         if (appWindow.Presenter is OverlappedPresenter presenter)
-        {
             presenter.IsResizable = true;
-            presenter.MinSize = new SizeInt32(790, 540);
-        }
 
         installTarget = SetupOperations.GetArgument(args, "--target") ?? SetupOperations.DefaultInstallPath;
         TargetPathBox.Text = installTarget;

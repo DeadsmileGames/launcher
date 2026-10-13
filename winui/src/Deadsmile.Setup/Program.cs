@@ -15,7 +15,7 @@ internal static class Program
             return SetupOperations.RunSilent(args);
 
         WinRT.ComWrappersSupport.InitializeComWrappers();
-        Application.Start(_ =>
+        Application.Start(parameters =>
         {
             var queue = DispatcherQueue.GetForCurrentThread();
             queue.EnsureSystemDispatcherQueue();

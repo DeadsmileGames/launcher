@@ -6,6 +6,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Core", "src\Deads
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Launcher", "src\Deadsmile.Launcher\Deadsmile.Launcher.csproj", "{A49E1983-A65C-4513-A815-59C2E4522A14}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Setup", "src\Deadsmile.Setup\Deadsmile.Setup.csproj", "{CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Core.Tests", "tests\Deadsmile.Core.Tests\Deadsmile.Core.Tests.csproj", "{287582E8-EA06-4F73-8877-ED185A8B68D7}"
 EndProject
 Global
@@ -22,6 +24,10 @@ Global
   {A49E1983-A65C-4513-A815-59C2E4522A14}.Debug|x64.Build.0 = Debug|x64
   {A49E1983-A65C-4513-A815-59C2E4522A14}.Release|x64.ActiveCfg = Release|x64
   {A49E1983-A65C-4513-A815-59C2E4522A14}.Release|x64.Build.0 = Release|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Debug|x64.ActiveCfg = Debug|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Debug|x64.Build.0 = Debug|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Release|x64.ActiveCfg = Release|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Release|x64.Build.0 = Release|x64
   {287582E8-EA06-4F73-8877-ED185A8B68D7}.Debug|x64.ActiveCfg = Debug|Any CPU
   {287582E8-EA06-4F73-8877-ED185A8B68D7}.Debug|x64.Build.0 = Debug|Any CPU
   {287582E8-EA06-4F73-8877-ED185A8B68D7}.Release|x64.ActiveCfg = Release|Any CPU

@@ -1,0 +1,66 @@
+<Window x:Class="Deadsmile.Setup.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Deadsmile Games Launcher Setup">
+ <Grid x:Name="Root" Background="{ThemeResource SetupPageBrush}">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <TitleBar x:Name="SetupTitleBar" Title="Deadsmile Games Launcher Setup"
+   Background="#151515" IsPaneToggleButtonVisible="False" IsBackButtonVisible="False"/>
+  <Grid Grid.Row="1" ColumnSpacing="0">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="0.92*"/><ColumnDefinition Width="1.08*"/></Grid.ColumnDefinitions>
+   <Grid Grid.Column="0" ClipToBounds="True" Background="#202020">
+    <Image Source="Assets/InstallerHero.png" Stretch="UniformToFill"/>
+    <Border>
+     <Border.Background>
+      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+       <GradientStop Color="#10000000" Offset="0"/>
+       <GradientStop Color="#B5000000" Offset="0.52"/>
+       <GradientStop Color="#F0000000" Offset="1"/>
+      </LinearGradientBrush>
+     </Border.Background>
+    </Border>
+    <StackPanel VerticalAlignment="Bottom" Padding="30" Spacing="12">
+     <Image Source="Assets/LargeTile.png" Width="76" Height="76" HorizontalAlignment="Left"/>
+     <TextBlock Text="DEADSMILE GAMES" FontSize="12" FontWeight="SemiBold" CharacterSpacing="160" Foreground="#D8FFFFFF"/>
+     <TextBlock Text="Seus jogos.&#x0a;Seu espaço." FontSize="34" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" Foreground="White"/>
+     <TextBlock Text="Uma experiência feita para jogar." FontSize="15" Foreground="#D8FFFFFF" TextWrapping="Wrap"/>
+    </StackPanel>
+   </Grid>
+   <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel x:Name="SetupContent" Padding="32" Spacing="18" MaxWidth="600" HorizontalAlignment="Stretch">
+     <StackPanel Spacing="6">
+      <TextBlock x:Name="Heading" Text="Instale o launcher" FontSize="28" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock x:Name="Subtitle" Text="Explore, instale e gerencie seus jogos em um só lugar." FontSize="15"
+       Foreground="{ThemeResource SetupSubtleBrush}" TextWrapping="Wrap"/>
+     </StackPanel>
+     <Border Style="{StaticResource SetupCard}" Padding="16">
+      <StackPanel Spacing="12">
+       <TextBlock Text="Pasta de instalação" FontSize="15" FontWeight="SemiBold"/>
+       <Grid ColumnSpacing="8">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBox x:Name="TargetPathBox" Grid.Column="0" PlaceholderText="Selecione a pasta de instalação"
+         AutomationProperties.AutomationId="SetupInstallPath"/>
+        <Button x:Name="BrowseButton" Grid.Column="1" Content="Procurar..." Click="BrowseFolderClick"/>
+       </Grid>
+       <TextBlock Text="A instalação não exige privilégios de administrador. Seus jogos e saves ficam fora da pasta do aplicativo."
+        FontSize="12" Foreground="{ThemeResource SetupSubtleBrush}" TextWrapping="Wrap"/>
+      </StackPanel>
+     </Border>
+     <CheckBox x:Name="LaunchAfterInstall" Content="Abrir o launcher quando terminar" IsChecked="True"/>
+     <StackPanel x:Name="ProgressArea" Spacing="8" Visibility="Collapsed">
+      <ProgressBar x:Name="InstallProgress" Minimum="0" Maximum="100" Value="0"/>
+      <TextBlock x:Name="ProgressLabel" Text="Preparando..." Foreground="{ThemeResource SetupSubtleBrush}" TextWrapping="Wrap"/>
+     </StackPanel>
+     <InfoBar x:Name="SetupError" IsOpen="False" Severity="Error" IsClosable="True"/>
+     <TextBlock x:Name="Footnote" Text="Microsoft Store é a forma recomendada de obter o launcher. Este EXE é uma opção de backup e pode mostrar um aviso de segurança do Windows."
+      FontSize="12" Foreground="{ThemeResource SetupSubtleBrush}" TextWrapping="Wrap"/>
+     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+      <Button x:Name="CancelButton" Content="Cancelar" Click="CancelClick" MinWidth="104"/>
+      <Button x:Name="PrimaryButton" Content="Instalar" Click="PrimaryClick" MinWidth="132" Style="{StaticResource AccentButtonStyle}"
+       AutomationProperties.AutomationId="SetupInstall"/>
+     </StackPanel>
+    </StackPanel>
+   </ScrollViewer>
+  </Grid>
+ </Grid>
+</Window>

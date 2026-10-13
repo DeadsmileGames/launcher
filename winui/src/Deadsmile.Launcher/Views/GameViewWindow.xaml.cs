@@ -48,21 +48,33 @@ public sealed partial class GameViewWindow : Window
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
         foreach (var widget in Widgets)
         {
+            // Composition visuals are not guaranteed to be attached to a XamlRoot during
+            // construction. Apply clipping only after the widget has entered the live tree.
+            widget.Loaded += (_, _) => ApplyRoundedWidgetClip(widget);
             widget.SizeChanged += (_, _) => ApplyRoundedWidgetClip(widget);
-            ApplyRoundedWidgetClip(widget);
         }
         ApplyPreferences(); ReloadLabels();
     }
     private static void ApplyRoundedWidgetClip(Border widget)
     {
-        var width = Math.Max(1, widget.ActualWidth);
-        var height = Math.Max(1, widget.ActualHeight);
-        var visual = ElementCompositionPreview.GetElementVisual(widget);
-        var compositor = visual.Compositor;
-        var geometry = compositor.CreateRoundedRectangleGeometry();
-        geometry.Size = new Vector2((float)width, (float)height);
-        geometry.CornerRadius = new Vector2(16, 16);
-        visual.Clip = compositor.CreateGeometricClip(geometry);
+        if (!widget.IsLoaded || widget.XamlRoot is null ||
+            widget.ActualWidth <= 0 || widget.ActualHeight <= 0)
+            return;
+
+        try
+        {
+            var visual = ElementCompositionPreview.GetElementVisual(widget);
+            var compositor = visual.Compositor;
+            var geometry = compositor.CreateRoundedRectangleGeometry();
+            geometry.Size = new Vector2((float)widget.ActualWidth, (float)widget.ActualHeight);
+            geometry.CornerRadius = new Vector2(16, 16);
+            visual.Clip = compositor.CreateGeometricClip(geometry);
+        }
+        catch (Exception)
+        {
+            // A failed optional visual effect must never take down the launcher or hotkey.
+            // The XAML Border still provides its normal layout and background.
+        }
     }
     public void ApplyPreferences()
     {

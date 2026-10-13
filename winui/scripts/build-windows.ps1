@@ -102,8 +102,7 @@ if ($Target -in @("All", "Installer")) {
  # WinUI 3 unpackaged apps need a root resources.pri for ms-appx resource lookup.
   # Index app XAML/assets plus dependency PRI maps, excluding the app PRI to avoid duplicate XBF entries.
  $resourcesPri = Join-Path $setupPublish "resources.pri"
- if (!(Test-Path $resourcesPri)) {
-  $makepri = FindTool "makepri.exe"
+ $makepri = FindTool "makepri.exe"
   $resourceSource = Join-Path $artifacts "setup-resource-source"
   if (Test-Path $resourceSource) { Remove-Item $resourceSource -Recurse -Force }
   New-Item $resourceSource -ItemType Directory -Force | Out-Null
@@ -148,8 +147,7 @@ if ($Target -in @("All", "Installer")) {
   }
   Copy-Item $generatedPri $resourcesPri -Force
   Remove-Item $priConfig, $generatedPri -Force -ErrorAction SilentlyContinue
-  Remove-Item $resourceSource -Recurse -Force -ErrorAction SilentlyContinue
- }
+ Remove-Item $resourceSource -Recurse -Force -ErrorAction SilentlyContinue
  if (!(Test-Path $resourcesPri) -or (Get-Item $resourcesPri).Length -lt 1024) {
   throw "The WinUI setup resource index could not be generated."
  }

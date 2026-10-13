@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using System.Reflection;
 using System.Text.Json.Nodes;
@@ -179,9 +180,23 @@ public static class Versions
 public static class Urls
 {
     public const string Website = "https://deadsmilegames.vercel.app";
-    public static Uri? Https(string? value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var u) && u.Scheme == "https" &&
-        string.IsNullOrEmpty(u.UserInfo) ? u : null;
+    public static Uri? Https(string? value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            !uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(uri.UserInfo) || uri.Port != 443)
+            return null;
+        var host = uri.IdnHost.TrimEnd('.').ToLowerInvariant();
+        if (host is "localhost" or "localhost.localdomain" ||
+            host.EndsWith(".localhost", StringComparison.Ordinal) ||
+            host.EndsWith(".local", StringComparison.Ordinal) ||
+            host.EndsWith(".internal", StringComparison.Ordinal) ||
+            host.EndsWith(".test", StringComparison.Ordinal))
+            return null;
+        if (IPAddress.TryParse(host, out var address) && !SafeNetwork.Public(address))
+            return null;
+        return uri;
+    }
     public static string? Image(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;

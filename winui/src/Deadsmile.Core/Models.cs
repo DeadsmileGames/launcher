@@ -117,7 +117,7 @@ public sealed class Game(JsonNode data)
     public bool DownloadAvailable => Data.B("downloadAvailable");
     public bool CloudEnabled => Data.B("cloudSavesEnabled");
     public string SaveTemplate => Data.S("savePathTemplate");
-    public string Trailer => Urls.Https(Data.S("trailerUrl"))?.AbsoluteUri ?? "";
+    public string Trailer => Urls.Https(Data.S("trailerUrl", "trailer_url", "backgroundVideo", "background_video"))?.AbsoluteUri ?? "";
     public string Genres => string.Join(" · ", Data.At("genres").Items().Select(x => x.S()));
     public JsonNode? Store => Data.At("microsoftStore");
     public string[] HeroImages => Store.At("screenshots").Items().Select(x => Urls.Image(x is JsonObject ? x.S("url") : x.S()))
@@ -129,8 +129,10 @@ public sealed class Game(JsonNode data)
         .Where(x => Regex.IsMatch(x.S("purpose"), "poster|boxart|cover", RegexOptions.IgnoreCase))
         .OrderBy(x => x.L("height") > x.L("width") ? 0 : 1).ThenByDescending(x => x.L("height"))
         .FirstOrDefault().S("url")) ?? Cover;
-    public string BackgroundVideo => Store.At("trailers").Items().Select(x => x.S("url"))
-        .Concat(Data.At("videos").Items().Select(x => x.S("videoUrl", "video_url")))
+    public string BackgroundVideo => Store.At("trailers").Items()
+        .Select(x => x.S("url", "videoUrl", "video_url", "streamUrl", "stream_url", "playbackUrl", "playback_url"))
+        .Concat(Store.At("videos").Items().Select(x => x.S("url", "videoUrl", "video_url", "streamUrl", "stream_url")))
+        .Concat(Data.At("videos").Items().Select(x => x.S("url", "videoUrl", "video_url", "streamUrl", "stream_url", "playbackUrl", "playback_url")))
         .Prepend(Trailer).OrderBy(x => x == Trailer ? 1 : 0)
         .FirstOrDefault(x => Urls.Https(x) is { } uri && (uri.AbsolutePath.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
             uri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))) ?? "";

@@ -402,9 +402,10 @@ public sealed partial class MainWindow : Window
         var items = Catalog.Where(x => (page != "library" || x.InLibrary) &&
             (!(InstalledFilter.IsChecked ?? false) || installs.Installed.ContainsKey(x.Id)) &&
             x.SearchText.Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
-        GameGrid.ItemsSource = items;
         featuredGame = page == "explore" && selected is null && query.Length == 0 && !(InstalledFilter.IsChecked ?? false) && items.Length > 0
             ? items[homeSlideIndex % items.Length] : null;
+        var catalogItems = featuredGame is null ? items : items.Where(x => !x.Id.Equals(featuredGame.Id, StringComparison.OrdinalIgnoreCase)).ToArray();
+        GameGrid.ItemsSource = catalogItems;
         if (featuredGame is null) StopHomeVideo();
         if (featuredGame is not null)
         {
@@ -418,7 +419,7 @@ public sealed partial class MainWindow : Window
         SecondaryFeature.Visibility = ThirdFeature.Visibility = FourthFeature.Visibility = Visibility.Collapsed;
         AdjustLayout();
         EmptyCatalog.Text = Locale.T(page == "library" ? "Your library is empty." : "No games found.");
-        EmptyCatalog.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyCatalog.Visibility = catalogItems.Length == 0 && featuredGame is null ? Visibility.Visible : Visibility.Collapsed;
     }
     private void NavigationInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
@@ -666,18 +667,42 @@ public sealed partial class MainWindow : Window
         }
         grid.SizeChanged += (_, _) => Arrange(); Arrange(); return grid;
     }
+    private static Windows.UI.Color HeroAccent(Game game)
+    {
+        var raw = game.Data.S("heroAccent", "hero_accent", "accentColor", "accent_color",
+            "primaryColor", "primary_color", "themeColor", "theme_color").Trim().TrimStart('#');
+        if (raw.Length == 6 && uint.TryParse(raw, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+            return Windows.UI.Color.FromArgb(255, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+        if (raw.Length == 8 && uint.TryParse(raw, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var argb))
+            return Windows.UI.Color.FromArgb(255, (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb);
+        return Windows.UI.Color.FromArgb(255, 74, 49, 40);
+    }
+
     private void RenderDetail(Game game)
     {
         DetailContent.Children.Clear(); heroImages = game.HeroImages; heroIndex = 0;
         var hero = new Grid { Height = 360, MaxHeight = 360, CornerRadius = new CornerRadius(8) };
+        var hasStoreScreenshots = game.Store.At("screenshots").Items().Any();
+        var backdropUrl = hasStoreScreenshots ? game.HeroImages.FirstOrDefault() ?? game.Cover :
+            game.Poster.Length > 0 ? game.Poster : game.Cover;
         hero.Background = Root.Background;
-        heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
+        hero.Children.Add(new Border
+        {
+            Background = CenteredArtwork(backdropUrl),
+            CornerRadius = new CornerRadius(8)
+        });
+        heroImage = new Image
+        {
+            Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Visibility = hasStoreScreenshots ? Visibility.Visible : Visibility.Collapsed
+        };
         var banner = heroImage;
-        SetImage(heroImage, game.Cover);
+        if (hasStoreScreenshots) SetImage(heroImage, backdropUrl);
         hero.Children.Add(heroImage);
         var accentOverlay = new Border
         {
-            Background = CreateHeroShade(Windows.UI.Color.FromArgb(255, 74, 49, 40)),
+            Background = CreateHeroShade(HeroAccent(game)),
             CornerRadius = new CornerRadius(8)
         };
         hero.Children.Add(accentOverlay);
@@ -747,11 +772,12 @@ public sealed partial class MainWindow : Window
             banner.Width = Math.Max(0, hero.ActualWidth);
             banner.MaxWidth = banner.Width;
             banner.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
+            if (hero.Children.FirstOrDefault() is Border backdrop)
+                backdrop.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
             var video = hero.Children.OfType<MediaPlayerElement>().FirstOrDefault(element => element.Visibility == Visibility.Visible);
             contents.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - (video is null ? 0 : video.Width + 36)));
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };
-        ApplyHeroAccentAsync(game, hero, accentOverlay);
         AddVideoBackground(game, hero, banner, accentOverlay);
         if (heroImages.Length > 1 && game.BackgroundVideo.Length == 0)
         {

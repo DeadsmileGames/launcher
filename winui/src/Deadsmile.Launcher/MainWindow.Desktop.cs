@@ -140,9 +140,15 @@ public sealed partial class MainWindow
         var title = payload.S("title");
         var entityId = payload.S("gameId", "game_id", "id");
         var slug = payload.S("slug", "game_slug", "gameSlug", "newsSlug");
-        if (type == "game.published") DesktopNotice(Locale.T("New game available"), title.Length > 0 ? title : Locale.T("Explore the latest games."), "game", entityId, slug);
-        else if (type == "game.updated") DesktopNotice(Locale.T("A game has been updated"), title.Length > 0 ? title : Locale.T("Check your library for updates."), "game", entityId, slug);
-        else if (type == "news.updated") DesktopNotice("Newswire", title.Length > 0 ? title : Locale.T("A new story is available."), "news", null, slug);
+        if (type is "game.published" or "game.available" or "game.purchasable" or "game.redeemable" or "game.released")
+            DesktopNotice(Locale.T(type is "game.purchasable" or "game.redeemable" ? "Game ready to claim or purchase" : "New game available"),
+                title.Length > 0 ? title : Locale.T("Explore the latest games."), "game", entityId, slug);
+        else if (type is "game.updated" or "game.version.updated")
+            DesktopNotice(Locale.T("A game has been updated"), title.Length > 0 ? title : Locale.T("Check your library for updates."), "game", entityId, slug);
+        else if (type is "news.updated" or "news.published")
+            DesktopNotice("Newswire", title.Length > 0 ? title : Locale.T("A new story is available."), "news", null, slug);
+        else if (type is "launcher.updated" or "launcher.released")
+            DesktopNotice(Locale.T("Launcher update available"), title.Length > 0 ? title : Locale.T("A new launcher version is available."));
     }
     private void GameStartedHint()
     {

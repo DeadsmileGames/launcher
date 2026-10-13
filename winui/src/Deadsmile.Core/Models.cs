@@ -53,8 +53,39 @@ public sealed class Game(JsonNode data)
     public string Version => Data.S("version");
     public bool InLibrary => Data.B("inLibrary");
     public bool Owned => Data.B("owned");
-    public bool CanLaunch => Data.S("accessType") == "paid" ? Owned :
+    public bool CanLaunch => Data.S("accessType") == "paid" ? Owned && InLibrary :
         Data.S("accessType") == "free" && InLibrary;
+    public string SearchText
+    {
+        get
+        {
+            var values = new List<string>
+            {
+                Title, Slug, Description, Engine, Genres,
+                Data.S("developer"), Data.S("publisher"), Data.S("language"),
+                Data.S("supportedLanguage"), Data.S("supported_language"),
+                Data.S("category"), Data.S("platform"), Data.S("releaseDate"),
+                Data.S("release_date"), Data.S("searchKeywords")
+            };
+            foreach (var key in new[]
+            {
+                "languages", "supportedLanguages", "supported_languages", "categories",
+                "tags", "platforms", "features", "keywords", "genres", "gameModes",
+                "game_modes", "accessibilityFeatures"
+            })
+            {
+                if (Data.At(key) is { } metadata) values.Add(metadata.ToJsonString());
+                if (Store.At(key) is { } storeMetadata) values.Add(storeMetadata.ToJsonString());
+            }
+            if (Store is { } store)
+            {
+                values.Add(store.S("title", "productTitle"));
+                values.Add(store.S("publisher", "developer"));
+                if (store.At("properties") is { } properties) values.Add(properties.ToJsonString());
+            }
+            return string.Join(" ", values.Where(value => !string.IsNullOrWhiteSpace(value)));
+        }
+    }
     public bool DownloadAvailable => Data.B("downloadAvailable");
     public bool CloudEnabled => Data.B("cloudSavesEnabled");
     public string SaveTemplate => Data.S("savePathTemplate");

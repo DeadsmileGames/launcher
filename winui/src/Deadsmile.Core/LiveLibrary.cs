@@ -34,7 +34,7 @@ public sealed class LiveLibrary(ApiClient api) : IDisposable
                     if (initialized)
                     {
                         EventReceived?.Invoke(item.DeepClone());
-                        if (item.S("event_type") is "game.published" or "game.updated" or "game.deleted" or "news.updated" or "news.deleted") changed = true;
+                        if (item.S("event_type") is "game.published" or "game.available" or "game.purchasable" or "game.redeemable" or "game.released" or "game.updated" or "game.version.updated" or "game.deleted" or "news.updated" or "news.published" or "news.deleted" or "launcher.updated" or "launcher.released") changed = true;
                     }
                 }
                 if (items.Length < 100) { initialized = true; break; }

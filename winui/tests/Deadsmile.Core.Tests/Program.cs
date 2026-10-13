@@ -205,6 +205,24 @@ Async("Authenticated catalog merges ownership without mutating public data", asy
             J.Obj(("items", new[] { J.Obj(("id", id), ("owned", true), ("inLibrary", true)) })) }.ToJsonString())));
     var games = await PublicCatalog.Load(api, true); Check(games[0].Owned && games[0].InLibrary && games[0].CanLaunch); Check(source.At("owned") is null);
 });
+Add("Paid games require ownership and library membership", () =>
+{
+    var outside = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", true), ("inLibrary", false)));
+    var inLibrary = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", true), ("inLibrary", true)));
+    var unowned = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", false), ("inLibrary", true)));
+    Check(!outside.CanLaunch);
+    Check(inLibrary.CanLaunch);
+    Check(!unowned.CanLaunch);
+});
+Add("Search text includes languages and catalog tags", () =>
+{
+    var game = new Game(J.Obj(("id", id), ("title", "Demo"), ("genres", new[] { "Platformer" }),
+        ("languages", new[] { "Português", "English" }), ("supported_languages", new[] { "Español" }),
+        ("tags", new[] { "metroidvania", "controller" }), ("categories", new[] { "single-player" })));
+    Check(game.SearchText.Contains("Português", StringComparison.OrdinalIgnoreCase));
+    Check(game.SearchText.Contains("metroidvania", StringComparison.OrdinalIgnoreCase));
+    Check(game.SearchText.Contains("single-player", StringComparison.OrdinalIgnoreCase));
+});
 Add("Store poster, product icon and direct trailer remain distinct", () =>
 {
     var game = new Game(J.Obj(("coverImage", "https://example.com/fallback.png"), ("microsoftStore", J.Obj(

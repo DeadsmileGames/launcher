@@ -37,7 +37,18 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
             {
                 if (running.ContainsKey(id)) throw new LauncherException("GAME_ALREADY_RUNNING");
                 if (DownloadBusy(id)) throw new LauncherException("GAME_DOWNLOAD_IN_PROGRESS");
+                var library = await api.Get("/library");
+                var libraryItem = library.At("items").Items().FirstOrDefault(item =>
+                    item.S("id").Equals(id, StringComparison.OrdinalIgnoreCase));
+                if (libraryItem is null) throw new LauncherException("GAME_ACCESS_UNAVAILABLE");
                 var metadata = await api.TrustedGame(id, requested.Slug);
+                if (metadata.Data.S("accessType") == "paid" && !libraryItem.B("owned"))
+                    throw new LauncherException("GAME_ACCESS_UNAVAILABLE");
+                if (metadata.Data is JsonObject trustedData)
+                {
+                    trustedData["inLibrary"] = true;
+                    trustedData["owned"] = libraryItem.B("owned");
+                }
                 if (!installs.Installed.TryGetValue(id, out var installed)) throw new LauncherException("GAME_EXECUTABLE_INVALID");
                 if (InstallationService.ReadRecord(installed.FolderPath, id) is not { } record ||
                     !Path.GetFullPath(Path.Combine(installed.FolderPath, record.Executable)).Equals(installed.Path, StringComparison.OrdinalIgnoreCase))

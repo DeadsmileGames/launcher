@@ -16,7 +16,7 @@
      <Button x:Name="NotificationsButton" Style="{StaticResource SubtleButtonStyle}" Padding="8" Click="NotificationsClick"
       AutomationProperties.Name="Notifications" AutomationProperties.AutomationId="LauncherNotifications">
       <Grid Width="24" Height="24">
-       <FontIcon Glyph="&#xE7E7;" FontFamily="Segoe MDL2 Assets" FontSize="22"/>
+       <FontIcon Glyph="&#xE7ED;" FontFamily="Segoe MDL2 Assets" FontSize="22" AutomationProperties.Name="Notifications"/>
        <InfoBadge x:Name="NotificationBadge" Value="1" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top"/>
       </Grid>
       <Button.Flyout><MenuFlyout x:Name="NotificationMenu"/></Button.Flyout>

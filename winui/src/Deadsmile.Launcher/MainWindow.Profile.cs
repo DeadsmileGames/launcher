@@ -3,7 +3,12 @@ using Deadsmile.Core;
 using Deadsmile.Launcher.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using QRCoder;
+using Windows.Graphics.Imaging;
 using Windows.Storage.Pickers;
+using Windows.Storage.Streams;
 
 namespace Deadsmile.Launcher;
 
@@ -100,11 +105,65 @@ public sealed partial class MainWindow
         if (properties.Size > 350_000) { Notify(Locale.T("The profile photo must be smaller than 350 KB.")); return; }
         try
         {
-            using var stream = await file.OpenStreamForReadAsync();
-            var bytes = new byte[(int)stream.Length]; await stream.ReadExactlyAsync(bytes);
-            var mime = Path.GetExtension(file.Name).ToLowerInvariant() switch
-            { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
-            ProfileAvatarUrl.Text = "data:" + mime + ";base64," + Convert.ToBase64String(bytes);
+            var preview = new Image
+            {
+                Width = 280, Height = 280, Stretch = Stretch.UniformToFill,
+                RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5)
+            };
+            var transform = new CompositeTransform { CenterX = 140, CenterY = 140, ScaleX = 1, ScaleY = 1 };
+            preview.RenderTransform = transform;
+            using (var source = await file.OpenAsync(Windows.Storage.FileAccessMode.Read))
+            {
+                var bitmap = new BitmapImage();
+                await bitmap.SetSourceAsync(source);
+                preview.Source = bitmap;
+            }
+            var viewport = new Grid
+            {
+                Width = 280, Height = 280,
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Black),
+                Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 280, 280) }
+            };
+            viewport.Children.Add(preview);
+            var zoom = new Slider { Header = Locale.T("Zoom"), Minimum = 1, Maximum = 3, Value = 1, StepFrequency = 0.1 };
+            zoom.ValueChanged += (_, e) => { transform.ScaleX = e.NewValue; transform.ScaleY = e.NewValue; };
+            var rotation = 0d;
+            var rotateLeft = new Button { Content = Locale.T("Rotate left") };
+            var rotateRight = new Button { Content = Locale.T("Rotate right") };
+            rotateLeft.Click += (_, _) => { rotation = (rotation - 90 + 360) % 360; transform.Rotation = rotation; };
+            rotateRight.Click += (_, _) => { rotation = (rotation + 90) % 360; transform.Rotation = rotation; };
+            var rotateRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center };
+            rotateRow.Children.Add(rotateLeft); rotateRow.Children.Add(rotateRight);
+            var editor = new StackPanel { Spacing = 14, Width = 320, HorizontalAlignment = HorizontalAlignment.Center };
+            editor.Children.Add(viewport); editor.Children.Add(zoom); editor.Children.Add(rotateRow);
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme,
+                Title = Locale.T("Adjust profile photo"), Content = editor,
+                PrimaryButtonText = Locale.T("Use photo"), CloseButtonText = Locale.T("Cancel"),
+                DefaultButton = ContentDialogButton.Primary
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+            var rendered = new RenderTargetBitmap();
+            await rendered.RenderAsync(viewport, 280, 280);
+            var pixels = await rendered.GetPixelsAsync();
+            var bgra = new byte[pixels.Length];
+            using (var reader = DataReader.FromBuffer(pixels)) reader.ReadBytes(bgra);
+            using var pngStream = new InMemoryRandomAccessStream();
+            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pngStream);
+            encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
+                (uint)rendered.PixelWidth, (uint)rendered.PixelHeight, 96, 96, bgra);
+            await encoder.FlushAsync();
+            if (pngStream.Size is <= 0 or > 350000)
+                throw new LauncherException("PROFILE_IMAGE_TOO_LARGE");
+            pngStream.Seek(0);
+            var png = new byte[(int)pngStream.Size];
+            using (var reader = new DataReader(pngStream))
+            {
+                await reader.LoadAsync((uint)png.Length);
+                reader.ReadBytes(png);
+            }
+            ProfileAvatarUrl.Text = "data:image/png;base64," + Convert.ToBase64String(png);
             await SetProfilePicture(ProfileSettingsAvatar, ProfileAvatarUrl.Text);
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
@@ -180,10 +239,35 @@ public sealed partial class MainWindow
             if (!twoFactorEnabled)
             {
                 var setup = await Api.Post("/account/totp/setup", new { });
-                TwoFactorSecret.Text = setup.S("secret"); TwoFactorSecretPanel.Visibility = Visibility.Visible;
+                var secret = setup.S("secret");
+                if (secret.Length == 0) throw new LauncherException("INVALID_RESPONSE");
+                TwoFactorSecret.Text = secret;
+                var provisioningUri = setup.S("otpauthUrl", "otpauth_uri", "provisioningUri");
+                if (!provisioningUri.StartsWith("otpauth://totp/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var accountLabel = Uri.EscapeDataString("Deadsmile Games:" + User.S("email", "username"));
+                    var issuer = Uri.EscapeDataString("Deadsmile Games");
+                    provisioningUri = $"otpauth://totp/{accountLabel}?secret={Uri.EscapeDataString(secret)}&issuer={issuer}&algorithm=SHA1&digits=6&period=30";
+                }
+                using var generator = new QRCodeGenerator();
+                using var data = generator.CreateQrCode(provisioningUri, QRCodeGenerator.ECCLevel.Q);
+                var qrBytes = new PngByteQRCode(data).GetGraphic(8);
+                using var qrStream = new InMemoryRandomAccessStream();
+                using (var writer = new DataWriter(qrStream))
+                {
+                    writer.WriteBytes(qrBytes);
+                    await writer.StoreAsync();
+                    await writer.FlushAsync();
+                    writer.DetachStream();
+                }
+                qrStream.Seek(0);
+                var qrImage = new BitmapImage();
+                await qrImage.SetSourceAsync(qrStream);
+                TwoFactorQr.Source = qrImage;
+                TwoFactorSecretPanel.Visibility = Visibility.Visible;
                 TwoFactorTokenBox.Visibility = Visibility.Visible; TwoFactorConfirmButton.Visibility = Visibility.Visible;
                 TwoFactorActionButton.Content = Locale.T("Start over");
-                TwoFactorStatus.Text = Locale.T("Add the secret to your authenticator app, then enter the code to confirm.");
+                TwoFactorStatus.Text = Locale.T("Scan this QR code with your authenticator app, or enter the secret manually.");
             }
             else
             {
@@ -191,6 +275,7 @@ public sealed partial class MainWindow
                 await Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token = TwoFactorTokenBox.Text.Trim() }, CancellationToken.None);
                 twoFactorEnabled = false; TwoFactorTokenBox.Text = "";
                 TwoFactorSecretPanel.Visibility = TwoFactorConfirmButton.Visibility = TwoFactorTokenBox.Visibility = Visibility.Collapsed;
+                TwoFactorQr.Source = null;
                 TwoFactorActionButton.Content = Locale.T("Set up two-step verification");
                 TwoFactorStatus.Text = Locale.T("Two-step verification is disabled.");
             }
@@ -205,6 +290,7 @@ public sealed partial class MainWindow
             await Api.Post("/account/totp/enable", new { token = TwoFactorTokenBox.Text.Trim() });
             twoFactorEnabled = true; TwoFactorTokenBox.Text = "";
             TwoFactorSecretPanel.Visibility = TwoFactorConfirmButton.Visibility = TwoFactorTokenBox.Visibility = Visibility.Collapsed;
+            TwoFactorQr.Source = null;
             TwoFactorActionButton.Content = Locale.T("Disable two-step verification");
             TwoFactorStatus.Text = Locale.T("Two-step verification is enabled.");
             Notify(Locale.T("Two-step verification is enabled."), InfoBarSeverity.Success);

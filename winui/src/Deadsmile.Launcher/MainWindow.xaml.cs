@@ -667,16 +667,8 @@ public sealed partial class MainWindow : Window
         }
         grid.SizeChanged += (_, _) => Arrange(); Arrange(); return grid;
     }
-    private static Windows.UI.Color HeroAccent(Game game)
-    {
-        var raw = game.Data.S("heroAccent", "hero_accent", "accentColor", "accent_color",
-            "primaryColor", "primary_color", "themeColor", "theme_color").Trim().TrimStart('#');
-        if (raw.Length == 6 && uint.TryParse(raw, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
-            return Windows.UI.Color.FromArgb(255, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
-        if (raw.Length == 8 && uint.TryParse(raw, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var argb))
-            return Windows.UI.Color.FromArgb(255, (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb);
-        return Windows.UI.Color.FromArgb(255, 74, 49, 40);
-    }
+    private static Windows.UI.Color HeroAccent(Game game) =>
+        Windows.UI.Color.FromArgb(255, 74, 49, 40);
 
     private void RenderDetail(Game game)
     {

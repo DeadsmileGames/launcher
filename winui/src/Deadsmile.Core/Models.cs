@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -8,6 +9,16 @@ public static class BuildInfo
 {
     public static string Version { get; } = typeof(BuildInfo).Assembly.GetName().Version is { } v ?
         $"{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "2.0.0";
+    public static string Revision
+    {
+        get
+        {
+            var informational = typeof(BuildInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "";
+            var plus = informational.LastIndexOf('+');
+            var revision = plus >= 0 ? informational[(plus + 1)..] : "";
+            return Regex.IsMatch(revision, "^[0-9a-fA-F]{40}$") ? revision.ToLowerInvariant() : "";
+        }
+    }
 }
 
 public static class J

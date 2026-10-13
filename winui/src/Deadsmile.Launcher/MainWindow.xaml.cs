@@ -978,7 +978,7 @@ public sealed partial class MainWindow : Window
                 PrimaryButtonText = Locale.T("Update"), CloseButtonText = Locale.T("Cancel") };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             var file = await updater.Download(update);
-            updater.Install(file);
+            updater.Install(file, update.Sha256);
             commandBusy = false; exiting = true; Close();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }

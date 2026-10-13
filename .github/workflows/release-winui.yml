@@ -81,11 +81,20 @@ jobs:
           $sourceZip = Join-Path $artifacts "Deadsmile-Games-Launcher-1.0.0-source.zip"
           git archive --format=zip --output="$sourceZip" "$env:SOURCE_SHA" winui
           if ($LASTEXITCODE -ne 0) { throw "Native source archive failed." }
+          $buildInfo = [ordered]@{
+            version = "1.0.0"
+            sourceSha = $env:SOURCE_SHA
+            storePackageVersion = $env:STORE_PACKAGE_VERSION
+            builtAt = [DateTimeOffset]::UtcNow.ToString("O")
+          }
+          $buildInfoPath = Join-Path $artifacts "launcher-build.json"
+          [IO.File]::WriteAllText($buildInfoPath, ($buildInfo | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
 
-          $payloads = @(Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".exe", ".msix", ".zip") })
+          $payloads = @(Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".exe", ".msix", ".zip", ".json") })
           if (!($payloads | Where-Object { $_.Extension -eq ".exe" -and $_.Name -like "*Setup*" })) { throw "Setup EXE missing." }
           if (!($payloads | Where-Object { $_.Extension -eq ".msix" })) { throw "Store MSIX missing." }
           if (!($payloads | Where-Object { $_.Name -like "*source.zip" })) { throw "WinUI source ZIP missing." }
+          if (!($payloads | Where-Object { $_.Name -eq "launcher-build.json" })) { throw "Build revision manifest missing." }
 
           $sumLines = @()
           foreach ($file in $payloads) {
@@ -144,7 +153,7 @@ jobs:
           }
 
           $files = @(Get-ChildItem "winui/artifacts" -File | Where-Object {
-            $_.Extension -in @(".exe", ".msix", ".zip", ".sha256") -or $_.Name -eq "SHA256SUMS.txt"
+            $_.Extension -in @(".exe", ".msix", ".zip", ".json", ".sha256") -or $_.Name -eq "SHA256SUMS.txt"
           } | ForEach-Object { $_.FullName })
           if ($files.Count -lt 6) { throw "Expected production files and their SHA-256 sidecars." }
           gh release upload $tag @files --clobber --repo $repo

@@ -127,7 +127,16 @@ public sealed partial class MainWindow
     private async Task CheckBackgroundUpdate()
     {
         if (checkingUpdate || booting) return; checkingUpdate = true;
-        try { var update = await updater.Check(); if (update is not null && update.Version != announcedUpdate) { announcedUpdate = update.Version; DesktopNotice(Locale.T("Launcher update available"), update.Version); } }
+        try
+        {
+            var update = await updater.Check();
+            var updateKey = update is null ? null : update.Version + ":" + update.Revision;
+            if (update is not null && updateKey != announcedUpdate)
+            {
+                announcedUpdate = updateKey;
+                DesktopNotice(Locale.T("Launcher update available"), update.Version);
+            }
+        }
         catch (Exception) { /* Routine polling never interrupts games or repeats a network error toast. */ }
         finally { checkingUpdate = false; }
     }

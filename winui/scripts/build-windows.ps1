@@ -31,15 +31,21 @@ function FindTool([string]$Name) {
 }
 $version = ([xml](Get-Content "Directory.Build.props" -Raw)).Project.PropertyGroup.Version
 if ($version -notmatch "^\d+\.\d+\.\d+$") { throw "Version must use major.minor.patch." }
+$sourceRevision = if ($env:SOURCE_SHA -match "^[0-9a-fA-F]{40}$") { $env:SOURCE_SHA } elseif ($env:GITHUB_SHA -match "^[0-9a-fA-F]{40}$") { $env:GITHUB_SHA } else { "" }
+$revisionArguments = @()
+if ($sourceRevision) {
+ $revisionArguments = @("-p:SourceRevisionId=$sourceRevision", "-p:IncludeSourceRevisionInInformationalVersion=true")
+}
 $packageVersion = if ([string]::IsNullOrWhiteSpace($PackageVersion)) { "$version.0" } else { $PackageVersion }
 if ($packageVersion -notmatch "^[1-9]\d*\.\d+\.\d+\.0$") { throw "PackageVersion must use major.minor.build.0 for Microsoft Store packaging." }
 $artifacts = Join-Path $projectRoot "artifacts"
 $publish = Join-Path $artifacts "app-x64"
 New-Item $artifacts -ItemType Directory -Force | Out-Null
 Native "dotnet" @("run", "--project", "tests/Deadsmile.Core.Tests", "--configuration", "Release")
-Native "dotnet" @("publish", "src/Deadsmile.Launcher/Deadsmile.Launcher.csproj", "-c", "Release", "-r", "win-x64",
+$publishArguments = @("publish", "src/Deadsmile.Launcher/Deadsmile.Launcher.csproj", "-c", "Release", "-r", "win-x64",
  "--self-contained", "true", "-p:Platform=x64", "-p:WindowsPackageType=None", "-p:WindowsAppSDKSelfContained=true",
- "-p:PublishTrimmed=false", "-p:PublishSingleFile=false", "-bl:$artifacts/publish.binlog", "-o", $publish)
+ "-p:PublishTrimmed=false", "-p:PublishSingleFile=false", "-bl:$artifacts/publish.binlog", "-o", $publish) + $revisionArguments
+Native "dotnet" $publishArguments
 if (!(Test-Path "$publish\Deadsmile.Launcher.exe") -or !(Test-Path "$publish\Microsoft.UI.Xaml.dll")) {
  throw "Published app or WinUI runtime is missing."
 }

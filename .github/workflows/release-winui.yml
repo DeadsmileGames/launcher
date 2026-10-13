@@ -35,8 +35,16 @@ jobs:
       - name: Install NSIS
         shell: pwsh
         run: |
-          choco install nsis --yes --no-progress
-          if ($LASTEXITCODE -ne 0) { throw "NSIS installation failed." }
+          $installed = $false
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            $tool = Get-Command "makensis.exe" -ErrorAction SilentlyContinue
+            $candidate = Join-Path ([Environment]::GetEnvironmentVariable("ProgramFiles(x86)")) "NSIS\makensis.exe"
+            if ($tool -or (Test-Path $candidate)) { $installed = $true; break }
+            choco install nsis --yes --no-progress --execution-timeout=1800
+            if ($LASTEXITCODE -eq 0) { $installed = $true; break }
+            if ($attempt -lt 3) { Start-Sleep -Seconds (10 * $attempt) }
+          }
+          if (!$installed) { throw "NSIS installation failed after three attempts." }
 
       - name: Build Store-identity MSIX and unsigned backup EXE
         shell: pwsh

@@ -8,6 +8,12 @@ O único pacote de distribuição é MSIX. O projeto separado `Deadsmile.Setup`,
 
 A release de produção gera um MSIX com a identidade oficial do Partner Center, sem assinatura local, destinado à submissão à Microsoft Store. A Store assina o pacote depois da certificação. O MSIX pré-submissão não é diretamente instalável até ter uma assinatura confiável.
 
+## Revisão de código e integridade em andamento
+
+A revisão completa também reforçou os limites de segurança dos serviços: hash SHA-256 remoto malformado agora é rejeitado, o extrator ZIP conta bytes realmente descompactados (não apenas o tamanho declarado no cabeçalho), backups de uma atualização interrompida são limpos somente quando a instalação nova e a anterior têm registros válidos, registros locais malformados não derrubam a leitura do catálogo e a ausência de acesso ao arquivo de log não interrompe recuperação. A captura Direct3D descarta frames tardios após timeout; o catálogo público ignora flags de propriedade/biblioteca de visitantes; erros de registro do protocolo e atalhos do desktop não podem interromper o boot ou uma desinstalação já concluída.
+
+Os textos de recuperação de boot e os títulos/descrições de conquistas também foram incluídos no catálogo `en`, `pt-BR` e `es`, e foram adicionados testes Core e validações estruturais para preservar essas regras. Isso continua pendente de aprovação no Actions do commit atual.
+
 ## Revisão de UX em andamento
 
 Esta revisão cobre persistência da DeadBar ao mudar o foco, recorte arredondado dos widgets e toasts, menu de bandeja nativo do Windows, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador passa a comparar chaves C#/XAML com os catálogos completos `en`, `pt-BR` e `es`; esses ajustes só devem ser considerados aprovados após o Actions do commit atual.

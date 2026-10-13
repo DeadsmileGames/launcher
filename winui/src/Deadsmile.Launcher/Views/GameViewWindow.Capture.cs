@@ -52,7 +52,7 @@ public sealed partial class GameViewWindow
                 finally { button.IsEnabled = true; }
             }; body.Children.Add(button); return button;
         }
-        Action("Share with Windows", () => { captureShare ??= new CaptureShare(this); captureShare.Share(file); return Task.CompletedTask; });
+        Action("Share with Windows", () => { captureShare ??= new CaptureShare(this, owner.Locale.T("Choose a screenshot first.")); captureShare.Share(file); return Task.CompletedTask; });
         async Task Prepare(string network, bool? story = null)
         {
             var image = story is { } format ? await GameCapture.Format(file, format) : file;

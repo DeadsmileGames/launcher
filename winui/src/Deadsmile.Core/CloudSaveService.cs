@@ -40,9 +40,13 @@ public sealed class CloudSaveService(ApiClient api, Storage storage)
         if (content.EndsWith('\n')) content = content[..^1];
         if (!Regex.IsMatch(content, "^(?:[0-9a-fA-F]{64}\\n){7}[0-9a-fA-F]{64}$"))
             throw new LauncherException("CLOUD_SAVE_INVALID_PAYLOAD");
-        if (!string.IsNullOrEmpty(hash) && Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$") &&
-            !Convert.ToHexString(SHA256.HashData(bytes)).Equals(hash, StringComparison.OrdinalIgnoreCase))
-            throw new LauncherException("CLOUD_SAVE_CHECKSUM_MISMATCH");
+        if (!string.IsNullOrEmpty(hash))
+        {
+            if (!Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$"))
+                throw new LauncherException("CLOUD_SAVE_INVALID_PAYLOAD");
+            if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(hash, StringComparison.OrdinalIgnoreCase))
+                throw new LauncherException("CLOUD_SAVE_CHECKSUM_MISMATCH");
+        }
         return bytes;
     }
     public static byte[] RemoteBytes(JsonNode remote)

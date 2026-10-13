@@ -40,7 +40,13 @@ public static class GameCapture
             encoder.SetSoftwareBitmap(bitmap); encoder.BitmapTransform.Bounds = new BitmapBounds { Width = (uint)Math.Min(bitmap.PixelWidth, frame.ContentSize.Width), Height = (uint)Math.Min(bitmap.PixelHeight, frame.ContentSize.Height) };
             await encoder.FlushAsync(); return file;
         }
-        catch (TimeoutException) { throw new LauncherException("CAPTURE_UNAVAILABLE"); }
+        catch (TimeoutException)
+        {
+            // Cancel the completion source so a late frame is disposed by Arrived instead of leaking its D3D surface.
+            if (!result.TrySetCanceled() && result.Task.IsCompletedSuccessfully)
+                result.Task.Result.Dispose();
+            throw new LauncherException("CAPTURE_UNAVAILABLE");
+        }
         finally { pool.FrameArrived -= Arrived; }
     }
     private static IDirect3DDevice CreateDevice()

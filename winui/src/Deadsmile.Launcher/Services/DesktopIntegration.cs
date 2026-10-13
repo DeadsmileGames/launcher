@@ -49,9 +49,19 @@ public static class DesktopIntegration
     {
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (!Directory.Exists(desktop)) return;
-        foreach (var file in Directory.EnumerateFiles(desktop, "*.url"))
-            if (new FileInfo(file).Length < 32768 && PointsTo(file, Urls.Id(id)))
-                File.Delete(file);
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(desktop, "*.url"))
+            {
+                try
+                {
+                    if (new FileInfo(file).Length < 32768 && PointsTo(file, Urls.Id(id)))
+                        File.Delete(file);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
     private static bool PointsTo(string file, string id) =>
         new FileInfo(file).Length < 32768 && File.ReadAllLines(file).Any(line =>

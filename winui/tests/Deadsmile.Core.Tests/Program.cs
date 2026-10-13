@@ -74,8 +74,50 @@ Add("Cloud save accepts only the PICO save format and matching hashes", () =>
     Check(CloudSaveService.Validate(valid).Length == 520);
     Reject(() => CloudSaveService.Validate(Encoding.ASCII.GetBytes("not a save")));
     Reject(() => CloudSaveService.Validate(valid, new string('a', 64)));
+    Reject(() => CloudSaveService.Validate(valid, "not-a-sha256"));
     var remote = J.Obj(("payload", Convert.ToBase64String(valid)));
     Check(CloudSaveService.RemoteBytes(remote).SequenceEqual(valid));
+    var badHash = J.Obj(("payload", Convert.ToBase64String(valid)), ("sha256", "not-a-sha256"));
+    Reject(() => CloudSaveService.RemoteBytes(badHash));
+});
+Add("Known Abby achievement titles and descriptions have all language entries", () =>
+{
+    var locale = new Localization();
+    var cases = new Dictionary<string, (string Pt, string Es)>
+    {
+        ["Restless no more"] = ("Sem mais inquietação", "Se acabó la inquietud"),
+        ["Reach the end of Abby's journey."] = ("Chegue ao fim da jornada de Abby.", "Llega al final del viaje de Abby."),
+        ["Keep moving"] = ("Continue avançando", "Sigue adelante"),
+        ["Reach your first checkpoint."] = ("Alcance seu primeiro ponto de controle.", "Alcanza tu primer punto de control."),
+        ["A little spark"] = ("Uma pequena faísca", "Una pequeña chispa"),
+        ["Collect your first coin."] = ("Colete sua primeira moeda.", "Recoge tu primera moneda."),
+        ["Every little piece"] = ("Cada pequeno fragmento", "Cada pequeño fragmento"),
+        ["Collect every coin in a run."] = ("Colete todas as moedas em uma partida.", "Recoge todas las monedas en una partida."),
+        ["Unbroken Heart"] = ("Coração inabalável", "Corazón intacto"),
+        ["Finish Abby's journey without dying."] = ("Conclua a jornada de Abby sem morrer.", "Termina el viaje de Abby sin morir."),
+        ["Choose a screenshot first."] = ("Escolha uma captura de tela primeiro.", "Elige una captura de pantalla primero."),
+        ["One more try. This time, we've got this."] = ("Mais uma tentativa. Desta vez vai.", "Un intento más. Esta vez lo lograremos."),
+        ["It's dangerous to go alone. Take your library."] = ("É perigoso ir sozinho. Leve sua biblioteca.", "Es peligroso ir solo. Lleva tu biblioteca."),
+        ["The next checkpoint is just ahead."] = ("O próximo checkpoint está logo ali.", "El próximo punto de control está justo ahí."),
+        ["A new adventure is waiting for you."] = ("Uma nova aventura espera por você.", "Una nueva aventura te espera."),
+        ["The library is in another castle."] = ("A biblioteca está em outro castelo.", "La biblioteca está en otro castillo."),
+        ["Continue? Of course!"] = ("Continue? Claro que sim.", "¿Continuar? ¡Claro que sí!"),
+        ["Press start for a good story."] = ("Pressione iniciar para uma boa história.", "Pulsa iniciar para una buena historia."),
+        ["A small step, a great achievement."] = ("Um pequeno passo, uma grande conquista.", "Un pequeño paso, un gran logro."),
+        ["No shortcuts to the final level."] = ("Sem atalhos para a fase final.", "Sin atajos hacia el nivel final."),
+        ["You found a secret area: your games."] = ("Você encontrou uma área secreta: seus jogos.", "Encontraste una zona secreta: tus juegos."),
+        ["Preparing the next mission."] = ("Preparando a próxima missão.", "Preparando la próxima misión."),
+        ["Save your energy for the boss."] = ("Guarde energia para o chefão.", "Guarda energía para el jefe final."),
+        ["Loading another life."] = ("Carregando mais uma vida.", "Cargando otra vida."),
+        ["The journey begins at the home screen."] = ("A jornada começa na tela inicial.", "La aventura comienza en la pantalla de inicio."),
+        ["The real loot is the games we discover."] = ("O verdadeiro loot são os jogos que descobrimos.", "El verdadero botín son los juegos que descubrimos.")
+    };
+    foreach (var (key, value) in cases)
+    {
+        locale.Language = "pt-BR"; Check(locale.T(key) == value.Pt);
+        locale.Language = "es"; Check(locale.T(key) == value.Es);
+        locale.Language = "en"; Check(locale.T(key) == key);
+    }
 });
 Add("Storage paths cannot escape settings", () =>
 {
@@ -88,6 +130,17 @@ Add("Version comparison is numeric", () =>
 {
     Check(Versions.Compare("1.10", "1.9") > 0); Check(Versions.Compare("2.0", "2.0.0") == 0);
     Check(Versions.FromFilename("abby-v1.2.3.zip") == "1.2.3");
+});
+Async("ZIP extraction writes exact decompressed bytes", async () =>
+{
+    var zip = Path.Combine(root, Guid.NewGuid() + ".zip");
+    var destination = Path.Combine(root, "zip-valid-" + Guid.NewGuid().ToString("N"));
+    var payload = new string('x', 120000);
+    using (var archive = ZipFile.Open(zip, ZipArchiveMode.Create))
+    using (var writer = new StreamWriter(archive.CreateEntry("game/game.exe").Open()))
+        writer.Write(payload);
+    await InstallationService.Extract(zip, destination, default);
+    Check(File.ReadAllText(Path.Combine(destination, "game", "game.exe")) == payload);
 });
 Async("ZIP extraction rejects traversal", async () =>
 {
@@ -140,6 +193,26 @@ Async("Orphan backup recovery identifies the correct game", async () =>
     File.WriteAllText(Path.Combine(backup, "game.exe"), "old"); InstallationService.WriteRecord(backup, new(id, "game.exe", "1.0"));
     await service.Refresh([new Game(J.Obj(("id", id), ("slug", "abby")))], _ => false);
     Check(service.Installed.ContainsKey(id)); Check(!Directory.Exists(backup));
+});
+Async("Refresh cleans a stale backup when the new install is valid", async () =>
+{
+    var s = new Storage(Path.Combine(root, "stale-backup")); var service = new InstallationService(s);
+    var folder = service.Folder(id); var backup = folder + ".backup";
+    Directory.CreateDirectory(folder); Directory.CreateDirectory(backup);
+    File.WriteAllText(Path.Combine(folder, "game.exe"), "new");
+    File.WriteAllText(Path.Combine(backup, "game.exe"), "old");
+    InstallationService.WriteRecord(folder, new(id, "game.exe", "2.0"));
+    InstallationService.WriteRecord(backup, new(id, "game.exe", "1.0"));
+    await service.Refresh([new Game(J.Obj(("id", id), ("slug", "demo"), ("title", "Demo")))], _ => false);
+    Check(service.Installed.TryGetValue(id, out var installed) && installed.Version == "2.0");
+    Check(!Directory.Exists(backup));
+});
+Add("Malformed installation records are ignored", () =>
+{
+    var s = new Storage(Path.Combine(root, "malformed-record")); var service = new InstallationService(s);
+    var folder = service.Folder(id); Directory.CreateDirectory(folder);
+    InstallationService.WriteRecord(folder, new(id, "\0.exe", "1.0"));
+    Check(InstallationService.ReadRecord(folder, id) is null);
 });
 Async("Unsafe installation records cannot authorize execution", async () =>
 {
@@ -195,9 +268,37 @@ Async("Visitor catalog uses public endpoints and does not request a private libr
     {
         Check(req.RequestUri!.AbsolutePath.EndsWith("/games"));
         Check(req.RequestUri.Query == "?page=1&limit=48");
-        return Reply(200, new JsonObject { ["data"] = J.Obj(("items", new[] { J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "free")) }), ("pagination", J.Obj(("totalPages", 1)))) }.ToJsonString());
+        return Reply(200, new JsonObject { ["data"] = J.Obj(("items", new[] { J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "free"), ("owned", true), ("inLibrary", true)) }), ("pagination", J.Obj(("totalPages", 1)))) }.ToJsonString());
     }));
     var games = await PublicCatalog.Load(api, false); Check(games.Length == 1 && !games[0].InLibrary && !games[0].CanLaunch);
+});
+Async("Public ownership flags cannot authorize a user without a private library record", async () =>
+{
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req =>
+    {
+        if (req.RequestUri!.AbsolutePath.EndsWith("/games"))
+            return Reply(200, new JsonObject { ["data"] = J.Obj(
+                ("items", new[] { J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"),
+                    ("accessType", "free"), ("owned", true), ("inLibrary", true)) }),
+                ("pagination", J.Obj(("totalPages", 1)))) }.ToJsonString());
+        return Reply(200, new JsonObject { ["data"] = J.Obj(("items", Array.Empty<JsonObject>())) }.ToJsonString());
+    }));
+    var games = await PublicCatalog.Load(api, true);
+    Check(games.Length == 1 && !games[0].Owned && !games[0].InLibrary && !games[0].CanLaunch);
+});
+Async("Partial private library records cannot inherit public ownership flags", async () =>
+{
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req =>
+    {
+        if (req.RequestUri!.AbsolutePath.EndsWith("/games"))
+            return Reply(200, new JsonObject { ["data"] = J.Obj(
+                ("items", new[] { J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"),
+                    ("accessType", "free"), ("owned", true), ("inLibrary", true)) }),
+                ("pagination", J.Obj(("totalPages", 1)))) }.ToJsonString());
+        return Reply(200, new JsonObject { ["data"] = J.Obj(("items", new[] { J.Obj(("id", id)) })) }.ToJsonString());
+    }));
+    var games = await PublicCatalog.Load(api, true);
+    Check(games.Length == 1 && !games[0].Owned && !games[0].InLibrary && !games[0].CanLaunch);
 });
 Async("Authenticated catalog merges ownership without mutating public data", async () =>
 {
@@ -205,7 +306,7 @@ Async("Authenticated catalog merges ownership without mutating public data", asy
     using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req => Reply(200,
         new JsonObject { ["data"] = req.RequestUri!.AbsolutePath.EndsWith("/games") ?
             J.Obj(("items", new[] { source }), ("pagination", J.Obj(("totalPages", 1)))) :
-            J.Obj(("items", new[] { J.Obj(("id", id), ("owned", true), ("inLibrary", true)) })) }.ToJsonString())));
+            J.Obj(("items", new[] { J.Obj(("id", id.ToUpperInvariant()), ("owned", true), ("inLibrary", true)) })) }.ToJsonString())));
     var games = await PublicCatalog.Load(api, true); Check(games[0].Owned && games[0].InLibrary && games[0].CanLaunch); Check(source.At("owned") is null);
 });
 Add("Paid games require ownership and library membership", () =>

@@ -27,6 +27,15 @@ public sealed class InstallationService(Storage storage)
                 PathGuard.RequireInside(Storage.Games, backup);
                 if (!busy(id) && !Directory.Exists(folder) && Directory.Exists(backup) && ReadRecord(backup, id) is not null)
                     Directory.Move(backup, folder);
+                // A crash can occur after the staged installation becomes the target but before
+                // the previous version's backup is deleted. Keep the valid target and clean that stale backup.
+                if (!busy(id) && Directory.Exists(folder) && Directory.Exists(backup) &&
+                    ReadRecord(folder, id) is not null && ReadRecord(backup, id) is not null)
+                {
+                    try { Directory.Delete(backup, true); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    { Storage.Log("INSTALL_BACKUP_CLEANUP_PENDING"); }
+                }
                 if (allowLegacyDetection && !Directory.Exists(folder) && !busy(id) && !string.IsNullOrEmpty(game.Slug) &&
                     (!game.Data.S("accessType").Equals("paid", StringComparison.OrdinalIgnoreCase) || (game.Owned && game.InLibrary)))
                 {
@@ -49,7 +58,9 @@ public sealed class InstallationService(Storage storage)
                 else if (busy(id) && Installed.TryGetValue(id, out var existing)) indexed[id] = existing;
             }
             Installed = new ConcurrentDictionary<string, InstalledGame>(indexed);
-            Storage.Write("winui-installed.json", indexed);
+            try { Storage.Write("winui-installed.json", indexed); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { Storage.Log("INSTALL_INDEX_RECOVERY_PENDING"); }
         }
         finally { gate.Release(); }
     }
@@ -64,7 +75,7 @@ public sealed class InstallationService(Storage storage)
             PathGuard.RequireInside(folder, exe);
             return exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(exe) ? record : null;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or LauncherException) { return null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or LauncherException or ArgumentException or NotSupportedException) { return null; }
     }
     public static void WriteRecord(string folder, InstallRecord record) =>
         global::Deadsmile.Core.Storage.AtomicWrite(Path.Combine(folder, RecordName), JsonSerializer.SerializeToUtf8Bytes(record, global::Deadsmile.Core.Storage.JsonOptions));
@@ -123,7 +134,9 @@ public sealed class InstallationService(Storage storage)
             if (ReadRecord(folder, id) is null) throw new LauncherException("GAME_PATH_UNSAFE");
             if (busy(id)) throw new LauncherException("GAME_RUNNING");
             Directory.Delete(folder, true); Installed.TryRemove(id, out _);
-            Storage.Write("winui-installed.json", Installed);
+            try { Storage.Write("winui-installed.json", Installed); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { Storage.Log("INSTALL_INDEX_RECOVERY_PENDING"); }
         }
         finally { gate.Release(); }
     }
@@ -133,6 +146,7 @@ public sealed class InstallationService(Storage storage)
         using var zip = ZipFile.OpenRead(archive);
         if (zip.Entries.Count > 100000) throw new LauncherException("ZIP_TOO_MANY_ENTRIES");
         long total = 0;
+        long actualTotal = 0;
         foreach (var entry in zip.Entries)
         {
             ct.ThrowIfCancellationRequested();
@@ -150,7 +164,20 @@ public sealed class InstallationService(Storage storage)
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             await using var source = entry.Open();
             await using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
-            await source.CopyToAsync(output, ct);
+            long entryWritten = 0;
+            var buffer = new byte[81920];
+            while (true)
+            {
+                var read = await source.ReadAsync(buffer, ct);
+                if (read == 0) break;
+                entryWritten = checked(entryWritten + read);
+                actualTotal = checked(actualTotal + read);
+                if (entryWritten > entry.Length || actualTotal > 40L * 1024 * 1024 * 1024)
+                    throw new LauncherException("ZIP_EXTRACTED_SIZE_LIMIT");
+                await output.WriteAsync(buffer.AsMemory(0, read), ct);
+            }
+            if (entryWritten != entry.Length)
+                throw new LauncherException("ZIP_EXTRACTED_SIZE_LIMIT");
         }
     }
 }

@@ -11,9 +11,11 @@ public sealed class CaptureShare : IDisposable
     private readonly IDataTransferManagerInterop interop;
     private readonly DataTransferManager manager;
     private readonly IntPtr window;
+    private readonly string missingScreenshotMessage;
     private StorageFile? pending;
-    public CaptureShare(Microsoft.UI.Xaml.Window owner)
+    public CaptureShare(Microsoft.UI.Xaml.Window owner, string missingScreenshotMessage)
     {
+        this.missingScreenshotMessage = missingScreenshotMessage;
         window = WinRT.Interop.WindowNative.GetWindowHandle(owner);
         interop = DataTransferManager.As<IDataTransferManagerInterop>();
         var iid = new Guid("a5caee9b-8708-49d1-8d36-67d25a8da00c"); var pointer = interop.GetForWindow(window, ref iid);
@@ -27,7 +29,7 @@ public sealed class CaptureShare : IDisposable
     }
     private void Requested(DataTransferManager sender, DataRequestedEventArgs args)
     {
-        if (pending is not { } file) { args.Request.FailWithDisplayText("Choose a screenshot first."); return; }
+        if (pending is not { } file) { args.Request.FailWithDisplayText(missingScreenshotMessage); return; }
         args.Request.Data.Properties.Title = "DeadBar"; args.Request.Data.SetStorageItems([file]); args.Request.Data.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
     }
     public void Share(StorageFile file) { pending = file; interop.ShowShareUIForWindow(window); }

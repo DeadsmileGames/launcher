@@ -35,11 +35,12 @@ public sealed partial class MainWindow
     private readonly List<SearchEntry> searchResults = new();
     private MediaPlayer? bannerPlayer;
     private int pageRevision;
-    private string[] quotes = ["Mais uma tentativa. Desta vez vai.", "É perigoso ir sozinho. Leve sua biblioteca.",
-        "O próximo checkpoint está logo ali.", "Uma nova aventura espera por você.", "A biblioteca está em outro castelo.",
-        "Continue? Claro que sim.", "Pressione iniciar para uma boa história.", "Um pequeno passo, uma grande conquista.",
-        "Sem atalhos para a fase final.", "Você encontrou uma área secreta: seus jogos.", "Preparando a próxima missão.",
-        "Guarde energia para o chefão.", "Carregando mais uma vida.", "A jornada começa na tela inicial.", "O verdadeiro loot são os jogos que descobrimos."];
+    private string[] quotes = ["One more try. This time, we've got this.", "It's dangerous to go alone. Take your library.",
+        "The next checkpoint is just ahead.", "A new adventure is waiting for you.", "The library is in another castle.",
+        "Continue? Of course!", "Press start for a good story.", "A small step, a great achievement.",
+        "No shortcuts to the final level.", "You found a secret area: your games.", "Preparing the next mission.",
+        "Save your energy for the boss.", "Loading another life.", "The journey begins at the home screen.",
+        "The real loot is the games we discover."];
     private sealed class SearchEntry(string title, Game? game = null, string? setting = null)
     { public string Title { get; } = title; public Game? Game { get; } = game; public string? Setting { get; } = setting; public override string ToString() => Title; }
     private async Task StartBoot()
@@ -50,8 +51,8 @@ public sealed partial class MainWindow
         BootErrorPhrase.Visibility = BootErrorCode.Visibility = BootRetry.Visibility = Visibility.Collapsed;
         SearchBox.Visibility = AccountButton.Visibility = Visibility.Collapsed;
         var watch = Stopwatch.StartNew(); var index = Random.Shared.Next(quotes.Length);
-        BootQuote.Text = quotes[index]; var ticker = DispatcherQueue.CreateTimer(); ticker.Interval = TimeSpan.FromMilliseconds(750);
-        ticker.Tick += (_, _) => { index = (index + 1) % quotes.Length; BootQuote.Text = quotes[index]; }; ticker.Start();
+        BootQuote.Text = Locale.T(quotes[index]); var ticker = DispatcherQueue.CreateTimer(); ticker.Interval = TimeSpan.FromMilliseconds(750);
+        ticker.Tick += (_, _) => { index = (index + 1) % quotes.Length; BootQuote.Text = Locale.T(quotes[index]); }; ticker.Start();
         try
         {
             try { User = await Api.Get("/auth/me"); }
@@ -66,7 +67,8 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             ticker.Stop(); BootRing.IsActive = false; BootRing.Visibility = Visibility.Collapsed;
-            BootErrorPhrase.Text = "Ah sh*t, aqui vamos nós de novo."; BootQuote.Text = "Seu próximo checkpoint pode esperar um instante.";
+            BootErrorPhrase.Text = Locale.T("The launcher hit a snag. Let's try again.");
+            BootQuote.Text = Locale.T("Your next checkpoint can wait a moment.");
             BootErrorCode.Text = Locale.T("Error") + ": " + LauncherErrors.Number(ex);
             BootErrorPhrase.Visibility = BootErrorCode.Visibility = BootRetry.Visibility = Visibility.Visible;
             storage.Log("BOOT_" + LauncherErrors.Number(ex)); booting = false;
@@ -108,7 +110,8 @@ public sealed partial class MainWindow
     {
         var loggedIn = User is not null;
         Username.Text = loggedIn ? User.S("username") : Locale.T("Guest"); Avatar.DisplayName = loggedIn ? Username.Text : "";
-        AccountActionLabel.Text = Locale.T("Settings");
+        AccountActionLabel.Text = Locale.T(loggedIn ? "Settings" : "Sign in");
+        AutomationProperties.SetName(AccountButton, Locale.T(loggedIn ? "Settings" : "Sign in"));
         SignInMenuItem.Visibility = loggedIn ? Visibility.Collapsed : Visibility.Visible;
         LogoutButton.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
         SettingsMenuItem.Visibility = Visibility.Visible; MyAccountMenuItem.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;

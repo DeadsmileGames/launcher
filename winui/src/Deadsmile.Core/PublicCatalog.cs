@@ -20,14 +20,29 @@ public static class PublicCatalog
             }
             if (items.Count > 10000) throw new LauncherException("INVALID_RESPONSE");
         }
-        var owned = authenticated ? (await api.Get("/library/catalog", ct)).At("items").Items().ToDictionary(x => x.S("id")) : new Dictionary<string, JsonNode>();
+        var owned = authenticated
+            ? (await api.Get("/library/catalog", ct)).At("items").Items()
+                .Where(x => Guid.TryParse(x.S("id"), out _))
+                .GroupBy(x => Urls.Id(x.S("id")), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, JsonNode>(StringComparer.OrdinalIgnoreCase);
         using var gate = new SemaphoreSlim(4);
         var tasks = items.Select(async game =>
         {
             var data = (JsonObject)game.Data.DeepClone();
-            if (owned.TryGetValue(game.Id, out var entry))
+            if (authenticated && owned.TryGetValue(Urls.Id(game.Id), out var entry))
+            {
+                data["owned"] = false;
+                data["inLibrary"] = false;
                 foreach (var key in new[] { "owned", "inLibrary", "accessType", "version" })
                     if (entry.At(key) is { } value) data[key] = value.DeepClone();
+            }
+            else
+            {
+                // Public catalog fields are not an authorization source, even for a signed-in user.
+                data["owned"] = false;
+                data["inLibrary"] = false;
+            }
             // Detailed Store art is loaded only for products that have a Store listing.
             if (game.Data.At("microsoftStoreBadge") is not null)
             {

@@ -33,3 +33,16 @@ O website `https://deadsmilegames.vercel.app` respondeu **HTTP 402 / DEPLOYMENT_
 Os testes de segurança do backend rodaram contra o ambiente isolado do próprio projeto. Em produção foram usados somente GETs de leitura/validação. Fluxos privados com uma conta real, compra no itch.io e jogos reais não foram executados com as credenciais de um usuário. A verificação automática no Windows Server 2025 não substitui testes manuais em desktops Windows 10/11, diferentes GPUs/DPI, HDR e fullscreen exclusivo.
 
 O certificado autoassinado é criado temporariamente para o smoke test do MSIX no runner e não é publicado como artefato. A identidade oficial do pacote de produção é validada separadamente; a assinatura pública, certificação na Store e feed de atualização ainda dependem da configuração do publicador.
+
+## Achados da revisão integral (corrigidos no código, aguardando CI)
+
+- **Integridade de saves:** qualquer `sha256` não vazio precisa ter 64 dígitos hexadecimais; um valor malformado não é tratado como se não houvesse hash.
+- **Extração de arquivos:** o limite de 40 GiB é aplicado também à contagem real de bytes descompactados e o tamanho escrito precisa coincidir com o tamanho declarado pelo ZIP.
+- **Recuperação de atualizações:** uma instalação válida não é bloqueada por um backup válido que sobrou de uma interrupção; o backup só é removido quando ambos os registros identificam a instalação esperada.
+- **Autorização local:** um payload de catálogo público não pode tornar um visitante proprietário de um jogo marcando `owned` ou `inLibrary`; registros de instalação malformados são rejeitados sem abortar a varredura.
+- **Resiliência:** falhas de escrita do log não devem mascarar a exceção original; falhas opcionais ao registrar o protocolo ou remover atalhos não interrompem abertura do app nem uma remoção já efetivada.
+- **Captura:** o frame do Windows.Graphics.Capture é liberado se chegar depois do timeout.
+- **Localização:** mensagens de erro no boot e títulos/descrições das conquistas conhecidas possuem entradas explícitas para os três idiomas.
+
+Os testes de regressão foram ampliados. Essas correções só devem ser consideradas aprovadas após os testes Core, o build MSIX, o teste de instalação/abertura/desinstalação e a validação visual nativa passarem no mesmo commit.
+

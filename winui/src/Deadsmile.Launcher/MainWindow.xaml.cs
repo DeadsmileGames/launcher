@@ -183,7 +183,8 @@ public sealed partial class MainWindow : Window
         ShortcutText.Text = OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
         ApplyLanguage();
         Root.Loaded += async (_, _) => await Boot();
-        DesktopIntegration.RegisterProtocol();
+        try { DesktopIntegration.RegisterProtocol(); }
+        catch (Exception) { storage.Log("PROTOCOL_REGISTRATION_UNAVAILABLE"); }
         InitializeDesktop();
     }
     private void UI(Func<Task> action) => DispatcherQueue.TryEnqueue(async () =>
@@ -299,7 +300,11 @@ public sealed partial class MainWindow : Window
                     foreach (var item in wishlist.Items())
                         if (Guid.TryParse(item.S("id", "gameId"), out var wishlistId)) wishlistIds.Add(wishlistId.ToString());
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    // Keep the last known wishlist if the optional endpoint is temporarily unavailable.
+                    storage.Log(ex is LauncherException le ? le.Code : "WISHLIST_REFRESH_UNAVAILABLE");
+                }
             }
             RefreshGameActions();
         }
@@ -855,9 +860,13 @@ public sealed partial class MainWindow : Window
             foreach (var a in data.Items())
             {
                 var unlocked = a.At("unlocked_at", "unlockedAt") is not null;
-                var title = a.B("hidden") && !unlocked ? Locale.T("Hidden achievement") : a.S("title");
+                var rawTitle = a.S("title");
+                var rawDescription = a.S("description");
+                var title = a.B("hidden") && !unlocked ? Locale.T("Hidden achievement") :
+                    Locale.HasKey(rawTitle) ? Locale.T(rawTitle) : rawTitle;
+                var description = Locale.HasKey(rawDescription) ? Locale.T(rawDescription) : rawDescription;
                 panel.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"],
-                    Child = Text(title + "\n" + (a.B("hidden") && !unlocked ? "" : a.S("description")) +
+                    Child = Text(title + "\n" + (a.B("hidden") && !unlocked ? "" : description) +
                     "\n" + Locale.T(unlocked ? "Unlocked" : "Locked") + " · " + a.L("points")) });
             }
             if (panel.Children.Count == 0) panel.Children.Add(Text(Locale.T("No achievements yet.")));
@@ -1036,7 +1045,7 @@ public sealed partial class MainWindow : Window
             OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
             AppearanceLabels();
             UpdateHomeHeroControls(); RefreshTwoFactorLabels();
-            AutomationProperties.SetName(AccountButton, Locale.T("Settings"));
+            AutomationProperties.SetName(AccountButton, Locale.T(User is null ? "Sign in" : "Settings"));
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
             AutomationProperties.SetName(CollapseButton, Locale.T("Collapse navigation"));
             AutomationProperties.SetName(NavigationCompactCard, Locale.T("Compact navigation layout"));
@@ -1095,9 +1104,11 @@ public sealed partial class MainWindow : Window
     }
     private void ShowAchievement(JsonNode achievement)
     {
-        Notify(Locale.T("Achievement unlocked") + ": " + achievement.S("title"), InfoBarSeverity.Success);
+        var rawTitle = achievement.S("title");
+        var title = Locale.HasKey(rawTitle) ? Locale.T(rawTitle) : rawTitle;
+        Notify(Locale.T("Achievement unlocked") + ": " + title, InfoBarSeverity.Success);
         if (!Preferences.AchievementToasts) return;
-        var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), achievement.S("title"));
+        var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), title);
         toast.ShowOn(Games.Running.FirstOrDefault()?.Process.MainWindowHandle ?? IntPtr.Zero);
     }
     private void OpenGamesClick(object sender, RoutedEventArgs e) =>

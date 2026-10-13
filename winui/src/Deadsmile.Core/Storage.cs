@@ -44,7 +44,7 @@ public sealed class Storage
     public void Log(string code)
     {
         try { File.AppendAllText(FilePath("winui.log"), DateTimeOffset.UtcNow.ToString("O") + " " + code + Environment.NewLine); }
-        catch (IOException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 }
 

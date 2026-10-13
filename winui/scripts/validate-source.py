@@ -170,7 +170,9 @@ for path in launcher.rglob("*.cs"):
 xaml_exceptions = {"Deadsmile Games", "Deadsmile Games Launcher", "Português", "English", "Español", "0", "1", "2", "‹", "›", "−", "+"}
 for path in launcher.rglob("*.xaml"):
     raw = path.read_text(encoding="utf-8")
-    for attr in ("Text", "Content", "Header", "PlaceholderText", "Title", "AutomationProperties.Name"):
+    for attr in ("Text", "Content", "Header", "PlaceholderText", "Title", "ToolTip",
+                 "AutomationProperties.Name", "AutomationProperties.HelpText", "AutomationProperties.ItemStatus",
+                 "Footer", "Label"):
         for literal in re.finditer(r'\b' + re.escape(attr) + r'="([^"]+)"', raw):
             value = literal.group(1)
             if value.startswith("{") or value in xaml_exceptions:
@@ -186,12 +188,19 @@ gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
 game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
 tray_code = (launcher / "Services" / "TrayService.cs").read_text(encoding="utf-8")
 native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
+quote_array = re.search(r'private string\[\] quotes = \[(.*?)\];', portal_code, re.S)
+check(quote_array is not None and "BootQuote.Text = Locale.T(quotes[index])" in portal_code,
+      "Boot quotes are rendered through the localization catalog")
+if quote_array is not None:
+    for literal in re.finditer(r'"((?:\\.|[^"\\])*)"', quote_array.group(1)):
+        key = json.loads('"' + literal.group(1) + '"')
+        check(key in message_keys, f"Boot quote is missing a translation: {key}")
 check('x:Name="HomeHeroPreviousButton"' in main_xaml and 'x:Name="HomeHeroNextButton"' in main_xaml and
       "HomeHeroPreviousClick" in portal_code and "HomeHeroNextClick" in portal_code,
       "Home hero provides previous/next controls with handlers")
 check('x:Name="SettingsMenuItem"' in main_xaml and 'x:Name="MyAccountMenuItem"' in main_xaml and
       "SettingsClick" in portal_code and "MyAccountMenuItem.Visibility" in portal_code and
-      'AccountActionLabel.Text = Locale.T("Settings")' in portal_code,
+      'AccountActionLabel.Text = Locale.T(loggedIn ? "Settings" : "Sign in")' in portal_code,
       "Account menu separates application settings from My account")
 check('identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) })' in main_code and
       "Grid.SetColumn(heading, hasProductIcon ? 1 : 0)" in main_code,
@@ -217,6 +226,52 @@ check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMess
 check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 
+# Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
+cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")
+capture_code = (launcher / "Services" / "GameCapture.cs").read_text(encoding="utf-8")
+share_code = (launcher / "Services" / "CaptureShare.cs").read_text(encoding="utf-8")
+share_ui_code = (launcher / "Views" / "GameViewWindow.Capture.cs").read_text(encoding="utf-8")
+install_code = (core / "InstallationService.cs").read_text(encoding="utf-8")
+catalog_code = (core / "PublicCatalog.cs").read_text(encoding="utf-8")
+storage_code = (core / "Storage.cs").read_text(encoding="utf-8")
+desktop_integration_code = (launcher / "Services" / "DesktopIntegration.cs").read_text(encoding="utf-8")
+main_window_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+check('if (!Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$"))' in cloud_code and
+      'throw new LauncherException("CLOUD_SAVE_INVALID_PAYLOAD")' in cloud_code,
+      "Malformed supplied cloud-save hashes are rejected")
+check("long actualTotal = 0;" in install_code and
+      "if (entryWritten > entry.Length || actualTotal > 40L * 1024 * 1024 * 1024)" in install_code,
+      "ZIP extraction enforces actual decompressed size, not only archive metadata")
+check('Storage.Log("INSTALL_BACKUP_CLEANUP_PENDING")' in install_code and
+      "ReadRecord(folder, id) is not null && ReadRecord(backup, id) is not null" in install_code,
+      "Interrupted update recovery cleans only a valid stale backup")
+check('Storage.Log("INSTALL_INDEX_RECOVERY_PENDING")' in install_code,
+      "Uninstall tolerates an already-completed removal if index writing fails")
+check('if (authenticated && owned.TryGetValue(Urls.Id(game.Id), out var entry))' in catalog_code and
+      'data["owned"] = false' in catalog_code and
+      'data["inLibrary"] = false' in catalog_code,
+      "Only a private library record can authorize game ownership/launch")
+check('GroupBy(x => Urls.Id(x.S("id")), StringComparer.OrdinalIgnoreCase)' in catalog_code and
+      'ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase)' in catalog_code,
+      "Authenticated library merge normalizes GUID format, case, and duplicate IDs")
+check('or ArgumentException or NotSupportedException' in install_code,
+      "Malformed installation records are ignored safely")
+check('try { Storage.Write("winui-installed.json", indexed); }' in install_code and
+      'Storage.Log("INSTALL_INDEX_RECOVERY_PENDING")' in install_code,
+      "An unwritable installation index cannot abort startup/refresh")
+check('catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }' in storage_code,
+      "Best-effort local logging cannot throw on inaccessible log storage")
+check('PROTOCOL_REGISTRATION_UNAVAILABLE' in main_window_code and 'try { DesktopIntegration.RegisterProtocol(); }' in main_window_code,
+      "Optional protocol registration failure cannot abort app startup")
+check('try\n        {\n            foreach (var file in Directory.EnumerateFiles(desktop, "*.url"))' in desktop_integration_code,
+      "A bad desktop shortcut cannot abort successful game uninstallation")
+check("result.TrySetCanceled()" in capture_code and "result.Task.Result.Dispose()" in capture_code,
+      "A late Direct3D capture frame is released after capture timeout")
+check("missingScreenshotMessage" in share_code and
+      'owner.Locale.T("Choose a screenshot first.")' in share_ui_code,
+      "Screenshot share failure text uses localization")
+check('Locale.HasKey(rawTitle) ? Locale.T(rawTitle) : rawTitle' in main_code,
+      "Achievement titles use translations when a localized key exists")
 check(not (root / "src" / "Deadsmile.Setup").exists(), "Separate setup EXE project must not remain in the MSIX-only pipeline")
 check(not (launcher / "Services" / "UpdateService.cs").exists(), "Standalone EXE-based launcher updater must not remain in the MSIX-only pipeline")
 check(all("UpdateService" not in p.read_text() for p in launcher.rglob("*.cs")), "Launcher source must not reference the removed EXE updater")

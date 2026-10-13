@@ -16,7 +16,7 @@
      <Button x:Name="NotificationsButton" Style="{StaticResource SubtleButtonStyle}" Padding="8" Click="NotificationsClick"
       AutomationProperties.Name="Notifications" AutomationProperties.AutomationId="LauncherNotifications">
       <Grid Width="24" Height="24">
-       <FontIcon Glyph="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="22"/>
+       <FontIcon Glyph="&#xE7E7;" FontFamily="Segoe MDL2 Assets" FontSize="22"/>
        <InfoBadge x:Name="NotificationBadge" Value="1" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top"/>
       </Grid>
       <Button.Flyout><MenuFlyout x:Name="NotificationMenu"/></Button.Flyout>
@@ -392,7 +392,7 @@
   <Grid x:Name="AppToast" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="24,52,24,0" Width="360" MaxWidth="360" Visibility="Collapsed" IsHitTestVisible="True">
    <Border Background="#FF242424" BorderBrush="#FF454545" BorderThickness="1" CornerRadius="16" Padding="16">
     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-     <FontIcon Glyph="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="22" VerticalAlignment="Top"/>
+     <FontIcon Glyph="&#xE7E7;" FontFamily="Segoe MDL2 Assets" FontSize="22" VerticalAlignment="Top"/>
      <StackPanel Grid.Column="1" Spacing="4"><TextBlock x:Name="AppToastTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap"/><TextBlock x:Name="AppToastMessage" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis"/></StackPanel>
      <Button Grid.Column="2" Style="{StaticResource SubtleButtonStyle}" Padding="4" Click="DismissAppToastClick" VerticalAlignment="Top"><SymbolIcon Symbol="Cancel"/></Button>
     </Grid>

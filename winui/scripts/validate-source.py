@@ -193,6 +193,16 @@ program_code = (launcher / "Program.cs").read_text(encoding="utf-8")
 check("private void ShowForActivation()" in main_code and "AppWindow.Show();" in main_code and
       "ShowForActivation();" in main_code and "ValidationShowForActivation" in main_code,
       "Secondary launcher activation explicitly restores a hidden window")
+check("native.Hotkey += QueueOverlayToggle;" in main_code and
+      "DispatcherQueue.TryEnqueue(ToggleOverlay)" in main_code and
+      "ValidationQueueOverlayToggle" in main_code and
+      "try { Hotkey?.Invoke(); }" in native_code,
+      "Ctrl+D handling is dispatched to WinUI instead of opening/closing windows inside native WndProc")
+check('Glyph="&#xEA80;"' in (launcher / "Views" / "AchievementWindow.xaml").read_text(encoding="utf-8") and
+      'ShortcutIcon.Glyph = "\\uEA80";' in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
+      "ApplyShortcutTheme(owner.UiTheme)" in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
+      "ToastRoot.RequestedTheme = ElementTheme.Light" not in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8"),
+      "DeadBar hint uses a lightbulb and follows the launcher's selected theme")
 check("ReportStartupFailure(ex)" in program_code and "STARTUP_FATAL" in program_code and
       "MessageBoxW" in program_code and "Could not forward activation" in program_code,
       "Fatal startup/activation failures are logged and shown instead of exiting silently")

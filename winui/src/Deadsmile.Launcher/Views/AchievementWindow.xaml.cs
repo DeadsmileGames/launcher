@@ -18,11 +18,13 @@ public sealed partial class AchievementWindow : Window
         {
             ToastSurface.Visibility = Visibility.Collapsed;
             ShortcutSurface.Visibility = Visibility.Visible;
-            ToastRoot.RequestedTheme = ElementTheme.Light;
+            ToastRoot.RequestedTheme = owner.UiTheme;
+            ShortcutSurface.RequestedTheme = owner.UiTheme;
             ShortcutHeading.Text = heading;
             ShortcutMessage.Text = title;
-            ShortcutKey.Text = "Ctrl + D";
-            ShortcutIcon.Glyph = "";
+            ShortcutKey.Text = owner.OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
+            ShortcutIcon.Glyph = "\uEA80";
+            ApplyShortcutTheme(owner.UiTheme);
         }
         else ToastRoot.RequestedTheme = owner.UiTheme;
         // Toasts can appear over full-screen games; keep their surface opaque regardless of
@@ -36,10 +38,51 @@ public sealed partial class AchievementWindow : Window
         timer.Tick += (_, _) => { timer.Stop(); Close(); };
         Closed += (_, _) => timer.Stop();
     }
+    private void ApplyShortcutTheme(ElementTheme theme)
+    {
+        var light = theme == ElementTheme.Light;
+        ShortcutSurface.Background = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 246, 247, 249)
+            : Windows.UI.Color.FromArgb(255, 36, 36, 36));
+        ShortcutSurface.BorderBrush = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 213, 217, 223)
+            : Windows.UI.Color.FromArgb(255, 69, 69, 69));
+        ShortcutIconSurface.Background = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 228, 232, 237)
+            : Windows.UI.Color.FromArgb(255, 56, 56, 56));
+        ShortcutHeading.Foreground = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 29, 31, 34)
+            : Windows.UI.Color.FromArgb(255, 245, 245, 245));
+        ShortcutKey.Foreground = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 58, 63, 69)
+            : Windows.UI.Color.FromArgb(255, 223, 223, 223));
+        ShortcutMessage.Foreground = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 76, 81, 88)
+            : Windows.UI.Color.FromArgb(255, 193, 193, 193));
+        ShortcutIcon.Foreground = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 61, 105, 0)
+            : Windows.UI.Color.FromArgb(255, 150, 222, 47));
+        ShortcutMeter.Background = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 218, 222, 228)
+            : Windows.UI.Color.FromArgb(255, 65, 65, 65));
+        ShortcutMeterFill.Background = new SolidColorBrush(light
+            ? Windows.UI.Color.FromArgb(255, 85, 140, 0)
+            : Windows.UI.Color.FromArgb(255, 134, 217, 0));
+    }
+
 #if UI_VALIDATION
     internal FrameworkElement ValidationRoot => ToastRoot;
     internal bool ValidationSolid => ToastSurface.Background is SolidColorBrush brush && brush.Color.A == 255;
-    internal bool ValidationHintStyle => ShortcutSurface.Visibility == Visibility.Visible && ToastSurface.Visibility == Visibility.Collapsed && ShortcutHeading.Text.Length > 0 && ShortcutMessage.Text.Length > 0;
+    internal bool ValidationHintStyle =>
+        ShortcutSurface.Visibility == Visibility.Visible &&
+        ToastSurface.Visibility == Visibility.Collapsed &&
+        ShortcutHeading.Text.Length > 0 &&
+        ShortcutMessage.Text.Length > 0 &&
+        ShortcutIcon.Glyph == "\uEA80" &&
+        ToastRoot.RequestedTheme == owner.UiTheme &&
+        ShortcutSurface.RequestedTheme == owner.UiTheme &&
+        ShortcutSurface.Background is SolidColorBrush surface &&
+        (owner.UiTheme == ElementTheme.Light ? surface.Color.R > 200 : surface.Color.R < 80);
 #endif
     public void ShowOn(IntPtr game, bool centered = false)
     {

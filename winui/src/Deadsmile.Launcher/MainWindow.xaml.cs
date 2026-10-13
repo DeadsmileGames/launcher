@@ -116,7 +116,7 @@ public sealed partial class MainWindow : Window
         Games.DownloadBusy = downloads.Busy;
         live = new LiveLibrary(Api);
         native = new NativeWindow(this) { Scale = () => Root.XamlRoot?.RasterizationScale ?? 1 };
-        native.Hotkey += ToggleOverlay;
+        native.Hotkey += QueueOverlayToggle;
         Api.Invalidated += () => { if (!booting && User is not null) UI(async () => { User = null; achievements.Stop(); await Enter(); }); };
         saves.Conflict += _ => UI(() => { Notify(Locale.Error("SAVE_CONFLICT")); return Task.CompletedTask; });
         Games.Failed += ex => UI(() => { Notify(Locale.Error(ex)); return Task.CompletedTask; });
@@ -1221,6 +1221,17 @@ public sealed partial class MainWindow : Window
         storage.Write("game-view.json", new { enabled = OverlayToggle.IsOn, shortcut = OverlayShortcut });
         if (!OverlayToggle.IsOn) overlay?.Hide(true); UpdateBusy();
     }
+    private void QueueOverlayToggle()
+    {
+        if (!DispatcherQueue.TryEnqueue(ToggleOverlay))
+        {
+            try { storage.Log("OVERLAY_HOTKEY_DISPATCH_FAILED"); }
+            catch (Exception) { }
+        }
+    }
+#if UI_VALIDATION
+    internal void ValidationQueueOverlayToggle() => QueueOverlayToggle();
+#endif
     private void ToggleOverlay()
     {
         try

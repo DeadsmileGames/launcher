@@ -11,11 +11,11 @@
     </StackPanel>
    </Grid>
   </Border>
-  <Border x:Name="ShortcutSurface" Visibility="Collapsed" Background="#FFF3F3F3" BorderBrush="#FFD7D7D7" BorderThickness="1" Padding="18,14" CornerRadius="24" RequestedTheme="Light">
+  <Border x:Name="ShortcutSurface" Visibility="Collapsed" Background="#FF242424" BorderBrush="#FF454545" BorderThickness="1" Padding="18,14" CornerRadius="24">
    <Grid ColumnSpacing="16">
     <Grid.ColumnDefinitions><ColumnDefinition Width="44"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Border Width="44" Height="44" CornerRadius="14" Background="#FFE3E3E3" VerticalAlignment="Center">
-     <FontIcon x:Name="ShortcutIcon" Glyph="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#FF252525" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Border x:Name="ShortcutIconSurface" Width="44" Height="44" CornerRadius="14" Background="#FF383838" VerticalAlignment="Center">
+     <FontIcon x:Name="ShortcutIcon" Glyph="&#xEA80;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#FF96DE2F" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Border>
     <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
      <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -24,7 +24,7 @@
      </Grid>
      <TextBlock x:Name="ShortcutMessage" FontSize="13" TextWrapping="Wrap" Foreground="#FF4A4A4A" MaxLines="1" TextTrimming="CharacterEllipsis"/>
      <Border x:Name="ShortcutMeter" Height="6" Background="#FFD8D8D8" CornerRadius="3">
-      <Border Width="140" Background="#FF86D900" HorizontalAlignment="Left" CornerRadius="3"/>
+      <Border x:Name="ShortcutMeterFill" Width="140" Background="#FF86D900" HorizontalAlignment="Left" CornerRadius="3"/>
      </Border>
     </StackPanel>
    </Grid>

@@ -46,7 +46,12 @@ public sealed class NativeWindow : IDisposable
     private IntPtr Procedure(IntPtr h, uint message, IntPtr wp, IntPtr lp)
     {
         try { Message?.Invoke(message, wp, lp); } catch { /* Never unwind a managed callback across WndProc. */ }
-        if (message == 0x0312 && wp.ToInt64() == 0x4453) { Hotkey?.Invoke(); return IntPtr.Zero; }
+        if (message == 0x0312 && wp.ToInt64() == 0x4453)
+        {
+            try { Hotkey?.Invoke(); }
+            catch (Exception) { /* Never unwind a managed callback across the native WndProc boundary. */ }
+            return IntPtr.Zero;
+        }
         if (noActivate && message == 0x0021) return new IntPtr(3);
         if (message == 0x0024)
         {

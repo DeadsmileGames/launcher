@@ -48,7 +48,7 @@ public sealed partial class MainWindow : Window
     private readonly HashSet<string> wishlistIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<LauncherNotification> localNotifications = [];
     private int homeSlideIndex;
-    private bool homeHeroPaused, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
+    private bool homeHeroPaused, homeHeroAnimating, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
     private string page = "explore";
     public string OverlayShortcut { get; private set; } = "Control+D";
     internal bool GameIsFocused
@@ -130,12 +130,9 @@ public sealed partial class MainWindow : Window
                 var animation = new FadeInThemeAnimation(); Storyboard.SetTarget(animation, heroImage);
                 var storyboard = new Storyboard(); storyboard.Children.Add(animation); storyboard.Begin();
             }
-            else if (selected is null && page == "explore" && !homeHeroPaused && string.IsNullOrWhiteSpace(SearchBox.Text) && Catalog.Length > 1)
-            {
-                homeSlideIndex = (homeSlideIndex + 1) % Catalog.Length; RenderCatalog();
-                var transition = new FadeInThemeAnimation(); Storyboard.SetTarget(transition, FeaturedImage);
-                var slideshow = new Storyboard(); slideshow.Children.Add(transition); slideshow.Begin();
-            }
+            else if (selected is null && page == "explore" && !homeHeroPaused &&
+                string.IsNullOrWhiteSpace(SearchBox.Text) && !(InstalledFilter.IsChecked ?? false) && Catalog.Length > 1)
+                _ = AdvanceHomeHeroAsync();
         };
         heroTimer.Start();
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Icon.ico"));
@@ -384,9 +381,8 @@ public sealed partial class MainWindow : Window
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
         FeaturedPanel.Visibility = featuredGame is not null && Root.ActualHeight >= 600 ? Visibility.Visible : Visibility.Collapsed;
         FeaturedPanel.Height = Root.ActualWidth >= 1008 ? 340 : 260;
-        var showSide = GameGrid.ActualWidth >= 880 && featuredGames[0] is not null;
-        FeaturedSide.Visibility = showSide ? Visibility.Visible : Visibility.Collapsed;
-        FeaturedSideColumn.Width = showSide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        FeaturedSide.Visibility = Visibility.Collapsed;
+        FeaturedSideColumn.Width = new GridLength(0);
     }
     private void RenderCatalog()
     {
@@ -406,17 +402,8 @@ public sealed partial class MainWindow : Window
             UpdateFeaturedAction();
             if (selected is null && page == "explore") _ = ConfigureHomeVideo(featuredGame);
         }
-        var featureImages = new[] { SecondaryFeaturedImage, ThirdFeaturedImage, FourthFeaturedImage };
-        var featureTitles = new[] { SecondaryFeaturedTitle, ThirdFeaturedTitle, FourthFeaturedTitle };
-        var featureButtons = new[] { SecondaryFeature, ThirdFeature, FourthFeature };
-        for (var i = 0; i < featuredGames.Length; i++)
-        {
-            featuredGames[i] = featuredGame is not null && items.Length > 1 ? items[(homeSlideIndex + i + 1) % items.Length] : null;
-            featureButtons[i].Visibility = featuredGames[i] is not null ? Visibility.Visible : Visibility.Collapsed;
-            if (featuredGames[i] is not { } feature) continue;
-            featureImages[i].Source = null; SetImage(featureImages[i], feature.HeroImages.FirstOrDefault() ?? feature.Cover);
-            featureTitles[i].Text = feature.Title; AutomationProperties.SetName(featureButtons[i], feature.Title);
-        }
+        Array.Fill(featuredGames, null);
+        SecondaryFeature.Visibility = ThirdFeature.Visibility = FourthFeature.Visibility = Visibility.Collapsed;
         AdjustLayout();
         EmptyCatalog.Text = Locale.T(page == "library" ? "Your library is empty." : "No games found.");
         EmptyCatalog.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -457,6 +444,55 @@ public sealed partial class MainWindow : Window
         FeaturedButton.Content = Locale.T(label);
         AutomationProperties.SetName(FeaturedButton, Locale.T(label));
         FeaturedButton.IsEnabled = running || (!Games.Busy(game.Id) && !downloads.Busy(game.Id) && !commandBusy);
+    }
+    private async Task AdvanceHomeHeroAsync()
+    {
+        if (homeHeroAnimating || homeHeroPaused || selected is not null || page != "explore" || Catalog.Length < 2) return;
+        homeHeroAnimating = true;
+        try
+        {
+            var outgoing = new TranslateTransform();
+            HomeHeroSurface.RenderTransform = outgoing;
+            HomeHeroSurface.Opacity = 1;
+            var leave = new Storyboard();
+            var leaveX = new DoubleAnimation
+            {
+                To = -72, Duration = TimeSpan.FromMilliseconds(230),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            Storyboard.SetTarget(leaveX, outgoing);
+            Storyboard.SetTargetProperty(leaveX, "X");
+            var leaveFade = new DoubleAnimation { To = 0.82, Duration = TimeSpan.FromMilliseconds(230) };
+            Storyboard.SetTarget(leaveFade, HomeHeroSurface);
+            Storyboard.SetTargetProperty(leaveFade, "Opacity");
+            leave.Children.Add(leaveX); leave.Children.Add(leaveFade); leave.Begin();
+            await Task.Delay(250);
+            if (homeHeroPaused || page != "explore" || selected is not null) return;
+            homeSlideIndex = (homeSlideIndex + 1) % Catalog.Length;
+            RenderCatalog();
+            var incoming = new TranslateTransform { X = 72 };
+            HomeHeroSurface.RenderTransform = incoming;
+            HomeHeroSurface.Opacity = 0.82;
+            var enter = new Storyboard();
+            var enterX = new DoubleAnimation
+            {
+                To = 0, Duration = TimeSpan.FromMilliseconds(280),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(enterX, incoming);
+            Storyboard.SetTargetProperty(enterX, "X");
+            var enterFade = new DoubleAnimation { To = 1, Duration = TimeSpan.FromMilliseconds(280) };
+            Storyboard.SetTarget(enterFade, HomeHeroSurface);
+            Storyboard.SetTargetProperty(enterFade, "Opacity");
+            enter.Children.Add(enterX); enter.Children.Add(enterFade); enter.Begin();
+            await Task.Delay(300);
+        }
+        finally
+        {
+            HomeHeroSurface.RenderTransform = new TranslateTransform();
+            HomeHeroSurface.Opacity = 1;
+            homeHeroAnimating = false;
+        }
     }
     private async void FeaturedClick(object sender, RoutedEventArgs e)
     {
@@ -518,6 +554,67 @@ public sealed partial class MainWindow : Window
         panel.Children.Add(content);
         return new Border { Style = (Style)Application.Current.Resources["Panel"], Child = panel };
     }
+    private MenuFlyout BuildGameContextFlyout(Game game)
+    {
+        var flyout = new MenuFlyout();
+        var busy = Games.Busy(game.Id) || downloads.Busy(game.Id) || commandBusy;
+        void Add(string key, Func<Task> callback, bool enabled = true, Symbol symbol = Symbol.Accept)
+        {
+            var item = new MenuFlyoutItem { Text = Locale.T(key), Icon = new SymbolIcon(symbol), IsEnabled = enabled && !busy };
+            item.Click += async (_, _) => await Guard(callback);
+            flyout.Items.Add(item);
+        }
+        if (installs.Installed.ContainsKey(game.Id))
+        {
+            var running = Games.Running.Any(entry => entry.Game.Id == game.Id && !entry.Process.HasExited);
+            if (game.CanLaunch)
+                Add(running ? "Stop" : "Play", () =>
+                {
+                    if (running) { Games.Stop(game.Id); return Task.CompletedTask; }
+                    return LaunchWithSequence(game);
+                }, true, running ? Symbol.Stop : Symbol.Play);
+            Add("Update game", async () =>
+            {
+                var remote = await Api.Metadata(game.Id);
+                if (Versions.Compare(remote.Version, installs.Installed[game.Id].Version) > 0) await Download(game);
+                else Notify(Locale.T("No update available."), InfoBarSeverity.Informational);
+            }, true, Symbol.Refresh);
+            Add("Uninstall", () => Uninstall(game), true, Symbol.Delete);
+        }
+        else if (game.DownloadAvailable && (game.CanLaunch || game.Data.S("accessType") == "free" || User is null))
+            Add("Install", () => Download(game), true, Symbol.Download);
+        if (flyout.Items.Count > 0) flyout.Items.Add(new MenuFlyoutSeparator());
+        var inWishlist = wishlistIds.Contains(Urls.Id(game.Id));
+        Add(inWishlist ? "Remove from wishlist" : "Add to wishlist",
+            () => ToggleWishlist(game), true, Symbol.Favorite);
+        return flyout;
+    }
+    private void GameCardLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is Game game)
+            element.ContextFlyout = BuildGameContextFlyout(game);
+    }
+    private static ImageBrush CenteredArtwork(string value)
+    {
+        ImageSource source;
+        #if UI_VALIDATION
+        if (value.Contains("fixture.invalid", StringComparison.Ordinal))
+            source = new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
+        else
+        #endif
+        {
+            var safe = Urls.Image(value);
+            source = string.IsNullOrWhiteSpace(safe)
+                ? new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"))
+                : safe.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+                    ? new SvgImageSource(new Uri(safe)) : new BitmapImage(new Uri(safe));
+        }
+        return new ImageBrush
+        {
+            ImageSource = source, Stretch = Stretch.UniformToFill,
+            AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Center
+        };
+    }
     private static void SetImage(Image image, string value)
     {
         #if UI_VALIDATION
@@ -561,13 +658,15 @@ public sealed partial class MainWindow : Window
         hero.Background = Root.Background;
         heroImage = new Image { Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Stretch };
         var banner = heroImage;
-        SetImage(heroImage, game.Cover); hero.Children.Add(heroImage);
-        var accent = Windows.UI.Color.FromArgb(255, 132, 216, 0);
-        var shade = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
-        shade.GradientStops.Add(new GradientStop { Color = accent, Offset = 0 });
-        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(220, 22, 22, 22), Offset = 0.48 });
-        shade.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(45, 15, 15, 15), Offset = 1 });
-        hero.Children.Add(new Border { Background = shade, CornerRadius = new CornerRadius(8) });
+        SetImage(heroImage, game.HeroImages.FirstOrDefault() ?? game.Cover);
+        hero.Children.Add(heroImage);
+        var accentOverlay = new Border
+        {
+            Background = CreateHeroShade(Windows.UI.Color.FromArgb(255, 74, 49, 40)),
+            CornerRadius = new CornerRadius(8)
+        };
+        hero.Children.Add(accentOverlay);
+        hero.ContextFlyout = BuildGameContextFlyout(game);
         var contents = new StackPanel { Spacing = 16, Padding = new Thickness(24), MaxWidth = 640, RequestedTheme = ElementTheme.Dark,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         var identity = new Grid { ColumnSpacing = 24 };
@@ -637,7 +736,7 @@ public sealed partial class MainWindow : Window
             contents.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - (video is null ? 0 : video.Width + 36)));
             hero.Clip = new RectangleGeometry { Rect = new Rect(0, 0, hero.ActualWidth, 360) };
         };
-        AddVideoBackground(game, hero, banner);
+        AddVideoBackground(game, hero, banner, accentOverlay);
         if (heroImages.Length > 1 && game.BackgroundVideo.Length == 0)
         {
             var pause = new Button { Content = new SymbolIcon(heroPaused ? Symbol.Play : Symbol.Pause), Margin = new Thickness(16),
@@ -764,10 +863,8 @@ public sealed partial class MainWindow : Window
             card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
             card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var cover = new Grid { Width = 140, Height = 210, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 32, 32, 32)) };
-            var artwork = new Image { Stretch = Stretch.UniformToFill, Width = 140, Height = 210,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            SetImage(artwork, job.Game.Poster.Length > 0 ? job.Game.Poster : job.Game.Cover);
-            cover.Children.Add(artwork);
+            cover.Background = CenteredArtwork(job.Game.Poster.Length > 0 ? job.Game.Poster : job.Game.Cover);
+            cover.Clip = new RectangleGeometry { Rect = new Rect(0, 0, 140, 210) };
             if (job.Status is not ("complete" or "cancelled" or "failed"))
             {
                 cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(190, 0, 0, 0)) });

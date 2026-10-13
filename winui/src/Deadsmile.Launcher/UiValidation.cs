@@ -152,6 +152,11 @@ public sealed partial class MainWindow
             Check(User is not null && Shell.Visibility == Visibility.Visible, "Native sign-in opens the shell");
             Check(ItchButton.IsEnabled && LogoutButton.IsEnabled, "Account controls re-enable after sign-in");
             Check(Shell is NavigationView && AppTitleBar is TitleBar, "Shell uses native NavigationView and TitleBar");
+            Check(FeaturedSide.Visibility == Visibility.Collapsed && FeaturedSideColumn.Width.Value == 0,
+                "Home hero presents one featured game without duplicate side tiles");
+            Check(NotificationsButton.Content is Grid notificationGrid &&
+                notificationGrid.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uEA8F"),
+                "Notifications use the Ringer glyph rather than TVMonitor");
             var originalLanguage = Locale.Language;
             Locale.Language = "pt-BR"; ApplyLanguage();
             Check(ProfileFullName.Header?.ToString() == "Nome completo", "Profile field headers translate to Portuguese");

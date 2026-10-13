@@ -15,7 +15,7 @@ if (!$setup -or !$msix -or !(Test-Path $certificate)) { throw 'Installer artifac
 
 function RunSetup([string]$File, [string[]]$Arguments) {
  $process = Start-Process -FilePath $File -ArgumentList $Arguments -PassThru
- if (!$process.WaitForExit(180000)) {
+ if (!$process.WaitForExit(240000)) {
   Stop-Process -Id $process.Id -Force
   throw "Installer timeout: $File"
  }
@@ -42,22 +42,23 @@ try {
  New-Item $testRoot -ItemType Directory -Force | Out-Null
  New-Item $userData -ItemType Directory -Force | Out-Null
  [IO.File]::WriteAllText($sentinel, 'Installer must preserve user data.')
- RunSetup $setup @('/S', "/D=$installDir")
+ RunSetup $setup @('--silent', '--target', $installDir)
  if (!(Test-Path "$installDir\deadsmile.install") -or !(Test-Path "$installDir\Microsoft.UI.Xaml.dll")) {
-  throw 'EXE installer did not deploy the app and bundled WinUI runtime.'
+  throw 'WinUI setup did not deploy the app and bundled runtime.'
  }
  $registered = (Get-ItemProperty 'HKCU:\Software\Deadsmile Games Launcher').InstallDir
  if ($registered -ne $installDir) { throw 'EXE installation registration is incorrect.' }
- Write-Host 'PASS EXE silent installation and registration'
+ if (!(Test-Path "$installDir\Uninstall\Deadsmile.Setup.exe")) { throw 'Native uninstaller is missing.' }
+ Write-Host 'PASS native WinUI setup installs and registers the app'
  CheckStartup "$installDir\Deadsmile.Launcher.exe"
- # NSIS _?= runs the uninstaller directly so WaitForExit observes the actual removal.
- RunSetup "$installDir\Uninstall.exe" @('/S', "_?=$installDir")
- if (Test-Path "$installDir\Deadsmile.Launcher.exe") { throw 'EXE uninstall left the application installed.' }
+ RunSetup "$installDir\Uninstall\Deadsmile.Setup.exe" @('--silent', '--uninstall', '--target', $installDir)
+ Start-Sleep -Seconds 3
+ if (Test-Path "$installDir\Deadsmile.Launcher.exe") { throw 'EXE uninstallation left the application installed.' }
  if (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DeadsmileWinUI') {
   throw 'EXE uninstall left its uninstall registration.'
  }
  if (!(Test-Path $sentinel)) { throw 'EXE uninstall removed user data.' }
- Write-Host 'PASS EXE uninstallation preserves user data'
+ Write-Host 'PASS native uninstall preserves user data'
 
  $trustedCertificate = Import-Certificate -FilePath $certificate -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople'
  Add-AppxPackage -Path $msix
@@ -77,7 +78,7 @@ try {
  throw
 } finally {
  if ($package) { Remove-AppxPackage -Package $package.PackageFullName -ErrorAction SilentlyContinue }
- if ($trustedCertificate) { Remove-Item $trustedCertificate.PSPath -ErrorAction SilentlyContinue }
+ if ($trustedCertificate) { Remove-Item $trustedCertificate.PSPath -Force -ErrorAction SilentlyContinue }
  Remove-Item $sentinel -Force -ErrorAction SilentlyContinue
  Remove-Item $testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

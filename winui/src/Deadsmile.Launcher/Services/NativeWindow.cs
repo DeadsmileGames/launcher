@@ -87,6 +87,19 @@ public sealed class NativeWindow : IDisposable
         SetWindowLongPtr(h, GwlStyle, new IntPtr(style & ~FrameStyles));
         SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020);
     }
+    public static void ApplyRoundedRegion(Window window, double radiusDip = 18)
+    {
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        if (!GetWindowRect(hwnd, out var bounds)) return;
+        var width = Math.Max(1, bounds.Right - bounds.Left);
+        var height = Math.Max(1, bounds.Bottom - bounds.Top);
+        var diameter = (int)Math.Round(Math.Min(Math.Min(width, height), radiusDip * DpiScale(IntPtr.Zero, window) * 2));
+        if (diameter < 2) return;
+        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, diameter, diameter);
+        if (region == IntPtr.Zero) return;
+        // SetWindowRgn transfers ownership of the HRGN to Windows on success.
+        if (SetWindowRgn(hwnd, region, true) == 0) DeleteObject(region);
+    }
     public static void RoundCorners(Window window)
     {
         if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
@@ -156,6 +169,10 @@ public sealed class NativeWindow : IDisposable
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(IntPtr h, out Rect rect);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom, int widthEllipse, int heightEllipse);
+    [DllImport("user32.dll", SetLastError = true)] private static extern int SetWindowRgn(IntPtr h, IntPtr region, bool redraw);
+    [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
     [DllImport("dwmapi.dll")] private static extern int DwmExtendFrameIntoClientArea(IntPtr h, ref Margins margins);
 }
 

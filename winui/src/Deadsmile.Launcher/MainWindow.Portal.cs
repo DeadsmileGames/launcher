@@ -108,10 +108,10 @@ public sealed partial class MainWindow
     {
         var loggedIn = User is not null;
         Username.Text = loggedIn ? User.S("username") : Locale.T("Guest"); Avatar.DisplayName = loggedIn ? Username.Text : "";
-        AccountActionLabel.Text = loggedIn ? "" : Locale.T("Sign in");
+        AccountActionLabel.Text = Locale.T("Settings");
         SignInMenuItem.Visibility = loggedIn ? Visibility.Collapsed : Visibility.Visible;
         LogoutButton.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
-        AccountMenuItem.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
+        SettingsMenuItem.Visibility = Visibility.Visible; MyAccountMenuItem.Visibility = loggedIn ? Visibility.Visible : Visibility.Collapsed;
         Avatar.ProfilePicture = null; if (loggedIn) _ = SetProfilePicture(Avatar, User.S("avatarUrl"));
     }
     internal static async Task SetProfilePicture(PersonPicture picture, string value)
@@ -229,8 +229,8 @@ public sealed partial class MainWindow
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
         var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
-        var width = Math.Max(280, Math.Min(560, availableWidth - 72));
-        var body = new StackPanel { Spacing = 10, Width = width };
+        var width = Math.Max(220, Math.Min(560, availableWidth - 96));
+        var body = new StackPanel { Spacing = 10, Width = width, HorizontalAlignment = HorizontalAlignment.Center };
         body.Children.Add(Text(item.S("title"), 22, true));
         if (item.S("excerpt").Length > 0) body.Children.Add(Text(item.S("excerpt"), 16, true));
         var pictureWidth = Math.Min(width - 16, 440);
@@ -254,21 +254,50 @@ public sealed partial class MainWindow
     }
     private ContentDialog NewsDialog(StackPanel body, double width)
     {
-        var viewer = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme, CloseButtonText = Locale.T("Close"),
-            Content = new ScrollViewer
-            {
-                Content = new Border { Padding = new Thickness(0, 0, 8, 24), Child = body },
-                Height = Math.Max(180, Math.Min(560, Root.XamlRoot.Size.Height - 144)),
-                MaxHeight = Math.Max(180, Math.Min(600, Root.XamlRoot.Size.Height - 96)),
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                VerticalScrollMode = ScrollMode.Enabled,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                HorizontalScrollMode = ScrollMode.Disabled
-            } };
-        viewer.Resources["ContentDialogMaxWidth"] = width + 32;
-        viewer.Resources["ContentDialogMinWidth"] = 0d;
-        viewer.MaxWidth = width + 32;
+        body.HorizontalAlignment = HorizontalAlignment.Center;
+        var dialogWidth = width + 48;
+        var article = new Border
+        {
+            Width = width + 8,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Padding = new Thickness(0, 0, 8, 24),
+            Child = body
+        };
+        var scroll = new ScrollViewer
+        {
+            Width = width + 16,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Content = article,
+            Height = Math.Max(180, Math.Min(560, Root.XamlRoot.Size.Height - 144)),
+            MaxHeight = Math.Max(180, Math.Min(600, Root.XamlRoot.Size.Height - 96)),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollMode = ScrollMode.Enabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollMode = ScrollMode.Disabled
+        };
+        var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center };
+        host.Children.Add(scroll);
+        var viewer = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = UiTheme,
+            Title = Locale.T("Newswire"),
+            CloseButtonText = Locale.T("Close"),
+            Content = host,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            MinWidth = dialogWidth,
+            MaxWidth = dialogWidth
+        };
+        viewer.Resources["ContentDialogMaxWidth"] = dialogWidth;
+        viewer.Resources["ContentDialogMinWidth"] = dialogWidth;
         return viewer;
+    }
+    private void SettingsClick(object sender, RoutedEventArgs e)
+    {
+        RememberPage(); selected = null; page = "settings"; ShowPage();
+        SettingsPanel.ChangeView(null, 0, null, true);
+        SettingsBody.StartBringIntoView();
     }
     private async void AccountClick(object sender, RoutedEventArgs e)
     {
@@ -399,13 +428,25 @@ public sealed partial class MainWindow
         await Api.Post("/wishlist", new { gameId = id });
         wishlistIds.Add(id); RefreshGameActions(); Notify(Locale.T("Added to wishlist."), InfoBarSeverity.Success);
     }
+    private void UpdateHomeHeroControls()
+    {
+        HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
+        AutomationProperties.SetName(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
+        AutomationProperties.SetName(HomeHeroPreviousButton, Locale.T("Previous featured game"));
+        AutomationProperties.SetName(HomeHeroNextButton, Locale.T("Next featured game"));
+        ToolTipService.SetToolTip(HomeHeroPreviousButton, Locale.T("Previous featured game"));
+        ToolTipService.SetToolTip(HomeHeroNextButton, Locale.T("Next featured game"));
+    }
+    private async void HomeHeroPreviousClick(object sender, RoutedEventArgs e) =>
+        await AdvanceHomeHeroAsync(-1, manual: true);
+    private async void HomeHeroNextClick(object sender, RoutedEventArgs e) =>
+        await AdvanceHomeHeroAsync(1, manual: true);
     private void HomeHeroPauseClick(object sender, RoutedEventArgs e)
     {
         homeHeroPaused = !homeHeroPaused;
         if (homeHeroPaused) homeBannerPlayer?.Pause();
         else if (Preferences.VideoBackgrounds && MotionEnabled) homeBannerPlayer?.Play();
-        HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
-        AutomationProperties.SetName(HomeHeroPauseButton, Locale.T(homeHeroPaused ? "Resume featured games" : "Pause featured games"));
+        UpdateHomeHeroControls();
     }
     private void HomeNewsOpenClick(object sender, RoutedEventArgs e)
     { RememberPage(); selected = null; page = "news"; ShowPage(); }

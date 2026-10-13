@@ -279,8 +279,15 @@ public sealed partial class MainWindow
             page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(500);
             Check(ProfileSettingsAvatar is not null, "Profile editor is part of native settings"); await Capture("page-account");
             var reading = ShowNews(newsItems[0]); await Task.Delay(400);
-            Check(newsDialog is not null && newsDialog.Content is ScrollViewer, "Newswire uses a bounded native scrolling dialog");
+            Check(newsDialog is not null && newsDialog.Content is Grid newsHost && newsHost.HorizontalAlignment == HorizontalAlignment.Center && newsHost.Children.OfType<ScrollViewer>().Any(), "Newswire dialog is centered and uses a bounded native scrolling viewport");
             await Capture("news-dialog", newsDialog!); newsDialog!.Hide(); await reading;
+            var galleryValidation = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
+            Check(galleryValidation.Content is StackPanel galleryBody &&
+                galleryBody.Children.OfType<ScrollViewer>().Any() &&
+                galleryBody.Children.OfType<StackPanel>().Any(row => row.Children.OfType<Slider>().Any(slider =>
+                    AutomationProperties.GetName(slider) == Locale.T("Zoom"))) &&
+                galleryBody.Children.OfType<Grid>().Any(row => row.Children.OfType<Button>().Count() >= 3),
+                "Screenshot viewer has unclipped navigation controls and a zoom slider");
             SearchSuggestions("Abby"); SearchBox.IsSuggestionListOpen = true; await Task.Delay(300);
             Check(SearchBox.ItemsSource is SearchEntry[] results && results.Length == 1, "Native search popup presents game suggestions"); SearchBox.IsSuggestionListOpen = false;
             var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);

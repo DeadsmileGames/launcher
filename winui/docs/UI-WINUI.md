@@ -6,20 +6,20 @@ A UI segue as quatro imagens de referência fornecidas: WinUI 3 Gallery, página
 |---|---|
 | Sidebar | NavigationView nativo, LeftCompact; #202020. Itens no topo; recolher/expandir no PaneFooter. Voltar sempre visível na TitleBar. |
 | Corpo | #272727; cards com brushes de tema WinUI. |
-| Barra superior | TitleBar nativo, AutoSuggestBox central e PersonPicture com MenuFlyout. |
+| Barra superior | TitleBar nativo, AutoSuggestBox central e PersonPicture com MenuFlyout. O botão da foto abre Configurações; o menu separa Configurações de Minha conta. |
 | Tipografia | Estilos Body, Caption, Subtitle e Title do WinUI; fonte padrão do sistema. |
 | Entrada | Boot de pelo menos três segundos e verificação do catálogo público; visitante entra direto. Login/2FA em ContentDialog com controles padrão. |
-| Conta | PersonPicture recebe URL ou imagem embutida validada. Download/executar/wishlist solicitam login por diálogo com benefícios e screenshot do launcher. |
+| Conta | PersonPicture recebe URL ou imagem embutida validada. O editor de foto tem preview circular, zoom centrado e arraste para reposicionar. Download/executar/wishlist solicitam login por diálogo. Desativar 2FA pede e envia o código atual. |
 | Catálogo/biblioteca | GridView com capa 180×270 DIPs; Poster/BoxArt da Store, depois cover do banco. Tipografia, teclado, foco e rolagem nativos. |
 | Busca | AutoSuggestBox apresenta jogos no popup; se não há jogo correspondente, oferece Configurações. |
-| Newswire | Cards na Home e página própria; ContentDialog com título, resumo, imagem, texto e jogo relacionado, altura limitada e ScrollViewer. |
+| Newswire | Cards na Home e página própria; ContentDialog com conteúdo e ScrollViewer centralizados, largura limitada à janela e rolagem vertical. |
 | Produto | Banner de 360 DIPs; MediaPlayerElement com trailer direto/DASH da Store ou mídia direta do jogo. Capa do banco como fallback. Ícone apenas se existe na Store, com cantos de 16 DIPs. |
-| Galeria | ContentDialog com largura sincronizada à imagem, Stretch.Uniform e altura limitada à janela; imagens panorâmicas e verticais aparecem inteiras. |
+| Galeria | ContentDialog com largura adaptável, Stretch.Uniform, navegação anterior/próxima e controles de zoom com ajuste e redefinição; imagens panorâmicas e verticais podem ser ampliadas e reposicionadas por rolagem sem cortar os botões. |
 | Downloads | ProgressBar, botões padrão e InfoBadge na navegação. |
 | Configurações | Tema escuro/claro/sistema, navegação compacta/expandida, animações, rotação do banner, efeitos do Windows e avisos de conquistas; controles padrão. |
-| DeadBar/Ctrl+D | Barra compacta com relógio real e widgets flutuantes de perfil, biblioteca, conquistas, saves e captura; arraste, fixação, fechamento e restauração. Widgets opacos. |
+| DeadBar/Ctrl+D | Barra compacta com relógio real e widgets flutuantes de perfil, biblioteca, conquistas, saves e captura; arraste, fixação, fechamento e restauração. A troca de foco não fecha a barra; ela encerra automaticamente após terminar o processo do jogo. Widgets com recorte arredondado nativo. |
 | Captura | Windows.Graphics.Capture de uma janela; PNG local, formatos story/post sem distorção e compartilhamento nativo. |
-| Tray/notificações | Shell notification icon; menu XAML de abrir/sair. App notifications com fallback de notificações do Shell. Preferências e aviso inicial único. |
+| Tray/notificações | Shell notification icon; menu de abrir/sair desenhado pelo menu nativo do Windows. App notifications com fallback de notificações do Shell. Preferências e aviso inicial único. Toasts flutuantes usam região HWND arredondada para evitar cantos pretos. |
 | Conquistas | Aviso XAML com fundo sólido no Windows 10; Mica opaco e cantos do DWM no Windows 11 quando disponíveis. O fallback do Mica continua opaco. |
 | Ícone | ICO com 15 tamanhos e assets MSIX targetsize com variantes unplated/lightunplated; sem margem extra adicionada no build. |
 | Movimento | EntranceThemeTransition, ContentThemeTransition, RepositionThemeTransition e FadeInThemeAnimation do WinUI; opção do app e preferência de animações do Windows respeitadas. |

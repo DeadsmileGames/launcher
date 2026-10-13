@@ -8,6 +8,10 @@ O único pacote de distribuição é MSIX. O projeto separado `Deadsmile.Setup`,
 
 A release de produção gera um MSIX com a identidade oficial do Partner Center, sem assinatura local, destinado à submissão à Microsoft Store. A Store assina o pacote depois da certificação. O MSIX pré-submissão não é diretamente instalável até ter uma assinatura confiável.
 
+## Revisão de UX em andamento
+
+Esta revisão cobre persistência da DeadBar ao mudar o foco, recorte arredondado dos widgets e toasts, menu de bandeja nativo do Windows, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador passa a comparar chaves C#/XAML com os catálogos completos `en`, `pt-BR` e `es`; esses ajustes só devem ser considerados aprovados após o Actions do commit atual.
+
 ## Histórico e estado da validação
 
 A execução [Actions #107](https://github.com/DeadsmileGames/launcher/actions/runs/38436519747), no commit anterior à migração para MSIX-only, passou na compilação e empacotamento, mas falhou ao tentar abrir a janela do assistente EXE. O fluxo de assistente que causou esse erro foi removido; o resultado #107 não valida nem aprova o novo fluxo MSIX.

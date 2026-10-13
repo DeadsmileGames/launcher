@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Input;
 using QRCoder;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Pickers;
@@ -16,6 +17,31 @@ public sealed partial class MainWindow
 {
     private bool privacyLoaded;
     private bool twoFactorEnabled;
+    private bool twoFactorDisabling;
+    private bool twoFactorStatusAvailable = true;
+    private string twoFactorStatusKey = "Two-step verification status";
+
+    private void SetTwoFactorStatus(string key)
+    {
+        twoFactorStatusKey = key;
+        TwoFactorStatus.Text = Locale.T(key);
+    }
+
+    private void RefreshTwoFactorLabels()
+    {
+        TwoFactorStatus.Text = Locale.T(twoFactorStatusKey);
+        TwoFactorActionButton.IsEnabled = twoFactorStatusAvailable;
+        if (!twoFactorStatusAvailable)
+            TwoFactorActionButton.Content = Locale.T("Set up two-step verification");
+        else if (twoFactorDisabling)
+            TwoFactorActionButton.Content = Locale.T("Cancel");
+        else if (twoFactorEnabled)
+            TwoFactorActionButton.Content = Locale.T("Disable two-step verification");
+        else
+            TwoFactorActionButton.Content = Locale.T(TwoFactorSecretPanel.Visibility == Visibility.Visible ? "Start over" : "Set up two-step verification");
+        TwoFactorConfirmButton.Content = Locale.T(twoFactorDisabling ? "Disable two-step verification" : "Confirm two-step verification");
+        TwoFactorTokenBox.Header = Locale.T("Authentication code");
+    }
 
     private async Task LoadProfileSettings()
     {
@@ -52,12 +78,20 @@ public sealed partial class MainWindow
             }
             try
             {
-                var totp = await Api.Get("/account/totp/status"); twoFactorEnabled = totp.B("enabled");
-                TwoFactorStatus.Text = Locale.T(twoFactorEnabled ? "Two-step verification is enabled." : "Two-step verification is disabled.");
-                TwoFactorActionButton.Content = Locale.T(twoFactorEnabled ? "Disable two-step verification" : "Set up two-step verification");
+                var totp = await Api.Get("/account/totp/status");
+                twoFactorEnabled = totp.B("enabled");
+                twoFactorDisabling = false; twoFactorStatusAvailable = true;
+                TwoFactorTokenBox.Text = "";
+                TwoFactorSecretPanel.Visibility = TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Collapsed;
+                SetTwoFactorStatus(twoFactorEnabled ? "Two-step verification is enabled." : "Two-step verification is disabled.");
+                RefreshTwoFactorLabels();
             }
             catch (LauncherException ex) when (ex.Status is 404 or 405)
-            { TwoFactorStatus.Text = Locale.T("Two-step verification status is unavailable."); TwoFactorActionButton.IsEnabled = false; }
+            {
+                twoFactorStatusAvailable = false;
+                SetTwoFactorStatus("Two-step verification status is unavailable.");
+                RefreshTwoFactorLabels();
+            }
             var sessions = await Api.Get("/account/sessions");
             SessionsRows.Children.Clear();
             foreach (var session in sessions.At("sessions").Items())
@@ -107,40 +141,123 @@ public sealed partial class MainWindow
         {
             var preview = new Image
             {
-                Width = 280, Height = 280, Stretch = Stretch.UniformToFill,
-                RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5)
+                Stretch = Stretch.Fill,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            var transform = new CompositeTransform { CenterX = 140, CenterY = 140, ScaleX = 1, ScaleY = 1 };
-            preview.RenderTransform = transform;
             using (var source = await file.OpenAsync(Windows.Storage.FileAccessMode.Read))
             {
                 var bitmap = new BitmapImage();
                 await bitmap.SetSourceAsync(source);
+                if (bitmap.PixelWidth == 0 || bitmap.PixelHeight == 0 || bitmap.PixelWidth > 4096 || bitmap.PixelHeight > 4096)
+                    throw new LauncherException("PROFILE_IMAGE_INVALID");
+                var aspect = bitmap.PixelWidth / (double)bitmap.PixelHeight;
+                preview.Width = aspect >= 1 ? 280 * aspect : 280;
+                preview.Height = aspect >= 1 ? 280 : 280 / aspect;
                 preview.Source = bitmap;
             }
+
+            var transform = new CompositeTransform
+            {
+                CenterX = preview.Width / 2,
+                CenterY = preview.Height / 2,
+                ScaleX = 1,
+                ScaleY = 1
+            };
+            preview.RenderTransform = transform;
             var viewport = new Grid
             {
-                Width = 280, Height = 280,
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Black),
-                Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 280, 280) }
+                Width = 280,
+                Height = 280,
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                Clip = new EllipseGeometry
+                {
+                    Center = new Windows.Foundation.Point(140, 140),
+                    RadiusX = 140,
+                    RadiusY = 140
+                }
             };
             viewport.Children.Add(preview);
-            var zoom = new Slider { Header = Locale.T("Zoom"), Minimum = 1, Maximum = 3, Value = 1, StepFrequency = 0.1 };
-            zoom.ValueChanged += (_, e) => { transform.ScaleX = e.NewValue; transform.ScaleY = e.NewValue; };
+            var zoom = new Slider
+            {
+                Header = Locale.T("Zoom"),
+                Minimum = 1,
+                Maximum = 3,
+                Value = 1,
+                StepFrequency = 0.05,
+                Width = 300
+            };
             var rotation = 0d;
+            Windows.Foundation.Point? dragPoint = null;
+            void ClampImage()
+            {
+                var quarterTurn = ((int)rotation % 180) != 0;
+                var scaledWidth = (quarterTurn ? preview.Height : preview.Width) * transform.ScaleX;
+                var scaledHeight = (quarterTurn ? preview.Width : preview.Height) * transform.ScaleY;
+                var limitX = Math.Max(0, (scaledWidth - 280) / 2);
+                var limitY = Math.Max(0, (scaledHeight - 280) / 2);
+                transform.TranslateX = Math.Clamp(transform.TranslateX, -limitX, limitX);
+                transform.TranslateY = Math.Clamp(transform.TranslateY, -limitY, limitY);
+            }
+            zoom.ValueChanged += (_, args) =>
+            {
+                transform.ScaleX = transform.ScaleY = args.NewValue;
+                ClampImage();
+            };
+            viewport.PointerPressed += (_, args) =>
+            {
+                dragPoint = args.GetCurrentPoint(viewport).Position;
+                viewport.CapturePointer(args.Pointer);
+                args.Handled = true;
+            };
+            viewport.PointerMoved += (_, args) =>
+            {
+                if (dragPoint is not { } previous) return;
+                var point = args.GetCurrentPoint(viewport).Position;
+                transform.TranslateX += point.X - previous.X;
+                transform.TranslateY += point.Y - previous.Y;
+                dragPoint = point;
+                ClampImage();
+                args.Handled = true;
+            };
+            void EndDrag(object _, PointerRoutedEventArgs args)
+            {
+                dragPoint = null;
+                viewport.ReleasePointerCaptures();
+            }
+            viewport.PointerReleased += EndDrag;
+            viewport.PointerCanceled += EndDrag;
+            viewport.PointerCaptureLost += EndDrag;
+
+            var rotationRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
             var rotateLeft = new Button { Content = Locale.T("Rotate left") };
             var rotateRight = new Button { Content = Locale.T("Rotate right") };
-            rotateLeft.Click += (_, _) => { rotation = (rotation - 90 + 360) % 360; transform.Rotation = rotation; };
-            rotateRight.Click += (_, _) => { rotation = (rotation + 90) % 360; transform.Rotation = rotation; };
-            var rotateRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center };
-            rotateRow.Children.Add(rotateLeft); rotateRow.Children.Add(rotateRight);
-            var editor = new StackPanel { Spacing = 14, Width = 320, HorizontalAlignment = HorizontalAlignment.Center };
-            editor.Children.Add(viewport); editor.Children.Add(zoom); editor.Children.Add(rotateRow);
+            rotateLeft.Click += (_, _) => { rotation = (rotation - 90 + 360) % 360; transform.Rotation = rotation; ClampImage(); };
+            rotateRight.Click += (_, _) => { rotation = (rotation + 90) % 360; transform.Rotation = rotation; ClampImage(); };
+            rotationRow.Children.Add(rotateLeft); rotationRow.Children.Add(rotateRight);
+            var editor = new StackPanel
+            {
+                Spacing = 12,
+                Width = 320,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            editor.Children.Add(viewport);
+            editor.Children.Add(Text(Locale.T("Drag to reposition image")));
+            editor.Children.Add(zoom);
+            editor.Children.Add(rotationRow);
             var dialog = new ContentDialog
             {
-                XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme,
-                Title = Locale.T("Adjust profile photo"), Content = editor,
-                PrimaryButtonText = Locale.T("Use photo"), CloseButtonText = Locale.T("Cancel"),
+                XamlRoot = Root.XamlRoot,
+                RequestedTheme = UiTheme,
+                Title = Locale.T("Adjust profile photo"),
+                Content = editor,
+                PrimaryButtonText = Locale.T("Use photo"),
+                CloseButtonText = Locale.T("Cancel"),
                 DefaultButton = ContentDialogButton.Primary
             };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -234,68 +351,103 @@ public sealed partial class MainWindow
     private async void TwoFactorActionClick(object sender, RoutedEventArgs e)
     {
         if (User is null) { await RequireAccount(); return; }
+        if (!twoFactorStatusAvailable) return;
+        if (twoFactorEnabled && twoFactorDisabling)
+        {
+            twoFactorDisabling = false;
+            TwoFactorTokenBox.Text = "";
+            TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Collapsed;
+            SetTwoFactorStatus("Two-step verification is enabled.");
+            RefreshTwoFactorLabels();
+            return;
+        }
+        if (twoFactorEnabled)
+        {
+            twoFactorDisabling = true;
+            TwoFactorSecretPanel.Visibility = Visibility.Collapsed;
+            TwoFactorTokenBox.Text = "";
+            TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Visible;
+            SetTwoFactorStatus("Enter the current authentication code first.");
+            RefreshTwoFactorLabels();
+            TwoFactorTokenBox.Focus(FocusState.Programmatic);
+            return;
+        }
         try
         {
-            if (!twoFactorEnabled)
+            var setup = await Api.Post("/account/totp/setup", new { });
+            var secret = setup.S("secret");
+            if (secret.Length == 0) throw new LauncherException("INVALID_RESPONSE");
+            TwoFactorSecret.Text = secret;
+            var provisioningUri = setup.S("otpauthUrl", "otpauth_uri", "provisioningUri");
+            if (!provisioningUri.StartsWith("otpauth://totp/", StringComparison.OrdinalIgnoreCase))
             {
-                var setup = await Api.Post("/account/totp/setup", new { });
-                var secret = setup.S("secret");
-                if (secret.Length == 0) throw new LauncherException("INVALID_RESPONSE");
-                TwoFactorSecret.Text = secret;
-                var provisioningUri = setup.S("otpauthUrl", "otpauth_uri", "provisioningUri");
-                if (!provisioningUri.StartsWith("otpauth://totp/", StringComparison.OrdinalIgnoreCase))
-                {
-                    var accountLabel = Uri.EscapeDataString("Deadsmile Games:" + User.S("email", "username"));
-                    var issuer = Uri.EscapeDataString("Deadsmile Games");
-                    provisioningUri = $"otpauth://totp/{accountLabel}?secret={Uri.EscapeDataString(secret)}&issuer={issuer}&algorithm=SHA1&digits=6&period=30";
-                }
-                using var generator = new QRCodeGenerator();
-                using var data = generator.CreateQrCode(provisioningUri, QRCodeGenerator.ECCLevel.Q);
-                var qrBytes = new PngByteQRCode(data).GetGraphic(8);
-                using var qrStream = new InMemoryRandomAccessStream();
-                using (var writer = new DataWriter(qrStream))
-                {
-                    writer.WriteBytes(qrBytes);
-                    await writer.StoreAsync();
-                    await writer.FlushAsync();
-                    writer.DetachStream();
-                }
-                qrStream.Seek(0);
-                var qrImage = new BitmapImage();
-                await qrImage.SetSourceAsync(qrStream);
-                TwoFactorQr.Source = qrImage;
-                TwoFactorSecretPanel.Visibility = Visibility.Visible;
-                TwoFactorTokenBox.Visibility = Visibility.Visible; TwoFactorConfirmButton.Visibility = Visibility.Visible;
-                TwoFactorActionButton.Content = Locale.T("Start over");
-                TwoFactorStatus.Text = Locale.T("Scan this QR code with your authenticator app, or enter the secret manually.");
+                var accountLabel = Uri.EscapeDataString("Deadsmile Games:" + User.S("email", "username"));
+                var issuer = Uri.EscapeDataString("Deadsmile Games");
+                provisioningUri = $"otpauth://totp/{accountLabel}?secret={Uri.EscapeDataString(secret)}&issuer={issuer}&algorithm=SHA1&digits=6&period=30";
             }
-            else
+            using var generator = new QRCodeGenerator();
+            using var data = generator.CreateQrCode(provisioningUri, QRCodeGenerator.ECCLevel.Q);
+            var qrBytes = new PngByteQRCode(data).GetGraphic(8);
+            using var qrStream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(qrStream))
             {
-                if (TwoFactorTokenBox.Text.Trim().Length == 0) { TwoFactorStatus.Text = Locale.T("Enter the current authentication code first."); return; }
-                await Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token = TwoFactorTokenBox.Text.Trim() }, CancellationToken.None);
-                twoFactorEnabled = false; TwoFactorTokenBox.Text = "";
-                TwoFactorSecretPanel.Visibility = TwoFactorConfirmButton.Visibility = TwoFactorTokenBox.Visibility = Visibility.Collapsed;
-                TwoFactorQr.Source = null;
-                TwoFactorActionButton.Content = Locale.T("Set up two-step verification");
-                TwoFactorStatus.Text = Locale.T("Two-step verification is disabled.");
+                writer.WriteBytes(qrBytes);
+                await writer.StoreAsync();
+                await writer.FlushAsync();
+                writer.DetachStream();
             }
+            qrStream.Seek(0);
+            var qrImage = new BitmapImage();
+            await qrImage.SetSourceAsync(qrStream);
+            TwoFactorQr.Source = qrImage;
+            twoFactorDisabling = false;
+            TwoFactorSecretPanel.Visibility = Visibility.Visible;
+            TwoFactorTokenBox.Text = "";
+            TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Visible;
+            SetTwoFactorStatus("Scan this QR code with your authenticator app, or enter the secret manually.");
+            RefreshTwoFactorLabels();
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
     }
 
     private async void TwoFactorConfirmClick(object sender, RoutedEventArgs e)
     {
+        if (User is null) { await RequireAccount(); return; }
+        var token = TwoFactorTokenBox.Text.Trim();
+        if (token.Length == 0)
+        {
+            SetTwoFactorStatus("Enter the current authentication code first.");
+            TwoFactorTokenBox.Focus(FocusState.Programmatic);
+            return;
+        }
+        TwoFactorConfirmButton.IsEnabled = false;
         try
         {
-            await Api.Post("/account/totp/enable", new { token = TwoFactorTokenBox.Text.Trim() });
-            twoFactorEnabled = true; TwoFactorTokenBox.Text = "";
+            if (twoFactorEnabled && twoFactorDisabling)
+            {
+                await Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token }, CancellationToken.None);
+                twoFactorEnabled = false;
+                twoFactorDisabling = false;
+                TwoFactorTokenBox.Text = "";
+                TwoFactorSecretPanel.Visibility = TwoFactorConfirmButton.Visibility = TwoFactorTokenBox.Visibility = Visibility.Collapsed;
+                TwoFactorQr.Source = null;
+                SetTwoFactorStatus("Two-step verification is disabled.");
+                RefreshTwoFactorLabels();
+                Notify(Locale.T("Two-step verification is disabled."), InfoBarSeverity.Success);
+                return;
+            }
+            await Api.Post("/account/totp/enable", new { token });
+            twoFactorEnabled = true;
+            twoFactorDisabling = false;
+            TwoFactorTokenBox.Text = "";
             TwoFactorSecretPanel.Visibility = TwoFactorConfirmButton.Visibility = TwoFactorTokenBox.Visibility = Visibility.Collapsed;
             TwoFactorQr.Source = null;
-            TwoFactorActionButton.Content = Locale.T("Disable two-step verification");
-            TwoFactorStatus.Text = Locale.T("Two-step verification is enabled.");
+            SetTwoFactorStatus("Two-step verification is enabled.");
+            RefreshTwoFactorLabels();
             Notify(Locale.T("Two-step verification is enabled."), InfoBarSeverity.Success);
         }
         catch (Exception ex) { Notify(Locale.Error(ex)); }
+        finally { TwoFactorConfirmButton.IsEnabled = true; }
     }
 
     private void OpenSupportClick(object sender, RoutedEventArgs e) => DesktopIntegration.Open(Urls.Website + "/support");

@@ -22,11 +22,12 @@
       <Button.Flyout><MenuFlyout x:Name="NotificationMenu"/></Button.Flyout>
      </Button>
      <Button x:Name="AccountButton" Style="{StaticResource SubtleButtonStyle}" Padding="4" Visibility="Collapsed"
-      AutomationProperties.Name="My profile and settings" AutomationProperties.AutomationId="AccountMenu">
+      AutomationProperties.Name="Settings" AutomationProperties.AutomationId="AccountMenu">
       <StackPanel Orientation="Horizontal" Spacing="8"><PersonPicture x:Name="Avatar" Width="28" Height="28"/><TextBlock x:Name="AccountActionLabel" Text="Sign in" VerticalAlignment="Center"/></StackPanel>
       <Button.Flyout><MenuFlyout>
        <MenuFlyoutItem x:Name="Username" Text="Account" IsEnabled="False"/>
-       <MenuFlyoutItem x:Name="AccountMenuItem" Text="My profile and settings" Click="AccountClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+       <MenuFlyoutItem x:Name="SettingsMenuItem" Text="Settings" Click="SettingsClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Setting"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+       <MenuFlyoutItem x:Name="MyAccountMenuItem" Text="My account" Click="AccountClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
        <MenuFlyoutItem x:Name="SignInMenuItem" Text="Sign in" Click="GuestSignInClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="Contact"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
        <MenuFlyoutSeparator/>
        <MenuFlyoutItem x:Name="WebsiteMenuItem" Text="Website" Click="WebsiteClick"><MenuFlyoutItem.Icon><SymbolIcon Symbol="World"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
@@ -122,8 +123,18 @@
              <Button x:Name="FeaturedButton" Content="View details" Style="{StaticResource AccentButtonStyle}" Click="FeaturedClick" Margin="0,8,0,0"/>
             </StackPanel>
            </Border>
-           <Button x:Name="HomeHeroPauseButton" Content="Pause" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
-            Style="{StaticResource SubtleButtonStyle}" Click="HomeHeroPauseClick" AutomationProperties.Name="Pause featured games"/>
+           <StackPanel x:Name="HomeHeroControls" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" Spacing="4">
+            <Button x:Name="HomeHeroPreviousButton" Width="36" Height="36" MinWidth="36" Padding="4"
+             Style="{StaticResource SubtleButtonStyle}" Click="HomeHeroPreviousClick" AutomationProperties.Name="Previous featured game">
+             <SymbolIcon Symbol="Back"/>
+            </Button>
+            <Button x:Name="HomeHeroPauseButton" Content="Pause" Padding="8,4"
+             Style="{StaticResource SubtleButtonStyle}" Click="HomeHeroPauseClick" AutomationProperties.Name="Pause featured games"/>
+            <Button x:Name="HomeHeroNextButton" Width="36" Height="36" MinWidth="36" Padding="4"
+             Style="{StaticResource SubtleButtonStyle}" Click="HomeHeroNextClick" AutomationProperties.Name="Next featured game">
+             <SymbolIcon Symbol="Forward"/>
+            </Button>
+           </StackPanel>
           </Grid>
           <Grid x:Name="FeaturedSide" Grid.Column="1" RowSpacing="12">
            <Grid.RowDefinitions><RowDefinition Height="2*"/><RowDefinition Height="*"/></Grid.RowDefinitions>

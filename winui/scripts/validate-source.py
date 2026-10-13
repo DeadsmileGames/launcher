@@ -117,11 +117,105 @@ for path in root.rglob("*.cs"):
     check(not problems, f"{path}: {problems}")
 
 core = root / "src" / "Deadsmile.Core"
-texts = {k: json.loads((core / k).read_text()) for k in ["messages.json", "errors.json"]}
+texts = {k: json.loads((core / k).read_text(encoding="utf-8")) for k in ["messages.json", "errors.json"]}
 for name, catalog in texts.items():
     check(set(catalog) == {"en", "pt-BR", "es"}, f"{name}: missing language")
+    english_keys = set(catalog["en"])
     for lang in ["pt-BR", "es"]:
-        check(set(catalog["en"]).issubset(catalog[lang]), f"{name}: incomplete {lang}")
+        check(set(catalog[lang]) == english_keys, f"{name}: {lang} must have exactly the same keys as en")
+    for lang, entries in catalog.items():
+        check(all(isinstance(value, str) and value.strip() for value in entries.values()),
+              f"{name}: blank/non-text translation in {lang}")
+
+messages = texts["messages.json"]
+message_keys = set(messages["en"])
+# Audit literal localization calls and action labels so missing keys cannot silently fall back to English.
+for path in launcher.rglob("*.cs"):
+    if path.name == "UiValidation.cs":
+        continue
+    source = path.read_text(encoding="utf-8")
+    for match in re.finditer(r'\bLocale\.T\(\s*"((?:\\.|[^"\\])*)"', source):
+        key = json.loads('"' + match.group(1) + '"')
+        check(key in message_keys, f"{path}: Locale.T key missing from messages.json: {key}")
+    for match in re.finditer(r'\bAction\(\s*"((?:\\.|[^"\\])*)"', source):
+        key = json.loads('"' + match.group(1) + '"')
+        check(key in message_keys, f"{path}: Action label missing from messages.json: {key}")
+
+# Visible XAML literals are expected to carry a Tag that matches a translated key.
+for path in launcher.rglob("*.xaml"):
+    document = ET.parse(path)
+    for element in document.iter():
+        tag = element.attrib.get("Tag")
+        if not tag:
+            continue
+        visible = any(element.attrib.get(name) == tag for name in ("Text", "Content", "Header", "PlaceholderText"))
+        if visible:
+            check(tag in message_keys, f"{path}: visible XAML string missing translation key: {tag}")
+
+# Audit all static phrase choices inside localization expressions, including ternary/switch labels.
+for path in launcher.rglob("*.cs"):
+    if path.name == "UiValidation.cs":
+        continue
+    source = path.read_text(encoding="utf-8")
+    for call in re.finditer(r'\bLocale\.T\(((?:[^()]|\([^()]*\))*)\)', source, re.S):
+        argument = call.group(1)
+        for literal in re.finditer(r'"((?:\\.|[^"\\])*)"', argument):
+            key = json.loads('"' + literal.group(1) + '"')
+            # Lowercase slugs, IDs, enum values and protocol keys are data, not visible phrases.
+            if re.fullmatch(r'[a-z0-9][a-z0-9_.:/-]*', key):
+                continue
+            check(key in message_keys, f"{path}: string choice in Locale.T is missing from messages.json: {key}")
+
+# Validate every fixed visible XAML phrase, not just elements already tagged for translation.
+xaml_exceptions = {"Deadsmile Games", "Deadsmile Games Launcher", "Português", "English", "Español", "0", "1", "2", "‹", "›", "−", "+"}
+for path in launcher.rglob("*.xaml"):
+    raw = path.read_text(encoding="utf-8")
+    for attr in ("Text", "Content", "Header", "PlaceholderText", "Title", "AutomationProperties.Name"):
+        for literal in re.finditer(r'\b' + re.escape(attr) + r'="([^"]+)"', raw):
+            value = literal.group(1)
+            if value.startswith("{") or value in xaml_exceptions:
+                continue
+            check(value in message_keys, f"{path}: visible XAML literal missing translation: {value}")
+
+# Guard UX regressions for native overlay lifetime, windows and localization.
+main_xaml = (launcher / "MainWindow.xaml").read_text(encoding="utf-8")
+main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
+portal_code = (launcher / "MainWindow.Portal.cs").read_text(encoding="utf-8")
+profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
+gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
+game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
+tray_code = (launcher / "Services" / "TrayService.cs").read_text(encoding="utf-8")
+native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
+check('x:Name="HomeHeroPreviousButton"' in main_xaml and 'x:Name="HomeHeroNextButton"' in main_xaml and
+      "HomeHeroPreviousClick" in portal_code and "HomeHeroNextClick" in portal_code,
+      "Home hero provides previous/next controls with handlers")
+check('x:Name="SettingsMenuItem"' in main_xaml and 'x:Name="MyAccountMenuItem"' in main_xaml and
+      "SettingsClick" in portal_code and "MyAccountMenuItem.Visibility" in portal_code and
+      'AccountActionLabel.Text = Locale.T("Settings")' in portal_code,
+      "Account menu separates application settings from My account")
+check('identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) })' in main_code and
+      "Grid.SetColumn(heading, hasProductIcon ? 1 : 0)" in main_code,
+      "Game details do not leave an empty icon column")
+check("HorizontalContentAlignment = HorizontalAlignment.Center" in portal_code and
+      "var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center }" in portal_code,
+      "Newswire dialog centers its scrolling content")
+check("EllipseGeometry" in profile_code and "viewport.PointerMoved" in profile_code and
+      "transform.CenterX = preview.Width / 2" in profile_code,
+      "Profile-photo editor uses centered circular crop, zoom and pointer-drag positioning")
+check("twoFactorDisabling" in profile_code and
+      'Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token }' in profile_code and
+      "TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Visible" in profile_code,
+      "Disabling two-step verification presents a token field and requires the current code")
+check('"Zoom out"' in gallery_code and '"Zoom in"' in gallery_code and
+      '"Reset zoom"' in gallery_code and "image.Width = viewportWidth * value" in gallery_code,
+      "Screenshot gallery includes zoom and reset controls")
+check("if (owner.Games.Running.All(x => x.Process.HasExited))" in game_view_code and
+      "if (!owner.GameIsFocused &&" not in game_view_code,
+      "DeadBar stays open when the user changes foreground window and closes with the game process")
+check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMessage" in tray_code,
+      "Notification-area menu uses native Windows popup menu APIs")
+check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
+      "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 
 check(not (root / "src" / "Deadsmile.Setup").exists(), "Separate setup EXE project must not remain in the MSIX-only pipeline")
 check(not (launcher / "Services" / "UpdateService.cs").exists(), "Standalone EXE-based launcher updater must not remain in the MSIX-only pipeline")

@@ -51,6 +51,8 @@ public sealed partial class AchievementWindow : Window
         }
         if (centered)
         { var currentWidth = rect.Right - rect.Left; rect.Left = monitor.Left + (monitor.Right - monitor.Left - currentWidth) / 2; rect.Right = rect.Left + currentWidth; NativeWindow.Place(this, rect); }
+        NativeWindow.ApplyRoundedRegion(this, 22);
+        NativeWindow.RoundCorners(this);
         NativeWindow.ShowInactive(this); timer.Start();
     }
 }

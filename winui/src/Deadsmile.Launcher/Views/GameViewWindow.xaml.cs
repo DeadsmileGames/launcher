@@ -41,7 +41,29 @@ public sealed partial class GameViewWindow : Window
         timer.Tick += (_, _) => Monitor(); timer.Start();
         Closed += (_, _) => { timer.Stop(); captureShare?.Dispose(); windowHook.Dispose(); };
         OverlayRoot.SizeChanged += (_, _) => { if (!positioned) ResetLayout(); else ClampWidgets(); };
+        foreach (var widget in Widgets)
+        {
+            widget.Clip = RoundedWidgetClip(widget.Width, widget.Height, 16);
+            widget.SizeChanged += (_, args) => widget.Clip = RoundedWidgetClip(args.NewSize.Width, args.NewSize.Height, 16);
+        }
         ApplyPreferences(); ReloadLabels();
+    }
+    private static Geometry RoundedWidgetClip(double width, double height, double radius)
+    {
+        width = Math.Max(1, width); height = Math.Max(1, height);
+        radius = Math.Max(0.5, Math.Min(radius, Math.Min(width, height) / 2));
+        var path = new PathGeometry();
+        var figure = new PathFigure { StartPoint = new Point(radius, 0), IsClosed = true };
+        figure.Segments.Add(new LineSegment { Point = new Point(width - radius, 0) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(width, radius), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
+        figure.Segments.Add(new LineSegment { Point = new Point(width, height - radius) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(width - radius, height), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
+        figure.Segments.Add(new LineSegment { Point = new Point(radius, height) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(0, height - radius), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
+        figure.Segments.Add(new LineSegment { Point = new Point(0, radius) });
+        figure.Segments.Add(new ArcSegment { Point = new Point(radius, 0), Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise });
+        path.Figures.Add(figure);
+        return path;
     }
     public void ApplyPreferences()
     {
@@ -97,7 +119,9 @@ public sealed partial class GameViewWindow : Window
     {
         if (!AppWindow.IsVisible) return;
 #if !UI_VALIDATION
-        if (owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
+        // The overlay must not disappear when a click changes foreground window or minimizes
+        // a borderless game. Its lifetime follows the game process, not mouse focus.
+        if (owner.Games.Running.All(x => x.Process.HasExited))
         { Hide(true); return; }
 #endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
@@ -111,8 +135,8 @@ public sealed partial class GameViewWindow : Window
             return rect.Contains(point);
         });
 #if !UI_VALIDATION
-        if (!owner.GameIsFocused && !(owner.IsLauncherForeground && interactive))
-        { Hide(true); return; }
+        // Visibility is independent of foreground focus. Hit testing only selects click-through;
+        // other windows can be used while the overlay stays alive.
 #endif
         NativeWindow.PassClicks(this, !interactive);
     }

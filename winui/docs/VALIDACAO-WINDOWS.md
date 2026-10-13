@@ -15,7 +15,11 @@ Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos da
 
 ## Interface
 
-- [ ] CI deve conferir navegação, busca, detalhes, galeria, cores, preferências, localização PT/ES e responsividade da Newswire (3→2→3 colunas) na execução atual.
+- [ ] CI deve conferir navegação, busca, detalhes, galeria com zoom e navegação sem corte, cores, preferências, localização PT/ES e responsividade da Newswire (3→2→3 colunas) na execução atual.
+- [ ] Confirmar que mudar o foco para outra janela não fecha a DeadBar e que fechar Ctrl+D mantém widgets fixados sem bordas quadradas/pretas.
+- [ ] Confirmar que o menu da bandeja usa a interface nativa do Windows e que toasts flutuantes têm cantos sem artefatos.
+- [ ] Confirmar o recorte circular da foto de perfil, zoom centrado e arraste antes de salvar.
+- [ ] Confirmar que desativar 2FA exige o código atual e que Minha conta fica separada de Configurações.
 - [ ] Comparar com as referências WinUI Gallery, Microsoft Store e Xbox Game Bar em 1280 × 800.
 - [ ] Conferir mínimo de janela, maximização, restauração e arraste da barra de título.
 - [ ] Testar 100%, 125%, 150% e 200%, inclusive em monitores com escalas diferentes.
@@ -23,6 +27,8 @@ Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos da
 - [ ] Conferir português, inglês e espanhol, incluindo textos longos.
 - [ ] Conferir navegação por teclado, foco, leitor de tela e alto contraste.
 - [ ] Conferir ausência de corte de texto, áreas sem rolagem e controles fora da janela.
+- [ ] Conferir anterior, pausar/retomar e próximo no hero da página inicial.
+- [ ] Conferir detalhe de jogos com e sem ícone, sem espaço vazio/alinhamento deslocado.
 - [ ] Abrir screenshots muito largas e verticais; redimensionar com a galeria aberta e verificar a imagem inteira.
 - [ ] Testar todos os temas, alto contraste, navegação compacta/expandida e persistência das preferências.
 - [ ] Desativar animações no app e no Windows; conferir ausência de transições e rotação automática.

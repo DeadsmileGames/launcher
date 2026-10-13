@@ -370,7 +370,7 @@ public sealed partial class MainWindow : Window
         AppTitleBar.IsBackButtonEnabled = selected is not null || page != "explore" || history.Count > 0;
         ContentPage.Visibility = selected is null && page is "wishlist" or "news" ? Visibility.Visible : Visibility.Collapsed;
         HomeNews.Visibility = page == "explore" && Preferences.ShowNewswireOnHome && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (selected is null) HomeHeroPauseButton.Content = Locale.T(homeHeroPaused ? "Resume" : "Pause");
+        if (selected is null) UpdateHomeHeroControls();
         CollapseLabel.Visibility = Shell.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
         if (ContentPage.Visibility == Visibility.Visible) UI(RenderContentPage);
         PageHeading.Text = Locale.T(page switch { "library" => "Library", "downloads" => "Downloads", "settings" or "account" => "Settings", "wishlist" => "Wishlist", "news" => "Newswire", _ => "Explore" });
@@ -456,9 +456,9 @@ public sealed partial class MainWindow : Window
         AutomationProperties.SetName(FeaturedButton, Locale.T(label));
         FeaturedButton.IsEnabled = running || (!Games.Busy(game.Id) && !downloads.Busy(game.Id) && !commandBusy);
     }
-    private async Task AdvanceHomeHeroAsync()
+    private async Task AdvanceHomeHeroAsync(int direction = 1, bool manual = false)
     {
-        if (homeHeroAnimating || homeHeroPaused || selected is not null || page != "explore" || Catalog.Length < 2) return;
+        if (homeHeroAnimating || (homeHeroPaused && !manual) || selected is not null || page != "explore" || Catalog.Length < 2) return;
         homeHeroAnimating = true;
         try
         {
@@ -468,7 +468,7 @@ public sealed partial class MainWindow : Window
             var leave = new Storyboard();
             var leaveX = new DoubleAnimation
             {
-                To = -72, Duration = TimeSpan.FromMilliseconds(230),
+                To = direction >= 0 ? -72 : 72, Duration = TimeSpan.FromMilliseconds(230),
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
             };
             Storyboard.SetTarget(leaveX, outgoing);
@@ -478,10 +478,10 @@ public sealed partial class MainWindow : Window
             Storyboard.SetTargetProperty(leaveFade, "Opacity");
             leave.Children.Add(leaveX); leave.Children.Add(leaveFade); leave.Begin();
             await Task.Delay(250);
-            if (homeHeroPaused || page != "explore" || selected is not null) return;
-            homeSlideIndex = (homeSlideIndex + 1) % Catalog.Length;
+            if ((homeHeroPaused && !manual) || page != "explore" || selected is not null) return;
+            homeSlideIndex = (homeSlideIndex + direction + Catalog.Length) % Catalog.Length;
             RenderCatalog();
-            var incoming = new TranslateTransform { X = 72 };
+            var incoming = new TranslateTransform { X = direction >= 0 ? 72 : -72 };
             HomeHeroSurface.RenderTransform = incoming;
             HomeHeroSurface.Opacity = 0.82;
             var enter = new Storyboard();
@@ -699,19 +699,23 @@ public sealed partial class MainWindow : Window
         hero.ContextFlyout = BuildGameContextFlyout(game);
         var contents = new StackPanel { Spacing = 16, Padding = new Thickness(24), MaxWidth = 640, RequestedTheme = ElementTheme.Dark,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
-        var identity = new Grid { ColumnSpacing = 24 };
-        identity.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        identity.ColumnDefinitions.Add(new ColumnDefinition());
-        var icon = new Image { Width = 96, Height = 96, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
-        if (game.ProductIcon.Length > 0)
-        { SetImage(icon, game.ProductIcon); identity.Children.Add(new Border { Width = 96, Height = 96, CornerRadius = new CornerRadius(16), Child = icon }); }
-        else identity.ColumnDefinitions[0].Width = new GridLength(0);
+        var hasProductIcon = !string.IsNullOrWhiteSpace(game.ProductIcon);
+        var identity = new Grid { ColumnSpacing = hasProductIcon ? 24 : 0 };
+        if (hasProductIcon)
+        {
+            identity.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var icon = new Image { Width = 96, Height = 96, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
+            SetImage(icon, game.ProductIcon);
+            identity.Children.Add(new Border { Width = 96, Height = 96, CornerRadius = new CornerRadius(16), Child = icon });
+        }
+        else identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var heading = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         heading.Children.Add(Text(game.Title, 28, true));
         var publisher = game.Data.S("publisher"); if (publisher.Length == 0) publisher = game.Store.S("publisher");
         if (publisher.Length > 0) heading.Children.Add(Text(publisher));
         if (game.Genres.Length > 0) heading.Children.Add(Text(game.Genres));
-        Grid.SetColumn(heading, 1); identity.Children.Add(heading); contents.Children.Add(identity);
+        Grid.SetColumn(heading, hasProductIcon ? 1 : 0); identity.Children.Add(heading); contents.Children.Add(identity);
         if (game.Description.Length > 0)
         { var summary = Text(game.Description); summary.MaxLines = 2; summary.TextTrimming = TextTrimming.CharacterEllipsis; contents.Children.Add(summary); }
         var buttons = new List<Button>(); var options = new MenuFlyout();
@@ -1026,11 +1030,13 @@ public sealed partial class MainWindow : Window
             Translate(Root);
             ExploreItem.Content = Locale.T("Explore"); LibraryItem.Content = Locale.T("Library"); DownloadsItem.Content = Locale.T("Downloads");
             WishlistItem.Content = Locale.T("Wishlist"); NewsItem.Content = Locale.T("Newswire");
-            SignInMenuItem.Text = Locale.T("Sign in"); AccountMenuItem.Text = Locale.T("My account"); UpdateAccount();
+            SignInMenuItem.Text = Locale.T("Sign in"); SettingsMenuItem.Text = Locale.T("Settings"); MyAccountMenuItem.Text = Locale.T("My account"); UpdateAccount();
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");
             OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
             AppearanceLabels();
+            UpdateHomeHeroControls(); RefreshTwoFactorLabels();
+            AutomationProperties.SetName(AccountButton, Locale.T("Settings"));
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
             AutomationProperties.SetName(CollapseButton, Locale.T("Collapse navigation"));
             AutomationProperties.SetName(NavigationCompactCard, Locale.T("Compact navigation layout"));

@@ -11,6 +11,26 @@ public sealed class TrayService : IDisposable
     private readonly IntPtr icon;
     private readonly uint taskbarCreated = RegisterWindowMessage("TaskbarCreated");
     public bool Available { get; private set; }
+    public static int ShowNativeMenu(Window owner, string openText, string exitText)
+    {
+        var menu = CreatePopupMenu();
+        if (menu == IntPtr.Zero) return 0;
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(owner);
+        try
+        {
+            if (!AppendMenu(menu, 0, new UIntPtr(1), openText)) return 0;
+            if (!AppendMenu(menu, 0x0800, UIntPtr.Zero, null)) return 0;
+            if (!AppendMenu(menu, 0, new UIntPtr(2), exitText)) return 0;
+            if (!GetCursorPos(out var cursor)) return 0;
+            _ = SetForegroundWindow(hwnd);
+            const uint flags = 0x0100u | 0x0002u | 0x0008u | 0x0020u;
+            var command = TrackPopupMenu(menu, flags, cursor.X, cursor.Y, 0, hwnd, IntPtr.Zero);
+            _ = PostMessage(hwnd, 0, IntPtr.Zero, IntPtr.Zero);
+            return checked((int)command);
+        }
+        finally { DestroyMenu(menu); }
+    }
+
     public event Action? Restore;
     public event Action? Menu;
     public TrayService(Window owner, NativeWindow native)
@@ -49,6 +69,14 @@ public sealed class TrayService : IDisposable
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] public string InfoTitle;
         public uint InfoFlags; public Guid Guid; public IntPtr BalloonIcon;
     }
+    [StructLayout(LayoutKind.Sequential)] private struct PopupPoint { public int X, Y; }
+    [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll", EntryPoint = "AppendMenuW", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool AppendMenu(IntPtr menu, uint flags, UIntPtr id, string? text);
+    [DllImport("user32.dll", EntryPoint = "TrackPopupMenu", SetLastError = true)] private static extern uint TrackPopupMenu(IntPtr menu, uint flags, int x, int y, int reserved, IntPtr hwnd, IntPtr rect);
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out PopupPoint point);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool PostMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr menu);
     [DllImport("shell32.dll", EntryPoint = "Shell_NotifyIconW", CharSet = CharSet.Unicode)] private static extern bool ShellNotifyIcon(uint operation, ref NotifyIconData data);
     [DllImport("user32.dll", EntryPoint = "LoadImageW", CharSet = CharSet.Unicode)] private static extern IntPtr LoadImage(IntPtr instance, string name, uint type, int width, int height, uint flags);
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr icon);

@@ -52,35 +52,61 @@ public sealed partial class MainWindow
     {
         NotificationMenu.Items.Clear();
         if (localNotifications.Count == 0)
-            NotificationMenu.Items.Add(new MenuFlyoutItem { Text = Locale.T("You're all caught up."), IsEnabled = false });
-        foreach (var notification in localNotifications.Take(12))
         {
-            var item = new MenuFlyoutItem
+            NotificationMenu.Items.Add(new MenuFlyoutItem { Text = Locale.T("You're all caught up."), IsEnabled = false });
+        }
+        else
+        {
+            var readAll = new MenuFlyoutItem
             {
-                Text = notification.Title + " · " + FormatDate(notification.CreatedAt.ToString("O"), true),
-                IsEnabled = notification.Kind is "game" or "news",
-                Tag = notification
+                Text = Locale.T("Read all notifications"),
+                IsEnabled = notificationsUnread
             };
-            item.Click += async (_, _) =>
+            readAll.Click += (_, _) =>
             {
-                if (notification.Kind == "game" &&
-                    Catalog.FirstOrDefault(game => game.Id.Equals(notification.EntityId, StringComparison.OrdinalIgnoreCase) || game.Slug == notification.Slug) is { } game)
-                    await Guard(() => LoadDetail(game));
-                else if (notification.Kind == "news" && newsItems.FirstOrDefault(story => story.S("slug") == notification.Slug) is { } story)
-                    await Guard(() => ShowNews(story));
                 notificationsUnread = false;
                 NotificationBadge.Visibility = Visibility.Collapsed;
+                RefreshNotificationMenu();
             };
+            NotificationMenu.Items.Add(readAll);
+            NotificationMenu.Items.Add(new MenuFlyoutSeparator());
+        }
+        foreach (var notification in localNotifications.Take(12))
+        {
+            var item = new MenuFlyoutSubItem
+            {
+                Text = notification.Title + " · " + FormatDate(notification.CreatedAt.ToString("O"), true)
+            };
+            var open = new MenuFlyoutItem
+            {
+                Text = Locale.T("Open notification"),
+                IsEnabled = notification.Kind is "game" or "news"
+            };
+            open.Click += async (_, _) => await OpenNotification(notification);
+            var dismiss = new MenuFlyoutItem { Text = Locale.T("Dismiss notification") };
+            dismiss.Click += (_, _) =>
+            {
+                localNotifications.Remove(notification);
+                if (localNotifications.Count == 0) notificationsUnread = false;
+                RefreshNotificationMenu();
+            };
+            item.Items.Add(open);
+            item.Items.Add(dismiss);
             NotificationMenu.Items.Add(item);
         }
         NotificationBadge.Value = Math.Min(99, localNotifications.Count);
         NotificationBadge.Visibility = notificationsUnread && localNotifications.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
-    private void NotificationsClick(object sender, RoutedEventArgs e)
+    private async Task OpenNotification(LauncherNotification notification)
     {
-        notificationsUnread = false;
-        RefreshNotificationMenu();
+        if (notification.Kind == "game" &&
+            Catalog.FirstOrDefault(game => game.Id.Equals(notification.EntityId, StringComparison.OrdinalIgnoreCase) || game.Slug == notification.Slug) is { } game)
+            await Guard(() => LoadDetail(game));
+        else if (notification.Kind == "news" &&
+            newsItems.FirstOrDefault(story => story.S("slug") == notification.Slug) is { } story)
+            await Guard(() => ShowNews(story));
     }
+    private void NotificationsClick(object sender, RoutedEventArgs e) => RefreshNotificationMenu();
     private void MinimizeToTray()
     {
         AppWindow.Hide(); bannerPlayer?.Pause(); homeBannerPlayer?.Pause();

@@ -30,32 +30,41 @@ function CheckSetupUi([string]$File) {
  Remove-Item $diagnosticLog -Force -ErrorAction SilentlyContinue
  $previousDiagnostics = $env:DEADSMILE_SETUP_DIAGNOSTICS
  $env:DEADSMILE_SETUP_DIAGNOSTICS = '1'
- $process = $null
+ $wrapper = $null
+ $setupProcess = $null
+ $startedAt = Get-Date
  try {
-  $process = Start-Process -FilePath $File -PassThru
-  $deadline = (Get-Date).AddSeconds(20)
+  $wrapper = Start-Process -FilePath $File -PassThru
+  $deadline = (Get-Date).AddSeconds(25)
   do {
    Start-Sleep -Milliseconds 250
-   $process.Refresh()
-   if ($process.HasExited) {
+   $wrapper.Refresh()
+   $setupProcess = Get-Process -Name "Deadsmile.Setup" -ErrorAction SilentlyContinue |
+    Where-Object { try { $_.StartTime -ge $startedAt.AddSeconds(-2) } catch { $false } } |
+    Sort-Object StartTime -Descending | Select-Object -First 1
+   if ($setupProcess) { $setupProcess.Refresh() }
+   if ($wrapper.HasExited -and !$setupProcess) {
     if (Test-Path $diagnosticLog) { Write-Host 'Setup startup diagnostics:'; Get-Content $diagnosticLog | Write-Host }
-    throw "Setup UI exited before creating a window (exit $($process.ExitCode))."
+    throw "Setup wrapper exited before starting Deadsmile.Setup (exit $($wrapper.ExitCode))."
    }
-  } until ($process.MainWindowHandle -ne 0 -or (Get-Date) -gt $deadline)
-  if ($process.MainWindowHandle -eq 0) {
+   if ($setupProcess -and $setupProcess.MainWindowHandle -ne 0) { break }
+  } until ((Get-Date) -gt $deadline)
+  if (!$setupProcess -or $setupProcess.HasExited -or $setupProcess.MainWindowHandle -eq 0) {
    if (Test-Path $diagnosticLog) { Write-Host 'Setup startup diagnostics:'; Get-Content $diagnosticLog | Write-Host }
-   throw 'Setup EXE did not open its WinUI 3 installation window.'
+   throw 'Backup EXE did not open the native WinUI 3 setup window.'
   }
-  if ($process.MainWindowTitle -notmatch 'Deadsmile.*Setup|Setup.*Deadsmile') {
-   throw "Unexpected setup window title: $($process.MainWindowTitle)"
+  if ($setupProcess.MainWindowTitle -notmatch 'Deadsmile.*Setup|Setup.*Deadsmile') {
+   throw "Unexpected setup window title: $($setupProcess.MainWindowTitle)"
   }
-  Write-Host "PASS interactive WinUI setup opens: $($process.MainWindowTitle)"
+  Write-Host "PASS backup EXE launches native WinUI setup: $($setupProcess.MainWindowTitle)"
  } finally {
-  if ($process -and !$process.HasExited) { Stop-Process -Id $process.Id -Force }
+  if ($setupProcess -and !$setupProcess.HasExited) { Stop-Process -Id $setupProcess.Id -Force -ErrorAction SilentlyContinue }
+  if ($wrapper -and !$wrapper.HasExited) { Stop-Process -Id $wrapper.Id -Force -ErrorAction SilentlyContinue }
   if ($null -eq $previousDiagnostics) { Remove-Item Env:DEADSMILE_SETUP_DIAGNOSTICS -ErrorAction SilentlyContinue }
   else { $env:DEADSMILE_SETUP_DIAGNOSTICS = $previousDiagnostics }
- } 
+ }
 }
+
 function CheckStartup([string]$File) {
  $process = Start-Process -FilePath $File -PassThru
  try {

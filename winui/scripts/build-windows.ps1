@@ -100,8 +100,8 @@ if ($Target -in @("All", "Installer")) {
   throw "The native WinUI setup app or launcher payload is missing."
  }
  # WinUI 3 unpackaged apps need a root resources.pri for ms-appx resource lookup.
- # Build the index from app-owned assets only: indexing the self-contained publish directory
- # recursively re-indexes Windows App SDK dependency PRI files and creates duplicate resources.
+ # Index the compiled XAML views and app assets, not the entire self-contained runtime.
+ # Re-indexing all Windows App SDK dependency PRI files introduces duplicate resources.
  $resourcesPri = Join-Path $setupPublish "resources.pri"
  if (!(Test-Path $resourcesPri)) {
   $makepri = FindTool "makepri.exe"
@@ -109,6 +109,17 @@ if ($Target -in @("All", "Installer")) {
   if (Test-Path $resourceSource) { Remove-Item $resourceSource -Recurse -Force }
   New-Item $resourceSource -ItemType Directory -Force | Out-Null
   Copy-Item (Join-Path $projectRoot "src/Deadsmile.Setup/Assets") (Join-Path $resourceSource "Assets") -Recurse -Force
+  $compiledXamlFiles = @(
+   Get-ChildItem (Join-Path $projectRoot "src/Deadsmile.Setup") -Recurse -File -Filter "*.xbf" -ErrorAction SilentlyContinue
+   Get-ChildItem $setupPublish -Recurse -File -Filter "*.xbf" -ErrorAction SilentlyContinue
+  )
+  if ($compiledXamlFiles.Count -eq 0) {
+   throw "The WinUI XAML compiler emitted no .xbf resources; refusing to build an incomplete installer."
+  }
+  foreach ($xamlFile in $compiledXamlFiles) {
+   $target = Join-Path $resourceSource $xamlFile.Name
+   if (!(Test-Path $target)) { Copy-Item $xamlFile.FullName $target -Force }
+  }
   $priConfig = Join-Path $artifacts "setup-priconfig.xml"
   $generatedPri = Join-Path $artifacts "setup-resources.pri"
   Remove-Item $priConfig, $generatedPri -Force -ErrorAction SilentlyContinue

@@ -12,6 +12,9 @@ $setup = (Get-ChildItem $artifacts -Filter '*Setup*.exe' -File | Select-Object -
 $msix = (Get-ChildItem $artifacts -Filter '*.msix' -File | Select-Object -First 1).FullName
 $certificate = Join-Path $artifacts 'Deadsmile-Development.cer'
 if (!$setup -or !$msix -or !(Test-Path $certificate)) { throw 'Installer artifacts are missing.' }
+if (!(Test-Path (Join-Path $artifacts 'setup-publish/resources.pri'))) {
+ throw 'Native WinUI setup resource index (resources.pri) is missing.'
+}
 
 function RunSetup([string]$File, [string[]]$Arguments) {
  $process = Start-Process -FilePath $File -ArgumentList $Arguments -PassThru

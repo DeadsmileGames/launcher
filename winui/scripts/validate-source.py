@@ -115,6 +115,12 @@ for name, catalog in texts.items():
     for lang in ["pt-BR", "es"]:
         check(set(catalog["en"]).issubset(catalog[lang]), f"{name}: incomplete {lang}")
 
+setup_project = ET.parse(root / "src" / "Deadsmile.Setup" / "Deadsmile.Setup.csproj")
+setup_props = setup_project.find("PropertyGroup")
+check(setup_props is not None and setup_props.findtext("UseWinUI") == "true", "Setup project must use WinUI")
+check(setup_props is not None and setup_props.findtext("EnableMsixTooling") == "true", "Setup project must generate WinUI resource index")
+check(setup_props is not None and setup_props.findtext("WindowsPackageType") == "None", "Setup project must remain unpackaged")
+
 csproj = ET.parse(launcher / "Deadsmile.Launcher.csproj")
 check(csproj.findtext(".//UseWinUI") == "true", "WinUI must be enabled")
 check(csproj.findtext(".//PublishTrimmed") == "false", "Trimming must remain disabled until runtime tested")

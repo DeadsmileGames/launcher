@@ -20,12 +20,12 @@
   <Extensions>
    <uap3:Extension Category="windows.protocol"><uap3:Protocol Name="deadsmile" Parameters="&quot;%1&quot;"/></uap3:Extension>
    <desktop:Extension Category="windows.toastNotificationActivation">
-    <desktop:ToastNotificationActivation ToastActivatorCLSID="{51A9F4F5-4389-401A-8D67-4626C47B505D}"/>
+    <desktop:ToastNotificationActivation ToastActivatorCLSID="51A9F4F5-4389-401A-8D67-4626C47B505D"/>
    </desktop:Extension>
    <com:Extension Category="windows.comServer">
     <com:ComServer>
      <com:ExeServer Executable="Deadsmile.Launcher.exe" DisplayName="Deadsmile Games Launcher" Arguments="----AppNotificationActivated:">
-      <com:Class Id="{51A9F4F5-4389-401A-8D67-4626C47B505D}"/>
+      <com:Class Id="51A9F4F5-4389-401A-8D67-4626C47B505D"/>
      </com:ExeServer>
     </com:ComServer>
    </com:Extension>

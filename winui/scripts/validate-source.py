@@ -55,7 +55,7 @@ family = manifest.find("p:Dependencies/p:TargetDeviceFamily", ns)
 check(family is not None and family.attrib["MinVersion"] == "10.0.19041.0", "Unexpected minimum OS")
 toast_activation = manifest.find(".//desktop:ToastNotificationActivation", ns)
 com_server = manifest.find(".//com:ExeServer", ns)
-notification_clsid = "{51A9F4F5-4389-401A-8D67-4626C47B505D}"
+notification_clsid = "51A9F4F5-4389-401A-8D67-4626C47B505D"
 check(toast_activation is not None and toast_activation.attrib.get("ToastActivatorCLSID") == notification_clsid,
       "MSIX manifest has the documented app-notification activation CLSID")
 check(com_server is not None and com_server.attrib.get("Executable") == "Deadsmile.Launcher.exe" and

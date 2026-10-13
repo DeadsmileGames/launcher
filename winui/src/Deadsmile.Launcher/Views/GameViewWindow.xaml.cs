@@ -378,6 +378,7 @@ public sealed partial class GameViewWindow : Window
     internal void ValidationPinAndHide() { ProfilePin.IsChecked = true; Hide(); }
     internal bool ValidationPinned => !IsOpen && ProfilePanel.Visibility == Visibility.Visible && LibraryPanel.Visibility == Visibility.Collapsed;
     internal bool ValidationTimerRunning => timer.IsRunning;
+    internal bool ValidationNativeVisible => NativeWindow.IsVisible(this);
 #endif
     private async void ReloadClick(object sender, RoutedEventArgs e) => await Reload();
     private void CloseClick(object sender, RoutedEventArgs e) => Hide(true);

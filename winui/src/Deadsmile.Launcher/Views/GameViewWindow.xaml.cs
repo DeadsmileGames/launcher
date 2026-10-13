@@ -96,10 +96,8 @@ public sealed partial class GameViewWindow : Window
     private void Monitor()
     {
         if (!AppWindow.IsVisible) return;
-#if !UI_VALIDATION
-        if (!owner.GameIsFocused || owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
+        if (owner.Games.Running.All(x => x.Process.HasExited || NativeWindow.Minimized(x.Process.MainWindowHandle)))
         { Hide(true); return; }
-#endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
         var point = NativeWindow.Cursor(this); var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
         point = new(point.X / scale, point.Y / scale);
@@ -110,6 +108,10 @@ public sealed partial class GameViewWindow : Window
             var rect = p.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, p.ActualWidth, p.ActualHeight));
             return rect.Contains(point);
         });
+#if !UI_VALIDATION
+        if (!owner.GameIsFocused && !(owner.IsLauncherForeground && interactive))
+        { Hide(true); return; }
+#endif
         NativeWindow.PassClicks(this, !interactive);
     }
     private Border Widget(string name) => Widgets.First(x => x.Tag?.ToString() == name);

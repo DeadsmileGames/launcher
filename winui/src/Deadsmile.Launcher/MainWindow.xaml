@@ -170,8 +170,8 @@
        <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid x:Name="CatalogWrap" ItemWidth="196" Orientation="Horizontal"/></ItemsPanelTemplate></GridView.ItemsPanel>
        <GridView.ItemTemplate><DataTemplate>
         <StackPanel Width="180" Spacing="8">
-         <Border Loaded="GameCardLoaded" CornerRadius="8" Height="270" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-          <Border.Background><ImageBrush ImageSource="{Binding Poster}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"/></Border.Background>
+         <Border Loaded="GameCardLoaded" CornerRadius="8" Height="270" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+
          </Border>
          <TextBlock Text="{Binding Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
         </StackPanel>

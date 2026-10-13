@@ -346,10 +346,13 @@ public sealed partial class MainWindow
                     var card = new Grid { ColumnSpacing = 16 };
                     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
                     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    var image = new Image { Width = 112, Height = 168, Stretch = Stretch.UniformToFill,
-                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                    SetImage(image, coverUrl ?? "");
-                    card.Children.Add(new Border { Width = 112, Height = 168, CornerRadius = new CornerRadius(8), Child = image });
+                    var cover = new Border
+                    {
+                        Width = 112, Height = 168, CornerRadius = new CornerRadius(8),
+                        Background = CenteredArtwork(coverUrl ?? "")
+                    };
+                    if (game is not null) cover.ContextFlyout = BuildGameContextFlyout(game);
+                    card.Children.Add(cover);
                     var details = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
                     var title = Text(item.S("title", "name", "gameTitle"), 20, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; details.Children.Add(title);
                     var desc = item.S("short_description", "shortDescription");
@@ -529,7 +532,7 @@ public sealed partial class MainWindow
     {
         var revision = detailRevision;
         var accent = await DetectArtworkAccentAsync(game.Cover);
-        if (revision != detailRevision || !DetailContent.Children.Contains(hero) || accent is not { } color) return;
+        if (revision != detailRevision || selected?.Id != game.Id || accent is not { } color) return;
         overlay.Background = CreateHeroShade(color);
     }
 

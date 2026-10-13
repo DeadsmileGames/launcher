@@ -65,6 +65,16 @@ public sealed partial class MainWindow : Window
                 !NativeWindow.Minimized(game.Process.MainWindowHandle));
         }
     }
+    internal bool IsLauncherForeground
+    {
+        get
+        {
+            var foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero) return false;
+            _ = GetWindowThreadProcessId(foreground, out var processId);
+            return processId == (uint)Environment.ProcessId;
+        }
+    }
     private bool ready, refreshing, refreshAgain, twoFactor, authenticating, changingLanguage, connecting, commandBusy, closeDialog, itchConfigured, itchConnected;
     private int downloadDirty = 1, detailRevision;
     private string? pendingLaunch;
@@ -593,8 +603,11 @@ public sealed partial class MainWindow : Window
     }
     private void GameCardLoaded(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement element && element.DataContext is Game game)
-            element.ContextFlyout = BuildGameContextFlyout(game);
+        if (sender is Border card && card.DataContext is Game game)
+        {
+            card.Background = CenteredArtwork(game.Poster);
+            card.ContextFlyout = BuildGameContextFlyout(game);
+        }
     }
     private static ImageBrush CenteredArtwork(string value)
     {

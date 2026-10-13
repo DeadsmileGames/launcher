@@ -152,6 +152,16 @@ public sealed partial class MainWindow
             Check(User is not null && Shell.Visibility == Visibility.Visible, "Native sign-in opens the shell");
             Check(ItchButton.IsEnabled && LogoutButton.IsEnabled, "Account controls re-enable after sign-in");
             Check(Shell is NavigationView && AppTitleBar is TitleBar, "Shell uses native NavigationView and TitleBar");
+            var originalLanguage = Locale.Language;
+            Locale.Language = "pt-BR"; ApplyLanguage();
+            Check(ProfileFullName.Header?.ToString() == "Nome completo", "Profile field headers translate to Portuguese");
+            Check(HomeNewsOpenButton.Content?.ToString() == "Abrir Newswire", "Home Newswire action translates to Portuguese");
+            Check(ShareGameActivityToggle.Header?.ToString() == "Compartilhar atividade de jogos", "Privacy settings translate to Portuguese");
+            Locale.Language = "es"; ApplyLanguage();
+            Check(ProfileFullName.Header?.ToString() == "Nombre completo", "Profile field headers translate to Spanish");
+            Check(HomeNewsOpenButton.Content?.ToString() == "Abrir Newswire", "Home Newswire action translates to Spanish");
+            Check(ShareGameActivityToggle.Header?.ToString() == "Compartir actividad de juegos", "Privacy settings translate to Spanish");
+            Locale.Language = originalLanguage; ApplyLanguage(); ShowPage();
             Check(Shell.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftCompact, "Store compact navigation is enabled");
             Check(((SolidColorBrush)Root.Background).Color == Windows.UI.Color.FromArgb(255, 39, 39, 39), "Body color is exactly 272727");
             Check(((SolidColorBrush)Shell.Background).Color == Windows.UI.Color.FromArgb(255, 32, 32, 32), "Sidebar color is exactly 202020");

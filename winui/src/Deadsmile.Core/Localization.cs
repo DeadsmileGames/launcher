@@ -8,6 +8,7 @@ public sealed class Localization
     private readonly Dictionary<string, Dictionary<string, string>> messages = Load("messages.json");
     private readonly Dictionary<string, Dictionary<string, string>> errors = Load("errors.json");
     public string Language { get; set; } = "pt-BR";
+    public bool HasKey(string key) => messages.GetValueOrDefault("en")?.ContainsKey(key) == true;
     public string T(string key) => messages.GetValueOrDefault(Language)?.GetValueOrDefault(key)
         ?? messages.GetValueOrDefault("en")?.GetValueOrDefault(key) ?? key;
     public string Error(Exception ex) => Error(ex is LauncherException le ? le.Code : ex is OperationCanceledException or HttpRequestException ? "NETWORK_ERROR" : "INTERNAL_ERROR");

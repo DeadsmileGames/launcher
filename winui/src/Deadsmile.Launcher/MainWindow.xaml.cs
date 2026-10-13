@@ -903,18 +903,37 @@ public sealed partial class MainWindow : Window
             OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
             AppearanceLabels();
             AutomationProperties.SetName(SearchBox, Locale.T("Search games"));
+            AutomationProperties.SetName(CollapseButton, Locale.T("Collapse navigation"));
+            AutomationProperties.SetName(NavigationCompactCard, Locale.T("Compact navigation layout"));
+            AutomationProperties.SetName(NavigationExpandedCard, Locale.T("Expanded navigation layout"));
             EmailBox.Header = Locale.T("Email or username"); PasswordBox.Header = Locale.T("Password");
             CodeBox.Header = Locale.T("Authentication code"); SearchBox.PlaceholderText = Locale.T("Search games");
             InstalledFilter.Content = Locale.T("Installed only"); LoginLanguage.Header = Locale.T("Language");
+            foreach (var item in ThemeChoice.Items.OfType<ComboBoxItem>())
+                item.Content = Locale.T(item.Tag?.ToString() switch { "dark" => "Dark", "light" => "Light", _ => "Use system setting" });
+            foreach (var item in NavigationChoice.Items.OfType<ComboBoxItem>())
+                item.Content = Locale.T(item.Tag?.ToString() switch { "compact" => "Compact", _ => "Expanded" });
         }
         finally { changingLanguage = false; }
     }
     private void Translate(DependencyObject node)
     {
-        if (node is FrameworkElement { Tag: string key })
+        if (node is FrameworkElement element && element.Tag is string key && Locale.HasKey(key))
         {
-            if (node is TextBlock t) t.Text = Locale.T(key);
-            if (node is ButtonBase b && b.Content is string) b.Content = Locale.T(key);
+            var translated = Locale.T(key);
+            if (node is TextBlock textBlock) textBlock.Text = translated;
+            else if (node is ButtonBase button && button.Content is string) button.Content = translated;
+            else if (node is TextBox textBox && textBox.Header is string) textBox.Header = translated;
+            else if (node is PasswordBox passwordBox && passwordBox.Header is string) passwordBox.Header = translated;
+            else if (node is ComboBox comboBox && comboBox.Header is string) comboBox.Header = translated;
+            else if (node is ToggleSwitch toggleSwitch && toggleSwitch.Header is string) toggleSwitch.Header = translated;
+            if (!string.IsNullOrWhiteSpace(AutomationProperties.GetName(element)))
+                AutomationProperties.SetName(element, translated);
+        }
+        if (node is ToggleSwitch toggle)
+        {
+            toggle.OnContent = Locale.T("On");
+            toggle.OffContent = Locale.T("Off");
         }
         if (node is Panel panel) { foreach (var child in panel.Children) Translate(child); return; }
         if (node is Border border && border.Child is { } childBorder) { Translate(childBorder); return; }

@@ -57,7 +57,7 @@ public sealed partial class MainWindow : Window
             var foreground = GetForegroundWindow();
             if (foreground == IntPtr.Zero) return false;
             if (overlay is { IsOpen: true } activeOverlay &&
-                foreground == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
+                NativeWindow.RootOwner(foreground) == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
             _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
             return foregroundProcessId != 0 && Games.Running.Any(game =>
                 !game.Process.HasExited && (uint)game.Process.Id == foregroundProcessId &&
@@ -68,7 +68,7 @@ public sealed partial class MainWindow : Window
     {
         var foreground = GetForegroundWindow();
         if (foreground == IntPtr.Zero) return false;
-        if (overlay is { IsOpen: true } activeOverlay && foreground == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
+        if (overlay is { IsOpen: true } activeOverlay && NativeWindow.RootOwner(foreground) == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
         var game = Games.Running.FirstOrDefault(entry => entry.Game.Id.Equals(gameId, StringComparison.OrdinalIgnoreCase));
         if (game is null || game.Process.HasExited || NativeWindow.Minimized(game.Process.MainWindowHandle)) return false;
         _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
@@ -403,8 +403,15 @@ public sealed partial class MainWindow : Window
         LoginLayout.MinHeight = 0;
         SearchBox.Width = Root.ActualWidth < 900 ? 180 : Math.Clamp(Root.ActualWidth * 0.4, 180, 600);
         AppTitleBar.Title = "Deadsmile Games Launcher";
-        if (SettingsPanel.ActualWidth > 0) SettingsBody.Width = Math.Max(0, Math.Min(1000, SettingsPanel.ActualWidth - 24));
-        if (AccountPanel.ActualWidth > 0) AccountBody.Width = Math.Max(0, Math.Min(1000, AccountPanel.ActualWidth - 24));
+        if (ContentPage.ActualWidth > 0) ContentRows.Width = Math.Max(0, ContentPage.ActualWidth - 16);
+        if (DetailPanel.ActualWidth > 0) DetailContent.Width = Math.Max(0, DetailPanel.ActualWidth - 16);
+        if (DownloadsPanel.ActualWidth > 0)
+        {
+            DownloadRows.Width = Math.Max(0, DownloadsPanel.ActualWidth - 16);
+            foreach (var grid in DownloadRows.Children.OfType<WrapGrid>()) grid.Width = Math.Max(grid.ItemWidth, DownloadRows.Width - 8);
+        }
+        if (SettingsPanel.ActualWidth > 0) SettingsBody.Width = Math.Max(0, SettingsPanel.ActualWidth - 16);
+        if (AccountPanel.ActualWidth > 0) AccountBody.Width = Math.Max(0, AccountPanel.ActualWidth - 16);
         if (HomeHeroSurface.ActualWidth > 0 && FeaturedVideo.Visibility == Visibility.Visible)
         { FeaturedVideo.Width = HomeHeroSurface.ActualWidth; FeaturedVideo.Height = HomeHeroSurface.ActualHeight; }
         CatalogHeader.Width = Math.Max(0, GameGrid.ActualWidth - 16);
@@ -955,62 +962,10 @@ public sealed partial class MainWindow : Window
     private void RenderDownloads()
     {
         DownloadRows.Children.Clear();
-        var installedGames = OrderInstalledGames(Catalog, installs.Installed.Keys);
-        if (installedGames.Length > 0)
-        {
-            DownloadRows.Children.Add(Text(Locale.T("Installed games"), 24, true));
-            foreach (var game in installedGames)
-            {
-                if (!installs.Installed.TryGetValue(game.Id, out var installed) &&
-                    !installs.Installed.TryGetValue(Urls.Id(game.Id), out installed)) continue;
-                var card = new Grid { ColumnSpacing = 16 };
-                card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
-                card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                var cover = new Grid { Width = 112, Height = 158, Background = CenteredArtwork(game.Poster.Length > 0 ? game.Poster : game.Cover) };
-                cover.Clip = new RectangleGeometry { Rect = new Rect(0, 0, 112, 158) };
-                var artwork = new StackPanel { Width = 112, Spacing = 6 };
-                artwork.Children.Add(cover);
-                artwork.Children.Add(new Border
-                {
-                    Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 132, 216, 0)),
-                    CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 5, 8, 5),
-                    Child = new TextBlock { Text = Locale.T("Installed"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                        Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black), HorizontalAlignment = HorizontalAlignment.Center }
-                });
-                card.Children.Add(artwork);
-                var content = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
-                content.Children.Add(Text(game.Title, 22, true));
-                var version = string.IsNullOrWhiteSpace(installed.Version) ? game.Version : installed.Version!;
-                content.Children.Add(Text(Locale.T("Installed") + (version.Length > 0 ? " · " + version : "")));
-                if (game.Genres.Length > 0) content.Children.Add(Text(game.Genres, 13));
-                if (game.Description.Length > 0)
-                {
-                    var description = Text(game.Description);
-                    description.MaxLines = 2; description.TextTrimming = TextTrimming.CharacterEllipsis;
-                    content.Children.Add(description);
-                }
-                var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-                actions.Children.Add(Action("View details", () => LoadDetail(game)));
-                if (game.CanLaunch)
-                {
-                    var running = Games.Running.Any(entry => entry.Game.Id == game.Id && !entry.Process.HasExited);
-                    var play = Action(running ? "Stop" : "Play", async () =>
-                    {
-                        if (running) Games.Stop(game.Id);
-                        else await LaunchWithSequence(game);
-                    }, primary: true);
-                    play.IsEnabled = running || (!AllBusy && !downloads.Busy(game.Id) && !Games.Busy(game.Id));
-                    actions.Children.Add(play);
-                }
-                content.Children.Add(actions);
-                Grid.SetColumn(content, 1); card.Children.Add(content);
-                DownloadRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = card });
-            }
-        }
-
         var jobs = downloads.Jobs.Where(job => job.Status != "complete")
             .OrderBy(job => job.Status is "queued" or "downloading" or "extracting" or "committing" ? 0 : 1)
             .ThenBy(job => job.Game.Title, StringComparer.CurrentCultureIgnoreCase).ToArray();
+        var installedGames = OrderInstalledGames(Catalog, installs.Installed.Keys);
         var activeCount = downloads.Jobs.Count(job => downloads.Busy(job.Id));
         DownloadsItem.InfoBadge = activeCount > 0 ? new InfoBadge { Value = activeCount } : null;
         if (jobs.Length == 0 && installedGames.Length == 0)
@@ -1018,39 +973,96 @@ public sealed partial class MainWindow : Window
             DownloadRows.Children.Add(Text(Locale.T("No downloads yet.")));
             return;
         }
-        if (jobs.Length > 0) DownloadRows.Children.Add(Text(Locale.T("Downloads"), 24, true));
-        foreach (var job in jobs)
+        if (jobs.Length > 0)
         {
-            var card = new Grid { ColumnSpacing = 16 };
-            card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
-            card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            var cover = new Grid { Width = 112, Height = 158, Background = CenteredArtwork(job.Game.Poster.Length > 0 ? job.Game.Poster : job.Game.Cover) };
-            cover.Clip = new RectangleGeometry { Rect = new Rect(0, 0, 112, 158) };
-            if (job.Status is not ("cancelled" or "failed"))
+            DownloadRows.Children.Add(Text(Locale.T("Downloads"), 24, true));
+            foreach (var job in jobs)
             {
-                cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(190, 0, 0, 0)) });
-                var percent = job.Status is "extracting" or "committing" ? 96 : (int)Math.Clamp(job.Percent, 0, 95);
-                cover.Children.Add(CircularProgress(percent));
+                var card = new Grid { ColumnSpacing = 16 };
+                card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
+                card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var cover = new Grid { Width = 112, Height = 158, Background = CenteredArtwork(job.Game.Poster.Length > 0 ? job.Game.Poster : job.Game.Cover) };
+                cover.Clip = new RectangleGeometry { Rect = new Rect(0, 0, 112, 158) };
+                if (job.Status is not ("cancelled" or "failed"))
+                {
+                    cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(190, 0, 0, 0)) });
+                    var percent = job.Status is "extracting" or "committing" ? 96 : (int)Math.Clamp(job.Percent, 0, 95);
+                    cover.Children.Add(CircularProgress(percent));
+                }
+                var artwork = new StackPanel { Width = 112, Spacing = 6 };
+                artwork.Children.Add(cover); card.Children.Add(artwork);
+                var content = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
+                content.Children.Add(Text(job.Game.Title, 22, true));
+                var status = Locale.T(job.Status switch
+                {
+                    "queued" => "Queued", "paused" => "Paused", "extracting" => "Extracting…",
+                    "committing" => "Installing…", "cancelled" => "Cancelled", "failed" => "Failed", _ => "Downloading…"
+                });
+                content.Children.Add(Text(status + " · " + Bytes(job.Received) + " / " + Bytes(job.Total)));
+                content.Children.Add(new ProgressBar { Minimum = 0, Maximum = 100, Value = job.Status is "extracting" or "committing" ? 96 : job.Percent });
+                if (job.Game.Genres.Length > 0) content.Children.Add(Text(job.Game.Genres, 13));
+                if (job.Error is not null && job.Status == "failed") content.Children.Add(Text(Locale.Error(job.Error)));
+                var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+                if (job.Status is "queued" or "downloading") actions.Children.Add(Action("Pause", () => { downloads.Pause(job.Id); return Task.CompletedTask; }));
+                if (job.Status is "paused" or "failed") actions.Children.Add(Action(job.Status == "paused" ? "Resume" : "Retry", () => { downloads.Resume(job.Id); return Task.CompletedTask; }));
+                if (job.Status is "queued" or "downloading" or "paused") actions.Children.Add(Action("Cancel", () => { downloads.Cancel(job.Id); return Task.CompletedTask; }));
+                content.Children.Add(actions); Grid.SetColumn(content, 1); card.Children.Add(content);
+                DownloadRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = card });
             }
-            var artwork = new StackPanel { Width = 112, Spacing = 6 };
-            artwork.Children.Add(cover); card.Children.Add(artwork);
-            var content = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0 };
-            content.Children.Add(Text(job.Game.Title, 22, true));
-            var status = Locale.T(job.Status switch
+        }
+        if (installedGames.Length > 0)
+        {
+            DownloadRows.Children.Add(Text(Locale.T("Installed games"), 24, true));
+            var pageWidth = DownloadsPanel.ActualWidth > 0 ? DownloadsPanel.ActualWidth : PageLayout.ActualWidth;
+            var installedGrid = new WrapGrid { Orientation = Orientation.Horizontal, ItemWidth = 252, ItemHeight = 350, Width = Math.Max(252, pageWidth - 40) };
+            foreach (var game in installedGames)
             {
-                "queued" => "Queued", "paused" => "Paused", "extracting" => "Extracting…",
-                "committing" => "Installing…", "cancelled" => "Cancelled", "failed" => "Failed", _ => "Downloading…"
-            });
-            content.Children.Add(Text(status + " · " + Bytes(job.Received) + " / " + Bytes(job.Total)));
-            content.Children.Add(new ProgressBar { Minimum = 0, Maximum = 100, Value = job.Status is "extracting" or "committing" ? 96 : job.Percent });
-            if (job.Game.Genres.Length > 0) content.Children.Add(Text(job.Game.Genres, 13));
-            if (job.Error is not null && job.Status == "failed") content.Children.Add(Text(Locale.Error(job.Error)));
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-            if (job.Status is "queued" or "downloading") actions.Children.Add(Action("Pause", () => { downloads.Pause(job.Id); return Task.CompletedTask; }));
-            if (job.Status is "paused" or "failed") actions.Children.Add(Action(job.Status == "paused" ? "Resume" : "Retry", () => { downloads.Resume(job.Id); return Task.CompletedTask; }));
-            if (job.Status is "queued" or "downloading" or "paused") actions.Children.Add(Action("Cancel", () => { downloads.Cancel(job.Id); return Task.CompletedTask; }));
-            content.Children.Add(actions); Grid.SetColumn(content, 1); card.Children.Add(content);
-            DownloadRows.Children.Add(new Border { Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(16), Child = card });
+                if (!installs.Installed.TryGetValue(game.Id, out var installed) &&
+                    !installs.Installed.TryGetValue(Urls.Id(game.Id), out installed)) continue;
+                var cover = new Grid
+                {
+                    Width = 220, Height = 118,
+                    Background = CenteredArtwork(game.Poster.Length > 0 ? game.Poster : game.Cover),
+                    Clip = new RectangleGeometry { Rect = new Rect(0, 0, 220, 118) }
+                };
+                cover.Children.Add(new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(90, 0, 0, 0)) });
+                cover.Children.Add(new Border
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(8),
+                    Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 132, 216, 0)), CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(8, 4, 8, 4),
+                    Child = new TextBlock { Text = Locale.T("Installed"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black) }
+                });
+                var content = new StackPanel { Width = 220, Spacing = 7 };
+                content.Children.Add(cover);
+                var title = Text(game.Title, 17, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis;
+                content.Children.Add(title);
+                var version = string.IsNullOrWhiteSpace(installed.Version) ? game.Version : installed.Version!;
+                content.Children.Add(Text(Locale.T("Installed") + (version.Length > 0 ? " · " + version : "")));
+                if (game.Genres.Length > 0)
+                {
+                    var genres = Text(game.Genres, 12); genres.MaxLines = 1; genres.TextTrimming = TextTrimming.CharacterEllipsis;
+                    content.Children.Add(genres);
+                }
+                if (game.Description.Length > 0)
+                {
+                    var description = Text(game.Description, 12); description.MaxLines = 2; description.TextTrimming = TextTrimming.CharacterEllipsis;
+                    content.Children.Add(description);
+                }
+                var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                var details = Action("View details", () => LoadDetail(game)); details.MinWidth = 0; details.Width = 112; actions.Children.Add(details);
+                if (game.CanLaunch)
+                {
+                    var running = Games.Running.Any(entry => entry.Game.Id == game.Id && !entry.Process.HasExited);
+                    var play = Action(running ? "Stop" : "Play", async () => { if (running) Games.Stop(game.Id); else await LaunchWithSequence(game); }, primary: true);
+                    play.MinWidth = 0; play.Width = 88;
+                    play.IsEnabled = running || (!AllBusy && !downloads.Busy(game.Id) && !Games.Busy(game.Id));
+                    actions.Children.Add(play);
+                }
+                content.Children.Add(actions);
+                installedGrid.Children.Add(new Border { Width = 240, Height = 338, Margin = new Thickness(0, 0, 12, 12), Style = (Style)Application.Current.Resources["Panel"], Padding = new Thickness(10), Child = content });
+            }
+            DownloadRows.Children.Add(installedGrid);
         }
     }
     private Grid CircularProgress(int value)

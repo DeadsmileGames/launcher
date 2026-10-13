@@ -265,17 +265,17 @@ public sealed partial class MainWindow
     {
         body.HorizontalAlignment = HorizontalAlignment.Center;
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
-        var dialogWidth = Math.Min(width + 48, Math.Max(248, availableWidth - 48));
+        var contentWidth = Math.Min(width + 16, Math.Max(200, availableWidth - 48));
         var article = new Border
         {
-            Width = width + 8,
+            Width = Math.Max(184, contentWidth - 8),
             HorizontalAlignment = HorizontalAlignment.Center,
             Padding = new Thickness(0, 0, 8, 24),
             Child = body
         };
         var scroll = new ScrollViewer
         {
-            Width = width + 16,
+            Width = contentWidth,
             HorizontalAlignment = HorizontalAlignment.Center,
             Content = article,
             Height = Math.Max(180, Math.Min(560, Root.XamlRoot.Size.Height - 144)),
@@ -285,7 +285,7 @@ public sealed partial class MainWindow
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             HorizontalScrollMode = ScrollMode.Disabled
         };
-        var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center };
+        var host = new Grid { Width = contentWidth, MaxWidth = Math.Max(200, availableWidth - 48), HorizontalAlignment = HorizontalAlignment.Center };
         host.Children.Add(scroll);
         var viewer = new ContentDialog
         {
@@ -296,12 +296,8 @@ public sealed partial class MainWindow
             Content = host,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            MinWidth = dialogWidth,
-            MaxWidth = dialogWidth,
             MaxHeight = Math.Max(240, (Root.XamlRoot?.Size.Height ?? Root.ActualHeight) - 96)
         };
-        viewer.Resources["ContentDialogMaxWidth"] = dialogWidth;
-        viewer.Resources["ContentDialogMinWidth"] = dialogWidth;
         viewer.Resources["ContentDialogMaxHeight"] = Math.Max(240, (Root.XamlRoot?.Size.Height ?? Root.ActualHeight) - 96);
         return viewer;
     }

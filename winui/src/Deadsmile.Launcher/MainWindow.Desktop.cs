@@ -22,20 +22,20 @@ public sealed partial class MainWindow
 #if !UI_VALIDATION
         try
         {
-            tray = new TrayService(this, native); tray.Restore += RestoreFromTray; tray.Menu += OpenTrayMenu;
             notifications = new DesktopNotifications(); notifications.Invoked += () => DispatcherQueue.TryEnqueue(RestoreFromTray);
         }
         catch (Exception) { storage.Log("TRAY_UNAVAILABLE"); }
 #endif
     }
     private bool Foreground => AppWindow.IsVisible && GetForegroundWindow() == WinRT.Interop.WindowNative.GetWindowHandle(this);
+    internal bool IsLauncherForeground => Foreground;
     private void DesktopNotice(string title, string text, string kind = "", string? entityId = null, string? slug = null)
     {
         if (!Preferences.Notifications) return;
         AddLocalNotification(title, text, kind, entityId, slug);
         var window = WinRT.Interop.WindowNative.GetWindowHandle(this);
         if (AppWindow.IsVisible && !NativeWindow.Minimized(window)) { ShowInAppToast(title, text); return; }
-        if (notifications?.Show(title, text) != true) tray?.Notify(title, text);
+        if (notifications?.Show(title, text) != true) storage.Log("DESKTOP_NOTIFICATION_UNAVAILABLE");
     }
     private void AddLocalNotification(string title, string message, string kind, string? entityId, string? slug)
     {

@@ -215,9 +215,10 @@ check('identity.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLen
       "if (!hasMainContent || !hasInformationContent)" in main_code,
       "Game details do not reserve empty icon or content columns")
 check("HorizontalContentAlignment = HorizontalAlignment.Center" in portal_code and
-      "var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center }" in portal_code,
-      "Newswire dialog centers its scrolling content")
-check('var host = new Grid { Width = dialogWidth, HorizontalAlignment = HorizontalAlignment.Center }' in gallery_code and
+      "var host = new Grid { Width = contentWidth, MaxWidth = Math.Max(200, availableWidth - 48), HorizontalAlignment = HorizontalAlignment.Center }" in portal_code and
+      "MinWidth = dialogWidth" not in portal_code and 'viewer.Resources["ContentDialogMinWidth"]' not in portal_code,
+      "Newswire dialog centers its scrolling content without forcing dialog dimensions")
+check('var host = new Grid { Width = viewportWidth + 48, HorizontalAlignment = HorizontalAlignment.Center }' in gallery_code and
       "Root.XamlRoot.Size.Height - 260" in gallery_code and
       "dialog.MinWidth" not in gallery_code and "dialog.MaxWidth" not in gallery_code and
       'x:Key="ContentDialogMaxWidth">900</x:Double>' in app_xaml,
@@ -230,21 +231,34 @@ check("twoFactorDisabling" in profile_code and
       "TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Visible" in profile_code,
       "Disabling two-step verification presents a token field and requires the current code")
 check('"Zoom out"' in gallery_code and '"Zoom in"' in gallery_code and
-      '"Reset zoom"' in gallery_code and "image.Width = viewportWidth * value" in gallery_code,
-      "Screenshot gallery includes zoom and reset controls")
+      '"Reset zoom"' in gallery_code and "image.Width = baseImageWidth * value" in gallery_code and
+      "imageCanvas.Width = Math.Max(viewportWidth, image.Width)" in gallery_code and
+      "imageScroll.AddHandler(UIElement.PointerPressedEvent" in gallery_code and
+      "panStartX - (point.Position.X - panOrigin.X)" in gallery_code,
+      "Screenshot gallery adapts to source aspect ratio and supports mouse drag panning")
 check("ShouldDismissOverlay(bool processRunning, bool gameMinimized, bool gameFocused, bool focusLossGraceElapsed)" in game_view_code and
       "owner.IsGameFocusedFor(game.Game.Id)" in game_view_code and
       "NativeWindow.Minimized(gameWindow)" in game_view_code and
-      "FocusLossGrace" in game_view_code and "!processRunning || gameMinimized" in game_view_code,
+      "IsPointerOverInteractiveSurface" in game_view_code and "owner.IsLauncherForeground" in game_view_code and
+      "NativeWindow.RootOwner(foreground)" in main_code and "FocusLossGrace" in game_view_code and "!processRunning || gameMinimized" in game_view_code,
       "DeadBar closes on game exit, minimization or sustained loss of focus")
 check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMessage" in tray_code,
-      "Notification-area menu uses native Windows popup menu APIs")
+      "Native Windows context-menu implementation remains available")
+check("new TrayService(this, native)" not in (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8") and
+      'x:Name="TrayOption"' in main_xaml and 'Visibility="Collapsed"' in main_xaml.split('x:Name="TrayOption"', 1)[1][:150],
+      "Launcher startup does not register a persistent notification-area icon")
+check('MaxWidth="1000"' not in main_xaml and 'MaxWidth="1600"' not in main_xaml and
+      'HorizontalScrollMode="Disabled"' in main_xaml,
+      "Main pages use their full viewport width instead of narrow left-aligned content")
 check("ApplyRoundedRegion" in native_code and "SetWindowRgn" in native_code,
       "Floating native toasts have a true rounded HWND region to avoid black corner artifacts")
 check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'Locale.T("Installed games")' in main_code and
+      "var jobs = downloads.Jobs.Where" in main_code and "var installedGrid = new WrapGrid" in main_code and
+      "SettingsBody.Width = Math.Max(0, SettingsPanel.ActualWidth - 16)" in main_code and
+      "DetailContent.Width = Math.Max(0, DetailPanel.ActualWidth - 16)" in main_code and
       'LauncherMutedTextBrush' in app_xaml and 'LauncherMutedTextBrush' in main_xaml,
-      "Downloads retain installed-game cards and the new contrast brush is used by UI text")
+      "Downloads place the queue before a responsive installed games grid and pages fill their viewport")
 
 # Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")

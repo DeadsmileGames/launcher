@@ -139,6 +139,7 @@ public sealed class NativeWindow : IDisposable
             rect.Right - rect.Left, rect.Bottom - rect.Top, 0x0010 | 0x0040);
     }
     public static bool Minimized(IntPtr h) => h != IntPtr.Zero && IsIconic(h);
+    public static IntPtr RootOwner(IntPtr h) => h == IntPtr.Zero ? IntPtr.Zero : GetAncestor(h, 3);
     public static Windows.Foundation.Point Cursor(Window window)
     {
         GetCursorPos(out var p); ScreenToClient(WinRT.Interop.WindowNative.GetWindowHandle(window), ref p);
@@ -166,6 +167,7 @@ public sealed class NativeWindow : IDisposable
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll")] private static extern bool ScreenToClient(IntPtr h, ref Point point);
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);

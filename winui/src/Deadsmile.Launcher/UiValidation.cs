@@ -231,14 +231,15 @@ public sealed partial class MainWindow
             Check(Math.Abs(productBanner.ActualHeight - 360) < 1 && heroImage?.MaxHeight == 360 && heroImage.Clip is RectangleGeometry,
                 $"Product banner is limited to 360 DIPs (container: {productBanner.ActualHeight}; image: {heroImage?.ActualHeight})");
             Check(((Grid)DetailContent.Children[0]).Clip is RectangleGeometry, "Product image is clipped to its banner container");
-            async Task GalleryCheck(string name, bool portrait)
+            async Task GalleryCheck(string name, bool portrait, bool square = false)
             {
                 var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
                 Check(dialog.Content is Grid hostCheck && hostCheck.HorizontalAlignment == HorizontalAlignment.Center && dialog.HorizontalContentAlignment == HorizontalAlignment.Center && dialog.MinWidth == 0 && double.IsPositiveInfinity(dialog.MaxWidth) && hostCheck.Width <= (double)Application.Current.Resources["ContentDialogMaxWidth"], "Screenshot dialog uses a centered host without forced dialog width");
                 var galleryHost = (Grid)dialog.Content;
                 var content = (StackPanel)galleryHost.Children[0];
                 var imageScroll = (ScrollViewer)content.Children[0];
-                var full = (Image)imageScroll.Content;
+                var imageCanvas = (Grid)imageScroll.Content;
+                var full = (Image)imageCanvas.Children[0];
                 var navigation = (Grid)content.Children[1];
                 var zoomControls = (StackPanel)content.Children[2];
                 Check(navigation.Children.OfType<Button>().Count() == 3 &&
@@ -247,7 +248,7 @@ public sealed partial class MainWindow
                         AutomationProperties.GetName(slider) == Locale.T("Zoom")),
                     "Screenshot viewer keeps previous/next/reset buttons and zoom controls");
                 // Extreme source aspect ratios expose oversized natural-size image layout.
-                var w = portrait ? 180 : 1200; var h = portrait ? 1200 : 180;
+                var w = square ? 720 : portrait ? 180 : 1200; var h = square ? 720 : portrait ? 1200 : 180;
                 var pixels = new byte[w * h * 4];
                 for (var y = 0; y < h; y++) for (var x = 0; x < w; x++)
                 {
@@ -268,17 +269,23 @@ public sealed partial class MainWindow
                 var windowCenter = Root.ActualWidth / 2;
                 var centerOffset = Math.Abs(popupCenter - windowCenter);
                 Check(centerOffset <= 32, $"Screenshot popup is centered in the launcher window (offset {centerOffset:N1} DIPs; popup center {popupCenter:N1}; window center {windowCenter:N1})");
-                Check(full.Stretch == Stretch.Uniform && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
-                    "Entire " + (portrait ? "portrait" : "panoramic") + " screenshot fits the native dialog in " + name);
+                var imageBounds = full.TransformToVisual(imageCanvas).TransformBounds(new Windows.Foundation.Rect(0, 0, full.ActualWidth, full.ActualHeight));
+                Check(Math.Abs((imageBounds.Left + imageBounds.Right) / 2 - imageCanvas.ActualWidth / 2) <= 1 &&
+                    Math.Abs((imageBounds.Top + imageBounds.Bottom) / 2 - imageCanvas.ActualHeight / 2) <= 1,
+                    "Actual image centers inside the viewport for " + name);
+                Check(full.Stretch == Stretch.Uniform && full.HorizontalAlignment == HorizontalAlignment.Center && full.VerticalAlignment == VerticalAlignment.Center && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
+                    "Entire " + (square ? "square" : portrait ? "portrait" : "panoramic") + " screenshot fits and centers in the native dialog in " + name);
                 await Capture(name, dialog); dialog.Hide(); await showing;
             }
             await GalleryCheck("12-gallery-wide-1280", false);
+            await GalleryCheck("14-gallery-square-1280", false, true);
             await Resize(960, 640); await Capture("07-game-details-960");
             await GalleryCheck("13-gallery-portrait-960", true);
             TitleBackRequested(AppTitleBar, new object());
             Check(DetailPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Native back restores the library");
             await Resize(1280, 800); Shell.SelectedItem = DownloadsItem; await Task.Delay(200);
-            Check(page == "downloads" && DownloadsPanel.Visibility == Visibility.Visible, "Native downloads selection navigates");
+            Check(page == "downloads" && DownloadsPanel.Visibility == Visibility.Visible && DownloadRows.ActualWidth >= DownloadsPanel.ActualWidth - 24,
+                $"Native downloads use full viewport width (body={DownloadRows.ActualWidth:0}; viewport={DownloadsPanel.ActualWidth:0})");
             await Capture("08-downloads-1280");
             Shell.SelectedItem = ExploreItem; await Task.Delay(100); page = "settings"; selected = null; ShowPage(); await Task.Delay(200);
             Check(page == "settings" && SettingsPanel.Visibility == Visibility.Visible, "Native settings selection navigates");
@@ -329,10 +336,12 @@ public sealed partial class MainWindow
                 await Capture("page-" + expected);
             }
             page = "settings"; selected = null; profileLoaded = false; ShowPage(); await Task.Delay(200);
-            Check(SettingsPanel.Visibility == Visibility.Visible && AccountPanel.Visibility == Visibility.Collapsed, "Launcher preferences have a dedicated settings page");
+            Check(SettingsPanel.Visibility == Visibility.Visible && AccountPanel.Visibility == Visibility.Collapsed && SettingsBody.ActualWidth >= SettingsPanel.ActualWidth - 24,
+                $"Launcher preferences fill the available viewport width (body={SettingsBody.ActualWidth:0}; viewport={SettingsPanel.ActualWidth:0})");
             page = "account"; selected = null; profileLoaded = false; ShowPage(); await LoadProfileSettings(); await Task.Delay(300);
             var accountPageIsSeparate = AccountPanel.Visibility == Visibility.Visible && SettingsPanel.Visibility == Visibility.Collapsed && ProfileSettingsAvatar is not null;
-            Check(accountPageIsSeparate, $"Profile, email, security and privacy live on a separate account page (page={page}; account={AccountPanel.Visibility}; settings={SettingsPanel.Visibility}; avatarInitialized={ProfileSettingsAvatar is not null})");
+            Check(accountPageIsSeparate && AccountBody.ActualWidth >= AccountPanel.ActualWidth - 24,
+                $"Profile, email, security and privacy live on a full-width account page (page={page}; account={AccountPanel.Visibility}; settings={SettingsPanel.Visibility}; body={AccountBody.ActualWidth:0}; viewport={AccountPanel.ActualWidth:0})");
             if (twoFactorStatusAvailable)
             {
                 var previousEnabled = twoFactorEnabled;
@@ -347,7 +356,10 @@ public sealed partial class MainWindow
             }
             await Capture("page-account");
             var reading = ShowNews(newsItems[0]); await Task.Delay(400);
-            Check(newsDialog is not null && newsDialog.Content is Grid newsHost && newsHost.HorizontalAlignment == HorizontalAlignment.Center && newsHost.Children.OfType<ScrollViewer>().Any() && newsDialog.HorizontalContentAlignment == HorizontalAlignment.Center && Math.Abs(newsDialog.MinWidth - newsDialog.MaxWidth) < 1, "Newswire dialog is centered and width-bounded to the window");
+            var newsHostBounds = newsDialog?.Content is Grid centerHost ? centerHost.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, centerHost.ActualWidth, centerHost.ActualHeight)) : new Windows.Foundation.Rect();
+            var newsCenterOffset = Math.Abs((newsHostBounds.Left + newsHostBounds.Right) / 2 - Root.ActualWidth / 2);
+            Check(newsDialog is not null && newsDialog.Content is Grid newsHost && newsHost.HorizontalAlignment == HorizontalAlignment.Center && newsHost.Children.OfType<ScrollViewer>().Any() && newsDialog.HorizontalContentAlignment == HorizontalAlignment.Center && newsDialog.MinWidth == 0 && double.IsPositiveInfinity(newsDialog.MaxWidth) && newsCenterOffset <= 32,
+                $"Newswire dialog is centered without forced sizing (offset={newsCenterOffset:0.0} DIPs)");
             await Capture("news-dialog", newsDialog!); newsDialog!.Hide(); await reading;
             var galleryValidation = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
             Check(galleryValidation.Content is Grid galleryHost && galleryHost.HorizontalAlignment == HorizontalAlignment.Center &&
@@ -375,7 +387,7 @@ public sealed partial class MainWindow
             await Capture("16-achievement-solid", toast.ValidationRoot); toast.Close();
             var hint = new AchievementWindow(this, "DeadBar", Locale.T("Press {0} to open DeadBar").Replace("{0}", "Ctrl + D"), forceSolid: true, hint: true);
             hint.ShowOn(IntPtr.Zero, centered: true); await Task.Delay(300);
-            Check(hint.ValidationRoot.ActualHeight <= 96, "DeadBar reminder is a compact bottom-centered toast");
+            Check(hint.ValidationRoot.ActualHeight <= 96 && hint.ValidationHintStyle, "Ctrl+D DeadBar hint uses a compact Windows 11-style top-centered OSD");
             await Capture("deadbar-hint", hint.ValidationRoot); hint.Close();
             if (Services.GameCapture.Supported)
             {
@@ -387,12 +399,7 @@ public sealed partial class MainWindow
                 }
                 catch (Exception ex) { checks.Add("Native capture unavailable on this runner: " + ex.GetType().Name); }
             }
-            using (var systemTray = new Services.TrayService(this, native))
-            {
-                Check(systemTray.Available, "Windows notification area accepts the launcher icon"); tray = systemTray;
-                MinimizeToTray(); await Task.Delay(200); Check(!AppWindow.IsVisible, "Close-to-tray keeps the process alive and hides the window");
-                RestoreFromTray(); await Task.Delay(200); Check(AppWindow.IsVisible, "Tray restore returns the native window"); tray = null;
-            }
+            Check(tray is null && TrayOption.Visibility == Visibility.Collapsed, "Launcher no longer registers a persistent icon beside the clock");
             UiValidationHandler.FailCatalog = true; await StartBoot();
             Check(Shell.Visibility == Visibility.Collapsed && BootErrorCode.Text.Contains("6799") && BootRetry.Visibility == Visibility.Visible,
                 "API failure prevents entry and displays a local error code with retry"); await Capture("boot-error");

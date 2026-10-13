@@ -29,7 +29,7 @@ public sealed partial class GameViewWindow : Window
     private Point dragOrigin, panelOrigin;
     private DateTime lastClock;
     private DateTime focusLostAt = DateTime.MinValue;
-    private static readonly TimeSpan FocusLossGrace = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan FocusLossGrace = TimeSpan.FromMilliseconds(900);
     public bool IsOpen { get; private set; }
     private Border[] Widgets => [ProfilePanel, LibraryPanel, AchievementsPanel, CloudPanel, CapturePanel];
     private ToggleButton[] Toggles => [ProfileToggle, LibraryToggle, AchievementsToggle, CloudToggle, CaptureToggle];
@@ -119,14 +119,29 @@ public sealed partial class GameViewWindow : Window
     internal static bool ShouldDismissOverlay(bool processRunning, bool gameMinimized, bool gameFocused, bool focusLossGraceElapsed) =>
         !processRunning || gameMinimized || (!gameFocused && focusLossGraceElapsed);
 
+    private bool IsPointerOverInteractiveSurface()
+    {
+        if (captureDialog is not null || dragging is not null) return true;
+        var point = NativeWindow.Cursor(this);
+        var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
+        point = new(point.X / scale, point.Y / scale);
+        return Widgets.Append(ToolbarPanel).Any(panel =>
+        {
+            if (panel.Visibility != Visibility.Visible) return false;
+            var rect = panel.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, panel.ActualWidth, panel.ActualHeight));
+            return rect.Contains(point);
+        });
+    }
+
     private void Monitor()
     {
         if (!AppWindow.IsVisible) return;
+        var pointerOverInteractive = IsPointerOverInteractiveSurface();
 #if !UI_VALIDATION
         var game = selected is null ? null : owner.Games.Running.FirstOrDefault(entry =>
             entry.Game.Id.Equals(selected, StringComparison.OrdinalIgnoreCase));
         var processRunning = false;
-        var gameMinimized = true;
+        var gameMinimized = false;
         var gameFocused = false;
         if (game is not null)
         {
@@ -135,10 +150,12 @@ public sealed partial class GameViewWindow : Window
                 game.Process.Refresh();
                 processRunning = !game.Process.HasExited;
                 var gameWindow = processRunning ? game.Process.MainWindowHandle : IntPtr.Zero;
-                gameMinimized = gameWindow == IntPtr.Zero || NativeWindow.Minimized(gameWindow);
-                gameFocused = processRunning && !gameMinimized && owner.IsGameFocusedFor(game.Game.Id);
+                // Fullscreen games may briefly expose no main HWND while a non-activating overlay is being used.
+                gameMinimized = gameWindow != IntPtr.Zero && NativeWindow.Minimized(gameWindow) && !pointerOverInteractive;
+                gameFocused = processRunning && !gameMinimized &&
+                    (owner.IsGameFocusedFor(game.Game.Id) || (pointerOverInteractive && owner.IsLauncherForeground));
             }
-            catch (Exception) { processRunning = false; gameMinimized = true; }
+            catch (Exception) { processRunning = false; gameMinimized = false; }
         }
         var now = DateTime.UtcNow;
         if (gameFocused) focusLostAt = DateTime.MinValue;
@@ -148,20 +165,7 @@ public sealed partial class GameViewWindow : Window
         { Hide(true); return; }
 #endif
         if ((DateTime.Now - lastClock).TotalSeconds >= 1) { lastClock = DateTime.Now; ClockLabel.Text = lastClock.ToString("t"); }
-        var point = NativeWindow.Cursor(this); var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
-        point = new(point.X / scale, point.Y / scale);
-        var panels = Widgets.Append(ToolbarPanel);
-        var interactive = captureDialog is not null || dragging is not null || panels.Any(p =>
-        {
-            if (p.Visibility != Visibility.Visible) return false;
-            var rect = p.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, p.ActualWidth, p.ActualHeight));
-            return rect.Contains(point);
-        });
-#if !UI_VALIDATION
-        // Visibility is independent of foreground focus. Hit testing only selects click-through;
-        // other windows can be used while the overlay stays alive.
-#endif
-        NativeWindow.PassClicks(this, !interactive);
+        NativeWindow.PassClicks(this, !pointerOverInteractive);
     }
     private Border Widget(string name) => Widgets.First(x => x.Tag?.ToString() == name);
     private void WidgetToggled(object sender, RoutedEventArgs e)

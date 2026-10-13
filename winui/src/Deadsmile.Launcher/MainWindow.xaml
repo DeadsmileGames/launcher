@@ -104,7 +104,7 @@
      </StackPanel>
     </Grid>
     <Grid Grid.Row="2">
-     <ScrollViewer x:Name="ContentPage" Visibility="Collapsed"><StackPanel x:Name="ContentRows" Spacing="16" Padding="0,0,8,24"/></ScrollViewer>
+     <ScrollViewer x:Name="ContentPage" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"><StackPanel x:Name="ContentRows" Spacing="16" Padding="0,0,8,24"/></ScrollViewer>
      <Grid x:Name="CatalogPanel">
       <GridView x:Name="GameGrid" IsItemClickEnabled="True" SelectionMode="None" ItemClick="GameClick"
        HorizontalContentAlignment="Stretch" Padding="0,0,0,16" AutomationProperties.AutomationId="GameCatalog">
@@ -190,12 +190,12 @@
       </GridView>
       <TextBlock x:Name="EmptyCatalog" Style="{StaticResource BodyTextBlockStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
      </Grid>
-     <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-      <StackPanel x:Name="DetailContent" MaxWidth="1600" HorizontalAlignment="Stretch" Spacing="16" Padding="0,0,8,24"/>
+     <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled">
+      <StackPanel x:Name="DetailContent" HorizontalAlignment="Stretch" Spacing="16" Padding="0,0,8,24"/>
      </ScrollViewer>
-     <ScrollViewer x:Name="DownloadsPanel" Visibility="Collapsed"><StackPanel x:Name="DownloadRows" Spacing="12" Padding="0,0,8,24"/></ScrollViewer>
-     <ScrollViewer x:Name="SettingsPanel" Visibility="Collapsed">
-      <StackPanel x:Name="SettingsBody" Spacing="24" MaxWidth="1000" HorizontalAlignment="Left" Padding="0,0,8,24">
+     <ScrollViewer x:Name="DownloadsPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"><StackPanel x:Name="DownloadRows" HorizontalAlignment="Stretch" Spacing="12" Padding="0,0,8,24"/></ScrollViewer>
+     <ScrollViewer x:Name="SettingsPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled">
+      <StackPanel x:Name="SettingsBody" Spacing="24" HorizontalAlignment="Stretch" Padding="0,0,8,24">
        <StackPanel Spacing="12">
         <TextBlock Text="Appearance" Tag="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}" Padding="20,16">
@@ -344,7 +344,7 @@
          <StackPanel Spacing="8"><TextBlock Tag="DeadBar" Text="DeadBar"/><TextBlock x:Name="ShortcutText" Tag="Ctrl + D" Text="Ctrl + D" Foreground="{ThemeResource LauncherMutedTextBrush}"/></StackPanel>
          <ToggleSwitch x:Name="OverlayToggle" Grid.Column="1" Toggled="OverlayToggled" IsOn="True"/>
         </Grid></Border>
-        <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
+        <Border x:Name="TrayOption" Style="{StaticResource Panel}" Padding="20,16" Visibility="Collapsed"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="BackToWindow" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Keep running when closed" Tag="Keep running when closed" TextWrapping="Wrap" VerticalAlignment="Center"/>
          <ToggleSwitch x:Name="TrayToggle" Grid.Column="2" Toggled="AppearanceToggled"/>
@@ -376,8 +376,8 @@
        </StackPanel>
       </StackPanel>
      </ScrollViewer>
-      <ScrollViewer x:Name="AccountPanel" Visibility="Collapsed">
-       <StackPanel x:Name="AccountBody" Spacing="24" MaxWidth="1000" HorizontalAlignment="Left" Padding="0,0,8,24">
+      <ScrollViewer x:Name="AccountPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled">
+       <StackPanel x:Name="AccountBody" Spacing="24" HorizontalAlignment="Stretch" Padding="0,0,8,24">
         <StackPanel x:Name="ProfileSettingsSection" Spacing="12">
         <TextBlock Tag="My profile" Text="My profile" Style="{StaticResource SubtitleTextBlockStyle}"/>
         <Border Style="{StaticResource Panel}" Padding="20"><StackPanel Spacing="14">

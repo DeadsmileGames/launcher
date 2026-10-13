@@ -115,19 +115,13 @@ if ($Target -in @("All", "Installer")) {
   if ($compiledXamlFiles.Count -eq 0) {
    throw "The WinUI XAML compiler emitted no .xbf resources; refusing to build an incomplete installer."
   }
-  foreach ($xamlFile in $compiledXamlFiles) {
-   $xamlDestination = Join-Path $resourceSource $xamlFile.Name
-   if (!(Test-Path $xamlDestination)) { Copy-Item $xamlFile.FullName $xamlDestination -Force }
-  }
-
-  # The app PRI must include framework/library resources as well as the app's XBF and images.
-  # MakePri's default PRI indexer merges dependency PRI files; copy those indexes into the project root
-  # while intentionally keeping the large self-contained runtime binaries out of this indexing pass.
-  $appPriName = [IO.Path]::GetFileNameWithoutExtension((Join-Path $setupPublish "Deadsmile.Setup.exe")) + ".pri"
+  # The app PRI already maps the compiled XBF files. Do not copy those XBFs as loose
+  # resources: indexing both the app PRI and loose XBFs creates duplicate Files/App.xbf entries.
+  # Include the app PRI and Windows App SDK dependency PRIs so the root index retains all XAML
+  # resource mappings needed by this unpackaged WinUI application.
   $dependencyPris = Get-ChildItem $setupPublish -Recurse -File -Filter "*.pri" |
    Where-Object {
-    ![string]::Equals($_.FullName, $resourcesPri, [StringComparison]::OrdinalIgnoreCase) -and
-    ![string]::Equals($_.Name, $appPriName, [StringComparison]::OrdinalIgnoreCase)
+    ![string]::Equals($_.FullName, $resourcesPri, [StringComparison]::OrdinalIgnoreCase)
    }
   foreach ($dependencyPri in $dependencyPris) {
    $relative = [IO.Path]::GetRelativePath($setupPublish, $dependencyPri.FullName)

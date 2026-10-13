@@ -50,7 +50,7 @@ jobs:
         shell: pwsh
         run: |
           $runNumber = [int]$env:GITHUB_RUN_NUMBER
-          $storeBuild = [Math]::Max(0, $runNumber - 1)
+          $storeBuild = [Math]::Max(1, $runNumber)
           $packageVersion = "1.0.$storeBuild.0"
           "STORE_PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "Public release version: 1.0.0; Store package version: $packageVersion"

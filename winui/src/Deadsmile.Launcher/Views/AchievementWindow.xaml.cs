@@ -21,7 +21,7 @@ public sealed partial class AchievementWindow : Window
             ToastRoot.RequestedTheme = ElementTheme.Light;
             ShortcutHeading.Text = heading;
             ShortcutMessage.Text = title;
-            ShortcutKey.Text = owner.OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
+            ShortcutKey.Text = "Ctrl + D";
             ShortcutIcon.Glyph = "";
         }
         else ToastRoot.RequestedTheme = owner.UiTheme;

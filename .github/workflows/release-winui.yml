@@ -49,7 +49,12 @@ jobs:
       - name: Build Store-identity MSIX and unsigned backup EXE
         shell: pwsh
         run: |
-          ./winui/scripts/build-windows.ps1 -Target All
+          $runNumber = [int]$env:GITHUB_RUN_NUMBER
+          $storeBuild = [Math]::Max(0, $runNumber - 1)
+          $packageVersion = "1.0.$storeBuild.0"
+          "STORE_PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Public release version: 1.0.0; Store package version: $packageVersion"
+          ./winui/scripts/build-windows.ps1 -Target All -PackageVersion $packageVersion
           if ($LASTEXITCODE -ne 0) { throw "Production artifact build failed." }
 
       - name: Verify production package identity and version
@@ -64,9 +69,9 @@ jobs:
           $version = ([xml](Get-Content "winui/Directory.Build.props" -Raw)).Project.PropertyGroup.Version
           if ($identity.GetAttribute("Name") -ne "DeadsmileGames.DeadsmileGamesLauncher") { throw "Store package Name mismatch." }
           if ($identity.GetAttribute("Publisher") -ne "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE") { throw "Store Publisher mismatch." }
-          if ($identity.GetAttribute("Version") -ne "$version.0") { throw "Unexpected Store package version." }
+          if ($identity.GetAttribute("Version") -ne $env:STORE_PACKAGE_VERSION) { throw "Unexpected Store package version." }
           if ($properties.SelectSingleNode("*[local-name()='PublisherDisplayName']").InnerText -ne "Deadsmile Games") { throw "Publisher display name mismatch." }
-          Write-Host "PASS Microsoft Store identity and package version $version.0"
+          Write-Host "PASS Microsoft Store identity and package version $($env:STORE_PACKAGE_VERSION)"
 
       - name: Package the native WinUI source and calculate SHA-256
         shell: pwsh

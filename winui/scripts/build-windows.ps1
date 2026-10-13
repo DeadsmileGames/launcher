@@ -5,6 +5,7 @@ param(
  [string]$Publisher = "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE",
  [string]$PublisherDisplayName = "Deadsmile Games",
  [string]$CertificateThumbprint = "",
+ [string]$PackageVersion = "",
  [switch]$DevelopmentCertificate
 )
 $ErrorActionPreference = "Stop"
@@ -30,6 +31,8 @@ function FindTool([string]$Name) {
 }
 $version = ([xml](Get-Content "Directory.Build.props" -Raw)).Project.PropertyGroup.Version
 if ($version -notmatch "^\d+\.\d+\.\d+$") { throw "Version must use major.minor.patch." }
+$packageVersion = if ([string]::IsNullOrWhiteSpace($PackageVersion)) { "$version.0" } else { $PackageVersion }
+if ($packageVersion -notmatch "^[1-9]\d*\.\d+\.\d+\.0$") { throw "PackageVersion must use major.minor.build.0 for Microsoft Store packaging." }
 $artifacts = Join-Path $projectRoot "artifacts"
 $publish = Join-Path $artifacts "app-x64"
 New-Item $artifacts -ItemType Directory -Force | Out-Null
@@ -68,7 +71,7 @@ if ($Target -in @("All", "Msix")) {
  $identity = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Identity']")
  $identity.SetAttribute("Name", $IdentityName)
  $identity.SetAttribute("Publisher", $Publisher)
- $identity.SetAttribute("Version", "$version.0")
+ $identity.SetAttribute("Version", $packageVersion)
  $manifest.DocumentElement.SelectSingleNode("*[local-name()='Properties']/*[local-name()='PublisherDisplayName']").InnerText = $PublisherDisplayName
  $manifest.Save("$packageDir\AppxManifest.xml")
  $msix = Join-Path $artifacts "Deadsmile-Games-Launcher-WinUI-$version-x64.msix"

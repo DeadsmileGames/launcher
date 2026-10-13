@@ -1,40 +1,20 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/deadsmilegames/launcher/main/public/readme.png" width="120px" alt="Deadsmile Games">
-</p>
+# Deadsmile Games Launcher
 
-<h3 align="center">
+Launcher de desktop **nativo em WinUI 3**, feito em C# e XAML para Windows. Este repositório mantém apenas a implementação nativa do launcher; o código Electron legado foi removido desta linha de produção.
 
-`Deadsmile Games Launcher`
+- **Microsoft Store:** distribuição recomendada. O MSIX usa a identidade oficial do produto e deve ser enviado pelo Partner Center para certificação e assinatura da Store.
+- **EXE de backup:** instalador autônomo, sem assinatura de produção. O Windows pode exibir um aviso do SmartScreen; a Store é a opção recomendada.
+- **Release do GitHub:** versão pública identificada como v1.0.0, contendo fonte nativa WinUI, EXE de backup, MSIX destinado à Store e hashes SHA-256.
+- **Builds:** GitHub Actions valida o código e os fluxos nativos antes de o workflow de produção atualizar a release.
 
-</h3>
+## Projeto
 
-<p align="center">
-  <img src="https://img.shields.io/badge/STATUS-OPERATIONAL-green">
-  <img src="https://img.shields.io/badge/VERSION-1.0.0-gold">
-  <img src="https://img.shields.io/badge/PLATFORM-WINDOWS-red">
-  <img src="https://img.shields.io/badge/ELECTRON-44.3.0-blue">
-  <img src="https://img.shields.io/badge/LICENSE-MIT-lightgrey">
-</p>
+O projeto .NET está em [winui/](winui/). Consulte [winui/README.md](winui/README.md) para instruções de build, validação, identidade MSIX e diferenças entre artefatos de desenvolvimento e produção.
 
-<p align="center">
-  A desktop launcher for discovering, downloading and managing
-  <strong>Deadsmile Games</strong>.
-</p>
+Para baixar os artefatos publicados, abra [Releases](https://github.com/DeadsmileGames/launcher/releases/latest). O código-fonte incluído na release é apenas o projeto nativo WinUI, sem arquivos do website ou da API.
 
-<p align="center">
-  <a href="https://deadsmilegames.vercel.app">
-    Website
-  </a>
-  •
-  <a href="https://deadsmilegames.vercel.app">
-    Games
-  </a>
-  •
-  <a href="https://github.com/deadsmilegames/launcher/releases/latest">
-    Releases
-  </a>
-  •
-  <a href="https://github.com/deadsmilegames/launcher/issues">
-    Issues
-  </a>
-</p>
+## Identidade Microsoft Store
+
+O pacote de produção usa a identidade oficial configurada no Partner Center. A Store reassina o pacote MSIX depois de ele passar pela certificação. Não é necessário armazenar certificado privado da Store no repositório ou nos GitHub Actions.
+
+A versão pública/GitHub permanece v1.0.0. O número interno do pacote MSIX avança a cada publicação de produção para respeitar o versionamento de pacotes da Microsoft Store.

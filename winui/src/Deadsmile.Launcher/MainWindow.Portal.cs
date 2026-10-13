@@ -180,21 +180,25 @@ public sealed partial class MainWindow
         var list = await Api.Get("/newswire?limit=24&offset=0");
         if (list is not JsonArray) throw new LauncherException("INVALID_RESPONSE"); newsItems = list.Items().Select(x => x.DeepClone()).ToArray();
         HomeNewsRows.Children.Clear();
-        foreach (var item in newsItems.Take(2)) HomeNewsRows.Children.Add(NewsCard(item, true));
+        foreach (var item in newsItems.Take(2)) HomeNewsRows.Children.Add(NewsCard(item, 300));
         HomeNews.Visibility = page == "explore" && Preferences.ShowNewswireOnHome && newsItems.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
-    private Button NewsCard(JsonNode item, bool horizontal = false)
+    private Button NewsCard(JsonNode item, double cardWidth = 300)
     {
-        var stack = new StackPanel { Spacing = 10, Width = 276, MinWidth = 0 };
-        var image = new Image { Width = 276, Height = 155.25, Stretch = Stretch.UniformToFill };
+        cardWidth = Math.Clamp(cardWidth, 240, 420);
+        var innerWidth = cardWidth - 24;
+        var stack = new StackPanel { Spacing = 10, Width = innerWidth, MinWidth = 0 };
+        var image = new Image { Width = innerWidth, Height = innerWidth * 9 / 16, Stretch = Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         SetImage(image, Urls.Image(item.S("image", "coverImage", "cover_image")) ?? "");
-        stack.Children.Add(new Border { Width = 276, Height = 155.25, CornerRadius = new CornerRadius(8), Child = image });
+        stack.Children.Add(new Border { Width = innerWidth, Height = innerWidth * 9 / 16, CornerRadius = new CornerRadius(8), Child = image });
         var title = Text(item.S("title"), 20, true); title.MaxLines = 2; title.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(title);
         if (item.S("excerpt").Length > 0) { var excerpt = Text(item.S("excerpt")); excerpt.MaxLines = 3; excerpt.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(excerpt); }
         var published = item.S("published_at", "publishedAt", "created_at", "createdAt", "date");
         if (published.Length > 0) stack.Children.Add(Text(FormatDate(published), 12));
-        var button = new Button { Content = stack, Width = 300, Height = 350, MinWidth = 300, MaxWidth = 300,
-            HorizontalAlignment = HorizontalAlignment.Left, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Top, Padding = new Thickness(12) };
+        var button = new Button { Content = stack, Width = cardWidth, MinWidth = 0, MaxWidth = cardWidth,
+            MinHeight = 330, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Top, Padding = new Thickness(12) };
         button.Click += async (_, _) => await Guard(() => ShowNews(item)); return button;
     }
     private async Task ShowNews(JsonNode summary)
@@ -241,7 +245,39 @@ public sealed partial class MainWindow
         var revision = ++pageRevision; var current = page; ContentRows.Children.Clear();
         if (current is "wishlist" or "account" && User is null)
         { ContentRows.Children.Add(Text(Locale.T("Sign in to manage your account."))); ContentRows.Children.Add(Action("Sign in", async () => { if (await RequireAccount()) await RenderContentPage(); }, true)); return; }
-        if (current == "news") { foreach (var item in newsItems) ContentRows.Children.Add(NewsCard(item)); return; }
+        if (current == "news")
+        {
+            var newsGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, ColumnSpacing = 16, RowSpacing = 18 };
+            void ArrangeNews()
+            {
+                var width = Math.Max(260, ContentPage.ActualWidth - 36);
+                var columns = Math.Clamp((int)((width + 16) / 332), 1, 4);
+                var cellWidth = (width - 16 * (columns - 1)) / columns;
+                if (newsGrid.ColumnDefinitions.Count != columns)
+                {
+                    newsGrid.ColumnDefinitions.Clear(); newsGrid.RowDefinitions.Clear();
+                    for (var i = 0; i < columns; i++) newsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    var rows = (newsItems.Length + columns - 1) / columns;
+                    for (var i = 0; i < rows; i++) newsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    for (var i = 0; i < newsGrid.Children.Count; i++)
+                    { Grid.SetColumn(newsGrid.Children[i], i % columns); Grid.SetRow(newsGrid.Children[i], i / columns); }
+                }
+                foreach (var child in newsGrid.Children)
+                    if (child is Button button && button.Content is StackPanel stack)
+                    {
+                        button.Width = cellWidth; button.MaxWidth = cellWidth;
+                        stack.Width = cellWidth - 24;
+                        if (stack.Children.FirstOrDefault() is Border border && border.Child is Image image)
+                        { image.Width = cellWidth - 24; image.Height = (cellWidth - 24) * 9 / 16; border.Width = image.Width; border.Height = image.Height; }
+                    }
+            }
+            foreach (var item in newsItems) newsGrid.Children.Add(NewsCard(item, 300));
+            ContentRows.Children.Add(newsGrid);
+            newsGrid.SizeChanged += (_, _) => ArrangeNews();
+            ContentPage.SizeChanged += (_, _) => ArrangeNews();
+            DispatcherQueue.TryEnqueue(ArrangeNews);
+            return;
+        }
         if (current == "support") { DesktopIntegration.Open(Urls.Website + "/support"); return; }
         ContentRows.Children.Add(new ProgressRing { IsActive = true });
         try
@@ -391,8 +427,8 @@ public sealed partial class MainWindow
             var player = new MediaPlayer { Source = source, IsMuted = true, IsLoopingEnabled = true }; bannerPlayer = player;
             var video = new MediaPlayerElement
             {
-                Stretch = Stretch.UniformToFill, AreTransportControlsEnabled = false,
-                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center,
+                Stretch = Stretch.Fill, AreTransportControlsEnabled = false,
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 12, 0)
             };
             video.SetMediaPlayer(player); hero.Children.Insert(1, video);
@@ -400,12 +436,12 @@ public sealed partial class MainWindow
             void LayoutVideo()
             {
                 var available = Math.Max(0, hero.ActualWidth - 24);
-                video.Width = Math.Min(640, Math.Min(available, hero.ActualWidth * 0.52));
-                video.Height = Math.Min(360, video.Width * 9 / 16);
-                video.MaxHeight = video.Height;
+                video.Width = Math.Min(available, hero.ActualWidth * 0.60);
+                video.Height = hero.ActualHeight;
+                video.MaxHeight = hero.ActualHeight;
                 video.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, video.Width, video.Height) };
                 if (contentStack is not null)
-                    contentStack.Width = Math.Min(640, Math.Max(240, hero.ActualWidth - video.Width - 36));
+                    contentStack.Width = Math.Min(640, Math.Max(220, hero.ActualWidth - video.Width - 36));
             }
             hero.SizeChanged += (_, _) => LayoutVideo();
             LayoutVideo();

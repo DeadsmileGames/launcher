@@ -1265,9 +1265,17 @@ public sealed partial class MainWindow : Window
         exiting = true; Close();
         } finally { closeDialog = false; }
     }
+    private void ShowForActivation()
+    {
+        AppWindow.Show();
+        Activate();
+    }
+#if UI_VALIDATION
+    internal void ValidationShowForActivation() => ShowForActivation();
+#endif
     public void HandleActivation(AppActivationArguments args)
     {
-        Activate();
+        ShowForActivation();
         var value = args.Data is ProtocolActivatedEventArgs protocol ? protocol.Uri.AbsoluteUri :
             args.Data is Windows.ApplicationModel.Activation.LaunchActivatedEventArgs launch ? launch.Arguments :
             string.Join(" ", Environment.GetCommandLineArgs().Skip(1));

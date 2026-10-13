@@ -153,7 +153,12 @@ public sealed partial class MainWindow
         }
         try
         {
-            await Task.Delay(1000); await Resize(1280, 800); await Capture("00-boot"); await Task.Delay(3000);
+            await Task.Delay(1000);
+            AppWindow.Hide();
+            ValidationShowForActivation();
+            await Task.Delay(150);
+            Check(AppWindow.IsVisible, "A second activation restores a previously hidden launcher window");
+            await Resize(1280, 800); await Capture("00-boot"); await Task.Delay(3000);
             Check(User is null && Shell.Visibility == Visibility.Visible, "Guests enter directly after a successful public API boot");
             Check(BootPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Boot completes and back button remains visible");
             Check(AccountActionLabel.Text == Locale.T("Sign in"), "Guest account button offers sign-in");

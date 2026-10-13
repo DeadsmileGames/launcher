@@ -189,6 +189,13 @@ gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
 game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
 tray_code = (launcher / "Services" / "TrayService.cs").read_text(encoding="utf-8")
 native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
+program_code = (launcher / "Program.cs").read_text(encoding="utf-8")
+check("private void ShowForActivation()" in main_code and "AppWindow.Show();" in main_code and
+      "ShowForActivation();" in main_code and "ValidationShowForActivation" in main_code,
+      "Secondary launcher activation explicitly restores a hidden window")
+check("ReportStartupFailure(ex)" in program_code and "STARTUP_FATAL" in program_code and
+      "MessageBoxW" in program_code and "Could not forward activation" in program_code,
+      "Fatal startup/activation failures are logged and shown instead of exiting silently")
 quote_array = re.search(r'private string\[\] quotes = \[(.*?)\];', portal_code, re.S)
 check(quote_array is not None and "BootQuote.Text = Locale.T(quotes[index])" in portal_code,
       "Boot quotes are rendered through the localization catalog")

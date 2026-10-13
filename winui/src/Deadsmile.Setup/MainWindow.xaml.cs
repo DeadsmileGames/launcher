@@ -20,7 +20,17 @@ public sealed partial class MainWindow : Window
     public MainWindow(string[] args)
     {
         this.args = args;
-        InitializeComponent();
+        App.Log("MainWindow InitializeComponent started");
+        try
+        {
+            InitializeComponent();
+            App.Log("MainWindow XAML initialized");
+        }
+        catch (Exception ex)
+        {
+            App.Log("MainWindow XAML failed", ex);
+            throw;
+        }
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var id = Win32Interop.GetWindowIdFromWindow(hwnd);
         appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(id);

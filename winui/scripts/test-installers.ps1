@@ -22,22 +22,35 @@ function RunSetup([string]$File, [string[]]$Arguments) {
  if ($process.ExitCode -ne 0) { throw "Installer failed: $File (exit $($process.ExitCode))" }
 }
 function CheckSetupUi([string]$File) {
- $process = Start-Process -FilePath $File -PassThru
+ $diagnosticLog = Join-Path $env:TEMP 'Deadsmile.Setup-startup.log'
+ Remove-Item $diagnosticLog -Force -ErrorAction SilentlyContinue
+ $previousDiagnostics = $env:DEADSMILE_SETUP_DIAGNOSTICS
+ $env:DEADSMILE_SETUP_DIAGNOSTICS = '1'
+ $process = $null
  try {
+  $process = Start-Process -FilePath $File -PassThru
   $deadline = (Get-Date).AddSeconds(20)
   do {
    Start-Sleep -Milliseconds 250
    $process.Refresh()
-   if ($process.HasExited) { throw "Setup UI exited before creating a window (exit $($process.ExitCode))." }
+   if ($process.HasExited) {
+    if (Test-Path $diagnosticLog) { Write-Host 'Setup startup diagnostics:'; Get-Content $diagnosticLog | Write-Host }
+    throw "Setup UI exited before creating a window (exit $($process.ExitCode))."
+   }
   } until ($process.MainWindowHandle -ne 0 -or (Get-Date) -gt $deadline)
-  if ($process.MainWindowHandle -eq 0) { throw 'Setup EXE did not open its WinUI 3 installation window.' }
+  if ($process.MainWindowHandle -eq 0) {
+   if (Test-Path $diagnosticLog) { Write-Host 'Setup startup diagnostics:'; Get-Content $diagnosticLog | Write-Host }
+   throw 'Setup EXE did not open its WinUI 3 installation window.'
+  }
   if ($process.MainWindowTitle -notmatch 'Deadsmile.*Setup|Setup.*Deadsmile') {
    throw "Unexpected setup window title: $($process.MainWindowTitle)"
   }
   Write-Host "PASS interactive WinUI setup opens: $($process.MainWindowTitle)"
  } finally {
-  if (!$process.HasExited) { Stop-Process -Id $process.Id -Force }
- }
+  if ($process -and !$process.HasExited) { Stop-Process -Id $process.Id -Force }
+  if ($null -eq $previousDiagnostics) { Remove-Item Env:DEADSMILE_SETUP_DIAGNOSTICS -ErrorAction SilentlyContinue }
+  else { $env:DEADSMILE_SETUP_DIAGNOSTICS = $previousDiagnostics }
+ } 
 }
 function CheckStartup([string]$File) {
  $process = Start-Process -FilePath $File -PassThru

@@ -22,7 +22,8 @@ public sealed class UpdateService(Storage storage)
         var revision = "";
         if (manifestAsset is not null)
         {
-            if (Urls.Https(manifestAsset.S("browser_download_url")) is not { Host: "github.com" } manifestUrl)
+            var manifestUrl = Urls.Https(manifestAsset.S("browser_download_url"));
+            if (manifestUrl is null || manifestUrl.Host != "github.com")
                 throw new LauncherException("UPDATE_INVALID");
             var manifestText = await http.GetStringAsync(manifestUrl.AbsoluteUri);
             var manifest = JsonNode.Parse(manifestText);

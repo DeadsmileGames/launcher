@@ -100,7 +100,7 @@ if ($Target -in @("All", "Installer")) {
   throw "The native WinUI setup app or launcher payload is missing."
  }
  # WinUI 3 unpackaged apps need a root resources.pri for ms-appx resource lookup.
-  # Index app XAML/assets plus dependency PRI maps, excluding the app's own PRI to avoid duplicate XBF entries.
+  # Index app XAML/assets plus dependency PRI maps, excluding the app PRI to avoid duplicate XBF entries.
  $resourcesPri = Join-Path $setupPublish "resources.pri"
  if (!(Test-Path $resourcesPri)) {
   $makepri = FindTool "makepri.exe"
@@ -123,14 +123,13 @@ if ($Target -in @("All", "Installer")) {
   # The app PRI must include framework/library resources as well as the app's XBF and images.
   # MakePri's default PRI indexer merges dependency PRI files; copy those indexes into the project root
   # while intentionally keeping the large self-contained runtime binaries out of this indexing pass.
-  $dependencyPris = Get-ChildItem $setupPublish -Recurse -File -Filter "*.pri" |
-   Where-Object { ![string]::Equals($_.FullName, $resourcesPri, [StringComparison]::OrdinalIgnoreCase) }
   $appPriName = [IO.Path]::GetFileNameWithoutExtension((Join-Path $setupPublish "Deadsmile.Setup.exe")) + ".pri"
   $dependencyPris = Get-ChildItem $setupPublish -Recurse -File -Filter "*.pri" |
    Where-Object {
     ![string]::Equals($_.FullName, $resourcesPri, [StringComparison]::OrdinalIgnoreCase) -and
     ![string]::Equals($_.Name, $appPriName, [StringComparison]::OrdinalIgnoreCase)
    }
+  foreach ($dependencyPri in $dependencyPris) {
    $relative = [IO.Path]::GetRelativePath($setupPublish, $dependencyPri.FullName)
    $priDestination = Join-Path $resourceSource $relative
    New-Item (Split-Path $priDestination -Parent) -ItemType Directory -Force | Out-Null

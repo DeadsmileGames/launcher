@@ -10,9 +10,11 @@ namespace Deadsmile.Launcher.Views;
 
 public sealed partial class AchievementWindow : Window
 {
+    private readonly MainWindow owner;
     private readonly DispatcherQueueTimer timer;
     public AchievementWindow(MainWindow owner, string heading, string title, bool forceSolid = false, bool hint = false)
     {
+        this.owner = owner;
         InitializeComponent(); Heading.Text = heading; AchievementTitle.Text = title;
         if (hint)
         {

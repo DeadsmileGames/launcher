@@ -100,7 +100,7 @@ public sealed partial class MainWindow : Window
         Api.Invalidated += () => { if (!booting && User is not null) UI(async () => { User = null; achievements.Stop(); await Enter(); }); };
         saves.Conflict += _ => UI(() => { Notify(Locale.Error("SAVE_CONFLICT")); return Task.CompletedTask; });
         Games.Failed += ex => UI(() => { Notify(Locale.Error(ex)); return Task.CompletedTask; });
-        Games.Changed += () => UI(() => { UpdateBusy(); RefreshGameActions(); GameStartedHint(); return Task.CompletedTask; });
+        Games.Changed += () => UI(() => { UpdateBusy(); UpdateFeaturedAction(); RefreshGameActions(); GameStartedHint(); return Task.CompletedTask; });
         achievements.Unlocked += (_, achievement) => UI(() => { ShowAchievement(achievement); return Task.CompletedTask; });
         downloads.Changed += () => Interlocked.Exchange(ref downloadDirty, 1);
         downloads.Installed += (install, game) => UI(async () =>
@@ -139,6 +139,11 @@ public sealed partial class MainWindow : Window
         };
         heroTimer.Start();
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Icon.ico"));
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = 960;
+            presenter.PreferredMinimumHeight = 640;
+        }
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1271, 796));
         ExtendsContentIntoTitleBar = true; SetTitleBar(AppTitleBar);
         if (AppWindowTitleBar.IsCustomizationSupported())
@@ -398,7 +403,7 @@ public sealed partial class MainWindow : Window
             FeaturedImage.Source = null;
             SetImage(FeaturedImage, featuredGame.HeroImages.FirstOrDefault() ?? featuredGame.Cover);
             FeaturedTitle.Text = featuredGame.Title; FeaturedGenres.Text = featuredGame.Genres;
-            FeaturedButton.Content = Locale.T("View details");
+            UpdateFeaturedAction();
             if (selected is null && page == "explore") _ = ConfigureHomeVideo(featuredGame);
         }
         var featureImages = new[] { SecondaryFeaturedImage, ThirdFeaturedImage, FourthFeaturedImage };
@@ -438,8 +443,35 @@ public sealed partial class MainWindow : Window
     { await ChooseSearch(args.ChosenSuggestion ?? searchResults.FirstOrDefault()); }
     private void SearchChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
     { if (args.SelectedItem is SearchEntry entry) sender.Text = entry.Title; }
+    private void UpdateFeaturedAction()
+    {
+        if (featuredGame is not { } game)
+        {
+            FeaturedButton.Content = Locale.T("View details");
+            FeaturedButton.IsEnabled = true;
+            return;
+        }
+        var canLaunch = installs.Installed.ContainsKey(game.Id) && game.CanLaunch;
+        var running = Games.Running.Any(entry => entry.Game.Id == game.Id && !entry.Process.HasExited);
+        var label = canLaunch ? running ? "Stop" : "Play" : "View details";
+        FeaturedButton.Content = Locale.T(label);
+        AutomationProperties.SetName(FeaturedButton, Locale.T(label));
+        FeaturedButton.IsEnabled = running || (!Games.Busy(game.Id) && !downloads.Busy(game.Id) && !commandBusy);
+    }
     private async void FeaturedClick(object sender, RoutedEventArgs e)
-    { if (featuredGame is { } game) await LoadDetail(game); }
+    {
+        if (featuredGame is not { } game) return;
+        if (installs.Installed.ContainsKey(game.Id) && game.CanLaunch)
+        {
+            if (Games.Running.Any(entry => entry.Game.Id == game.Id && !entry.Process.HasExited))
+                Games.Stop(game.Id);
+            else
+                await LaunchWithSequence(game);
+            UpdateFeaturedAction();
+            return;
+        }
+        await LoadDetail(game);
+    }
     private async void SecondaryFeaturedClick(object sender, RoutedEventArgs e)
     {
         if (int.TryParse(((Button)sender).Tag?.ToString(), out var index) && index >= 0 && index < featuredGames.Length && featuredGames[index] is { } game)

@@ -26,9 +26,13 @@ public sealed partial class MainWindow : Window
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var id = Win32Interop.GetWindowIdFromWindow(hwnd);
         appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(id);
-        appWindow.Resize(new SizeInt32(930, 620));
         if (appWindow.Presenter is OverlappedPresenter presenter)
+        {
             presenter.IsResizable = true;
+            presenter.PreferredMinimumWidth = 790;
+            presenter.PreferredMinimumHeight = 540;
+        }
+        appWindow.Resize(new SizeInt32(930, 620));
 
         installTarget = SetupOperations.GetArgument(args, "--target") ?? SetupOperations.DefaultInstallPath;
         TargetPathBox.Text = installTarget;

@@ -193,8 +193,8 @@ public sealed partial class MainWindow
                 await Capture(name, dialog); dialog.Hide(); await showing;
             }
             await GalleryCheck("12-gallery-wide-1280", false);
-            await Resize(800, 600); await Capture("07-game-details-800");
-            await GalleryCheck("13-gallery-portrait-800", true);
+            await Resize(960, 640); await Capture("07-game-details-960");
+            await GalleryCheck("13-gallery-portrait-960", true);
             TitleBackRequested(AppTitleBar, new object());
             Check(DetailPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Native back restores the library");
             await Resize(1280, 800); Shell.SelectedItem = DownloadsItem; await Task.Delay(200);
@@ -204,7 +204,7 @@ public sealed partial class MainWindow
             Check(page == "settings" && SettingsPanel.Visibility == Visibility.Visible, "Native settings selection navigates");
             await Capture("09-settings-1280");
             Check(ThemeChoice.Items.Count == 3 && AnimationToggle.IsOn && MaterialsToggle.IsOn, "Native appearance preferences are available");
-            await Resize(800, 600); ThemeChoice.StartBringIntoView(); await Task.Delay(300); Fits(ThemeChoice, "Theme setting fits at 800x600"); await Capture("10-settings-800");
+            await Resize(960, 640); ThemeChoice.StartBringIntoView(); await Task.Delay(300); Fits(ThemeChoice, "Theme setting fits at the 960x640 minimum"); await Capture("10-settings-960");
             SettingsLanguage.StartBringIntoView(); await Task.Delay(300); Fits(SettingsLanguage, "Language setting fits at 800x600");
             await Resize(640, 480); SettingsLanguage.StartBringIntoView(); await Task.Delay(300); Fits(SettingsLanguage, "Language setting fits at minimum width"); await Capture("11-settings-640");
             await Resize(1280, 800); ThemeChoice.SelectedIndex = 1; SettingsPanel.ChangeView(null, 0, null, true); await Task.Delay(300);
@@ -225,7 +225,7 @@ public sealed partial class MainWindow
                 {
                     var wideColumns = newsGrid.ColumnDefinitions.Count;
                     Check(wideColumns >= 2, "Newswire arranges posts in multiple columns on a wide window");
-                    await Resize(800, 600);
+                    await Resize(960, 640);
                     Check(newsGrid.ColumnDefinitions.Count < wideColumns, "Newswire adapts columns to a narrower window");
                     await Resize(1280, 800);
                     Check(newsGrid.ColumnDefinitions.Count == wideColumns, "Newswire restores columns after resizing");

@@ -225,6 +225,7 @@ public sealed partial class MainWindow
     private async Task ShowNews(JsonNode summary)
     {
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
+        var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
         var width = Math.Max(280, Math.Min(680, availableWidth - 64));
         var body = new StackPanel { Spacing = 16, Width = width };
@@ -426,6 +427,9 @@ public sealed partial class MainWindow
             {
                 var adaptive = await AdaptiveMediaSource.CreateFromUriAsync(uri);
                 if (revision != homeMediaRevision || adaptive.Status != AdaptiveMediaSourceCreationStatus.Success) return;
+                adaptive.MediaSource.DesiredMinBitrate = 2_000_000;
+                adaptive.MediaSource.InitialBitrate = 4_000_000;
+                adaptive.MediaSource.DesiredMaxBitrate = 8_000_000;
                 source = MediaSource.CreateFromAdaptiveMediaSource(adaptive.MediaSource);
             }
             else source = MediaSource.CreateFromUri(uri);
@@ -454,6 +458,9 @@ public sealed partial class MainWindow
             {
                 var adaptive = await AdaptiveMediaSource.CreateFromUriAsync(uri);
                 if (revision != detailRevision || adaptive.Status != AdaptiveMediaSourceCreationStatus.Success) return;
+                adaptive.MediaSource.DesiredMinBitrate = 2_000_000;
+                adaptive.MediaSource.InitialBitrate = 4_000_000;
+                adaptive.MediaSource.DesiredMaxBitrate = 8_000_000;
                 source = MediaSource.CreateFromAdaptiveMediaSource(adaptive.MediaSource);
             }
             else source = MediaSource.CreateFromUri(uri);

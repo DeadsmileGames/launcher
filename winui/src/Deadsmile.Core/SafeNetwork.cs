@@ -26,6 +26,7 @@ public static class SafeNetwork
         // 6to4 tunnelling (2002::/16), and the 3fff::/20 documentation prefix.
         if ((b[0] & 0xe0) != 0x20) return false;
         if (b[0] == 0x20 && b[1] == 0x01 && b[2] <= 0x01) return false;
+        if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8) return false;
         if (b[0] == 0x20 && b[1] == 0x02) return false;
         if (b[0] == 0x3f && b[1] == 0xff && (b[2] & 0xf0) == 0) return false;
         return true;

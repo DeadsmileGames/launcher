@@ -29,18 +29,21 @@ Add("Alternate achievement fields preserve the original API contract", () =>
 Add("Private IPv4 and mapped IPv6 cannot be download targets", () =>
 {
     foreach (var ip in new[] { "127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1", "169.254.169.254",
-        "100.64.0.1", "198.18.1.1", "0.0.0.0", "::ffff:127.0.0.1" }) Check(!SafeNetwork.Public(IPAddress.Parse(ip)));
+        "100.64.0.1", "198.18.1.1", "192.88.99.1", "0.0.0.0", "::ffff:127.0.0.1" }) Check(!SafeNetwork.Public(IPAddress.Parse(ip)));
     Check(SafeNetwork.Public(IPAddress.Parse("8.8.8.8")));
 });
 Add("Non-global IPv6 is blocked", () =>
 {
-    foreach (var ip in new[] { "::1", "::", "fe80::1", "fc00::1", "ff02::1", "2001:db8::1" }) Check(!SafeNetwork.Public(IPAddress.Parse(ip)));
+    foreach (var ip in new[] { "::1", "::", "fe80::1", "fc00::1", "ff02::1", "2001:db8::1", "2001:2::1", "2002::1", "3fff::1" }) Check(!SafeNetwork.Public(IPAddress.Parse(ip)));
     Check(SafeNetwork.Public(IPAddress.Parse("2606:4700:4700::1111")));
 });
 Add("Links require HTTPS and reject user credentials", () =>
 {
     Check(Urls.Https("https://itch.io/game") is not null);
     Check(Urls.Https("https://user:pass@itch.io/game") is null);
+    Check(Urls.Https("https://localhost/") is null);
+    Check(Urls.Https("https://127.0.0.1/") is null);
+    Check(Urls.Https("https://example.com:8443/") is null);
     Check(Urls.Https("file:///secret") is null); Check(Urls.Https("http://itch.io") is null);
     Check(Urls.ItchOAuth("https://itch.io/user/oauth") is not null);
     Check(Urls.ItchOAuth("https://evil.invalid/user/oauth") is null);

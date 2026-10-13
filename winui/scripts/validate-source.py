@@ -200,7 +200,7 @@ check("HorizontalContentAlignment = HorizontalAlignment.Center" in portal_code a
       "var host = new Grid { Width = width + 16, HorizontalAlignment = HorizontalAlignment.Center }" in portal_code,
       "Newswire dialog centers its scrolling content")
 check("EllipseGeometry" in profile_code and "viewport.PointerMoved" in profile_code and
-      "transform.CenterX = preview.Width / 2" in profile_code,
+      "CenterX = preview.Width / 2" in profile_code and "CenterY = preview.Height / 2" in profile_code,
       "Profile-photo editor uses centered circular crop, zoom and pointer-drag positioning")
 check("twoFactorDisabling" in profile_code and
       'Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token }' in profile_code and

@@ -3,10 +3,7 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  Title="Deadsmile Games Launcher Setup">
  <Grid x:Name="Root" Background="{ThemeResource SetupPageBrush}">
-  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-  <TitleBar x:Name="SetupTitleBar" Title="Deadsmile Games Launcher Setup"
-   Background="#151515" IsPaneToggleButtonVisible="False" IsBackButtonVisible="False"/>
-  <Grid Grid.Row="1" ColumnSpacing="0">
+  <Grid ColumnSpacing="0">
    <Grid.ColumnDefinitions><ColumnDefinition Width="0.92*"/><ColumnDefinition Width="1.08*"/></Grid.ColumnDefinitions>
    <Grid Grid.Column="0" Background="#202020">
     <Image Source="Assets/InstallerHero.png" Stretch="UniformToFill"/>

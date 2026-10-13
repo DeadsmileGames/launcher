@@ -21,8 +21,6 @@ public sealed partial class MainWindow : Window
     {
         this.args = args;
         InitializeComponent();
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(SetupTitleBar);
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var id = Win32Interop.GetWindowIdFromWindow(hwnd);
         appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(id);

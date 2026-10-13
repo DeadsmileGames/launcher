@@ -4,6 +4,8 @@ namespace Deadsmile.Setup;
 
 public partial class App : Application
 {
+    private MainWindow? window;
+
     public App()
     {
         RequestedTheme = ApplicationTheme.Dark;
@@ -12,7 +14,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        var window = new MainWindow(Program.Arguments);
+        window = new MainWindow(Program.Arguments);
         window.Activate();
     }
 }

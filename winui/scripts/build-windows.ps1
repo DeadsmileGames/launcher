@@ -120,6 +120,22 @@ if ($Target -in @("All", "Installer")) {
    $xamlDestination = Join-Path $resourceSource $xamlFile.Name
    if (!(Test-Path $xamlDestination)) { Copy-Item $xamlFile.FullName $xamlDestination -Force }
   }
+
+  # The app PRI must include framework/library resources as well as the app's XBF and images.
+  # MakePri's default PRI indexer merges dependency PRI files; copy those indexes into the project root
+  # while intentionally keeping the large self-contained runtime binaries out of this indexing pass.
+  $dependencyPris = Get-ChildItem $setupPublish -Recurse -File -Filter "*.pri" |
+   Where-Object { ![string]::Equals($_.FullName, $resourcesPri, [StringComparison]::OrdinalIgnoreCase) }
+  foreach ($dependencyPri in $dependencyPris) {
+   $relative = [IO.Path]::GetRelativePath($setupPublish, $dependencyPri.FullName)
+   $priDestination = Join-Path $resourceSource $relative
+   New-Item (Split-Path $priDestination -Parent) -ItemType Directory -Force | Out-Null
+   Copy-Item $dependencyPri.FullName $priDestination -Force
+  }
+  if ($dependencyPris.Count -eq 0) {
+   throw "Windows App SDK dependency PRI files are missing; refusing to build an incomplete WinUI setup."
+  }
+
   $priConfig = Join-Path $artifacts "setup-priconfig.xml"
   $generatedPri = Join-Path $artifacts "setup-resources.pri"
   Remove-Item $priConfig, $generatedPri -Force -ErrorAction SilentlyContinue

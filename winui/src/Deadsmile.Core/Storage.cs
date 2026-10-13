@@ -57,11 +57,7 @@ public sealed class Storage
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }
-    public void Log(string code)
-    {
-        try { File.AppendAllText(FilePath("winui.log"), DateTimeOffset.UtcNow.ToString("O") + " " + code + Environment.NewLine); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-    }
+    public void Log(string code) => LauncherLog.WriteAtRoot(Root, "INFO", "Core", code);
 }
 
 public static class PathGuard

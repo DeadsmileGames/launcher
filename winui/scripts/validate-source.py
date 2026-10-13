@@ -201,7 +201,7 @@ check("native.Hotkey += QueueOverlayToggle;" in main_code and
       "ValidationQueueOverlayToggle" in main_code and
       "try { Hotkey?.Invoke(); }" in native_code,
       "Ctrl+D handling is dispatched to WinUI instead of opening/closing windows inside native WndProc")
-check("if (!timer.IsRunning) timer.Start();" in game_view_code and
+check("if (!timer.IsRunning)" in game_view_code and "timer.Start();" in game_view_code and
       "timer.Stop();" in game_view_code and "ValidationTimerRunning => timer.IsRunning" in game_view_code,
       "DeadBar focus polling runs only while the overlay is visible or has pinned widgets")
 check("FocusedRunningGame" in main_code and "overlay.Show(focusedGame);" in main_code and
@@ -221,7 +221,7 @@ check("SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero)" in native_cod
       "Native HWND hooks use removable common-controls subclassing and preserve the WinUI WndProc chain")
 check('if (normalized == "F12") return 0;' in native_code and "uint key = VirtualKey(keyName);" in native_code,
       "DeadBar key parsing rejects the F12 key reserved by Windows for debuggers")
-check('x:Name="NotificationIcon"' in main_xaml and 'Glyph="&#xE7E7;"' in main_xaml and
+check('x:Name="NotificationIcon"' in main_xaml and 'Glyph="&#xEA8F;"' in main_xaml and
       'UpdateNotificationsIcon(Preferences.Notifications)' in appearance_code and
       "NotificationIcon.Glyph = enabled ?" in desktop_code and
       all(locale.get("Notifications disabled") for locale in messages.values()),
@@ -241,9 +241,11 @@ check('Glyph="&#xEA80;"' in (launcher / "Views" / "AchievementWindow.xaml").read
       "ApplyShortcutTheme(owner.UiTheme)" in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
       "ToastRoot.RequestedTheme = ElementTheme.Light" not in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8"),
       "DeadBar hint uses a lightbulb and follows the launcher's selected theme")
-check("ReportStartupFailure(ex)" in program_code and "STARTUP_FATAL" in program_code and
-      "MessageBoxW" in program_code and "Could not forward activation" in program_code,
-      "Fatal startup/activation failures are logged and shown instead of exiting silently")
+check("ReportStartupFailure(ex)" in program_code and
+      'LauncherLog.Error("Startup", "fatal startup/activation error", ex)' in program_code and
+      "LauncherLog.LogPath" in program_code and "MessageBoxW" in program_code and
+      "Could not forward activation" in program_code,
+      "Fatal startup/activation failures are logged centrally and shown instead of exiting silently")
 quote_array = re.search(r'private string\[\] quotes = \[(.*?)\];', portal_code, re.S)
 check(quote_array is not None and "BootQuote.Text = Locale.T(quotes[index])" in portal_code,
       "Boot quotes are rendered through the localization catalog")

@@ -214,6 +214,9 @@ check('Path.Combine(directory, "launcher.log")' in log_code and
       "SensitiveValue" in log_code and "SensitiveHeader" in log_code and "MaxLogBytes" in log_code and
       'LauncherLog.WriteAtRoot(Root, "INFO", "Core", code)' in (root / "src" / "Deadsmile.Core" / "Storage.cs").read_text(encoding="utf-8"),
       "Launcher diagnostics are centralized in Documents/Deadsmile Games Launcher/launcher.log with redaction and bounded growth")
+check("ValidationPostHotkey()" in native_code and "PostMessageW" in native_code and
+      "Native window hook receives an actual posted WM_HOTKEY message" in (launcher / "UiValidation.cs").read_text(encoding="utf-8"),
+      "Windows UI validation exercises the real HWND WM_HOTKEY subclass callback instead of bypassing it")
 check("SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero)" in native_code and
       "DefSubclassProc(h, message, wp, lp)" in native_code and
       "RemoveWindowSubclass(hwnd, handler, subclassId)" in native_code and

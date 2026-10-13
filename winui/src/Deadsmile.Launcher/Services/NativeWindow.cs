@@ -60,6 +60,14 @@ public sealed class NativeWindow : IDisposable
         }
         return !enabled || registered;
     }
+#if UI_VALIDATION
+    internal void ValidationPostHotkey()
+    {
+        if (!PostMessage(hwnd, 0x0312, new IntPtr(0x4453), IntPtr.Zero))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    }
+#endif
+
     internal static uint VirtualKey(string keyName)
     {
         var normalized = keyName.ToUpperInvariant();
@@ -212,6 +220,9 @@ public sealed class NativeWindow : IDisposable
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint key);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr h, int id);
+    [DllImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessage(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int height, uint flags);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int command);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsWindowVisible(IntPtr h);

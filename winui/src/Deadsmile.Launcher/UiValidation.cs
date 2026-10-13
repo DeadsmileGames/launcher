@@ -161,6 +161,16 @@ public sealed partial class MainWindow
             ValidationQueueOverlayToggle();
             await Task.Delay(150);
             Check(AppWindow.IsVisible, "Ctrl+D hotkey dispatch leaves the launcher alive when there is no focused game");
+            var nativeHotkeyReceived = false;
+            Action observeNativeHotkey = () => nativeHotkeyReceived = true;
+            native.Hotkey += observeNativeHotkey;
+            try
+            {
+                native.ValidationPostHotkey();
+                await Task.Delay(150);
+            }
+            finally { native.Hotkey -= observeNativeHotkey; }
+            Check(nativeHotkeyReceived, "Native window hook receives an actual posted WM_HOTKEY message");
             await Resize(1280, 800); await Capture("00-boot"); await Task.Delay(3000);
             Check(User is null && Shell.Visibility == Visibility.Visible, "Guests enter directly after a successful public API boot");
             Check(BootPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Boot completes and back button remains visible");

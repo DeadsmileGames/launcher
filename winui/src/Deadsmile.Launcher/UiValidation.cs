@@ -234,7 +234,7 @@ public sealed partial class MainWindow
             async Task GalleryCheck(string name, bool portrait)
             {
                 var dialog = CreateGallery(["https://fixture.invalid/screen-1.png", "https://fixture.invalid/screen-2.png"], 0);
-                Check(dialog.Content is Grid hostCheck && hostCheck.HorizontalAlignment == HorizontalAlignment.Center && dialog.HorizontalContentAlignment == HorizontalAlignment.Center && Math.Abs(dialog.MinWidth - dialog.MaxWidth) < 1, "Screenshot dialog uses a centered, width-bounded host");
+                Check(dialog.Content is Grid hostCheck && hostCheck.HorizontalAlignment == HorizontalAlignment.Center && dialog.HorizontalContentAlignment == HorizontalAlignment.Center && dialog.MinWidth == 0 && double.IsPositiveInfinity(dialog.MaxWidth) && hostCheck.Width <= (double)Application.Current.Resources["ContentDialogMaxWidth"], "Screenshot dialog uses a centered host without forced dialog width");
                 var galleryHost = (Grid)dialog.Content;
                 var content = (StackPanel)galleryHost.Children[0];
                 var imageScroll = (ScrollViewer)content.Children[0];
@@ -264,7 +264,10 @@ public sealed partial class MainWindow
                 var showing = dialog.ShowAsync(); await Task.Delay(600); content.UpdateLayout();
                 var bounds = full.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, full.ActualWidth, full.ActualHeight));
                 var hostBounds = galleryHost.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, galleryHost.ActualWidth, galleryHost.ActualHeight));
-                Check(Math.Abs((hostBounds.Left + hostBounds.Right) / 2 - Root.ActualWidth / 2) <= 32, "Screenshot popup is centered in the launcher window");
+                var popupCenter = (hostBounds.Left + hostBounds.Right) / 2;
+                var windowCenter = Root.ActualWidth / 2;
+                var centerOffset = Math.Abs(popupCenter - windowCenter);
+                Check(centerOffset <= 32, $"Screenshot popup is centered in the launcher window (offset {centerOffset:N1} DIPs; popup center {popupCenter:N1}; window center {windowCenter:N1})");
                 Check(full.Stretch == Stretch.Uniform && bounds.Left >= 0 && bounds.Right <= Root.ActualWidth && bounds.Top >= 0 && bounds.Bottom <= Root.ActualHeight,
                     "Entire " + (portrait ? "portrait" : "panoramic") + " screenshot fits the native dialog in " + name);
                 await Capture(name, dialog); dialog.Hide(); await showing;

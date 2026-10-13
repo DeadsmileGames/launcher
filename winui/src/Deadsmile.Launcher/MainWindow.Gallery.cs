@@ -136,12 +136,8 @@ public sealed partial class MainWindow
             Content = host,
             CloseButtonText = Locale.T("Close"),
             HorizontalContentAlignment = HorizontalAlignment.Center,
-            MaxWidth = dialogWidth,
-            MinWidth = dialogWidth,
             MaxHeight = Root.XamlRoot.Size.Height - 32
         };
-        dialog.Resources["ContentDialogMaxWidth"] = dialogWidth;
-        dialog.Resources["ContentDialogMinWidth"] = dialogWidth;
         dialog.Resources["ContentDialogMaxHeight"] = Root.XamlRoot.Size.Height - 32;
         void ResizeViewer(object sender, SizeChangedEventArgs args)
         {
@@ -150,9 +146,7 @@ public sealed partial class MainWindow
             body.Width = nav.Width = imageScroll.Width = viewportWidth;
             imageScroll.Height = viewportHeight;
             zoom.Width = Math.Clamp(viewportWidth * 0.30, 84, 150);
-            dialog.MaxWidth = dialog.MinWidth = host.Width = viewportWidth + 48;
-            dialog.Resources["ContentDialogMaxWidth"] = host.Width;
-            dialog.Resources["ContentDialogMinWidth"] = host.Width;
+            host.Width = viewportWidth + 48;
             ApplyZoom(zoom.Value, preserveCenter: false);
         }
         dialog.Opened += (_, _) => Root.SizeChanged += ResizeViewer;

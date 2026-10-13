@@ -218,8 +218,9 @@ check("HorizontalContentAlignment = HorizontalAlignment.Center" in portal_code a
       "Newswire dialog centers its scrolling content")
 check('var host = new Grid { Width = dialogWidth, HorizontalAlignment = HorizontalAlignment.Center }' in gallery_code and
       "Root.XamlRoot.Size.Height - 260" in gallery_code and
-      'dialog.Resources["ContentDialogMinWidth"] = host.Width' in gallery_code,
-      "Screenshot dialog centers its viewport and reserves room for navigation and zoom controls")
+      "dialog.MinWidth" not in gallery_code and "dialog.MaxWidth" not in gallery_code and
+      'x:Key="ContentDialogMaxWidth">900</x:Double>' in app_xaml,
+      "Screenshot dialog avoids forced sizing that breaks native centering and reserves room for controls")
 check("EllipseGeometry" in profile_code and "viewport.PointerMoved" in profile_code and
       "CenterX = preview.Width / 2" in profile_code and "CenterY = preview.Height / 2" in profile_code,
       "Profile-photo editor uses centered circular crop, zoom and pointer-drag positioning")

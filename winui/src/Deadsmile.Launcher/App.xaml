@@ -37,6 +37,7 @@
      <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="{ThemeResource SystemColorGrayTextColor}"/>
     </ResourceDictionary>
    </ResourceDictionary.ThemeDictionaries>
+   <x:Double x:Key="ContentDialogMaxWidth">900</x:Double>
    <Style x:Key="Panel" TargetType="Border">
     <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
     <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>

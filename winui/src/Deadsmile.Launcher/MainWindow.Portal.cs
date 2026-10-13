@@ -274,7 +274,6 @@ public sealed partial class MainWindow
             foreach (var item in newsItems) newsGrid.Children.Add(NewsCard(item, 300));
             ContentRows.Children.Add(newsGrid);
             newsGrid.SizeChanged += (_, _) => ArrangeNews();
-            ContentPage.SizeChanged += (_, _) => ArrangeNews();
             DispatcherQueue.TryEnqueue(ArrangeNews);
             return;
         }

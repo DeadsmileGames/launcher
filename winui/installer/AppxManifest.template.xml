@@ -4,7 +4,9 @@
  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
- IgnorableNamespaces="uap uap3 uap10 rescap">
+ xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+ xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+ IgnorableNamespaces="uap uap3 uap10 rescap com desktop">
  <Identity Name="__IDENTITY__" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="x64"/>
  <Properties><DisplayName>Deadsmile Games Launcher</DisplayName><PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/></Dependencies>
@@ -15,7 +17,19 @@
     BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
    <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/><uap:SplashScreen Image="Assets\SplashScreen.png"/>
   </uap:VisualElements>
-  <Extensions><uap3:Extension Category="windows.protocol"><uap3:Protocol Name="deadsmile" Parameters="&quot;%1&quot;"/></uap3:Extension></Extensions>
+  <Extensions>
+   <uap3:Extension Category="windows.protocol"><uap3:Protocol Name="deadsmile" Parameters="&quot;%1&quot;"/></uap3:Extension>
+   <desktop:Extension Category="windows.toastNotificationActivation">
+    <desktop:ToastNotificationActivation ToastActivatorCLSID="{51A9F4F5-4389-401A-8D67-4626C47B505D}"/>
+   </desktop:Extension>
+   <com:Extension Category="windows.comServer">
+    <com:ComServer>
+     <com:ExeServer Executable="Deadsmile.Launcher.exe" DisplayName="Deadsmile Games Launcher" Arguments="----AppNotificationActivated:">
+      <com:Class Id="{51A9F4F5-4389-401A-8D67-4626C47B505D}"/>
+     </com:ExeServer>
+    </com:ComServer>
+   </com:Extension>
+  </Extensions>
  </Application></Applications>
  <Capabilities><Capability Name="internetClient"/><rescap:Capability Name="runFullTrust"/></Capabilities>
 </Package>

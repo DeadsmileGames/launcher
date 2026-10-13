@@ -46,9 +46,20 @@ for element in manifest.iter():
     for key, value in element.attrib.items():
         if key in {"Logo", "Square150x150Logo", "Square44x44Logo", "Wide310x150Logo", "Image"}:
             check((launcher / value.replace("\\", "/")).is_file(), f"Missing manifest asset: {value}")
-ns = {"p": "http://schemas.microsoft.com/appx/manifest/foundation/windows10"}
+ns = {
+    "p": "http://schemas.microsoft.com/appx/manifest/foundation/windows10",
+    "desktop": "http://schemas.microsoft.com/appx/manifest/desktop/windows10",
+    "com": "http://schemas.microsoft.com/appx/manifest/com/windows10",
+}
 family = manifest.find("p:Dependencies/p:TargetDeviceFamily", ns)
 check(family is not None and family.attrib["MinVersion"] == "10.0.19041.0", "Unexpected minimum OS")
+toast_activation = manifest.find(".//desktop:ToastNotificationActivation", ns)
+com_server = manifest.find(".//com:ExeServer", ns)
+notification_clsid = "{51A9F4F5-4389-401A-8D67-4626C47B505D}"
+check(toast_activation is not None and toast_activation.attrib.get("ToastActivatorCLSID") == notification_clsid,
+      "MSIX manifest has the documented app-notification activation CLSID")
+check(com_server is not None and com_server.attrib.get("Executable") == "Deadsmile.Launcher.exe" and
+      com_server.attrib.get("Arguments") == "----AppNotificationActivated:", "MSIX notification COM activation targets the launcher")
 
 for path in (launcher / "Assets" / "Fonts").glob("*.ttf"):
     header = path.read_bytes()[:12]

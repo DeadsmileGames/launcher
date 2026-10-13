@@ -45,7 +45,12 @@ internal sealed class UiValidationHandler : HttpMessageHandler
             for (var i = 0; i < 6; i++)
             {
                 var game = GameData();
-                if (i > 0) { game["id"] = new Guid(i, 0, 0, new byte[8]).ToString(); game["title"] = "Jogo de teste " + (i + 1); }
+                if (i > 0)
+                {
+                    game["id"] = new Guid(i, 0, 0, new byte[8]).ToString();
+                    game["slug"] = "jogo-de-teste-" + (i + 1);
+                    game["title"] = "Jogo de teste " + (i + 1);
+                }
                 items.Add(game);
             }
             data = new JsonObject { ["items"] = items, ["pagination"] = J.Obj(("totalPages", 1)) };
@@ -157,7 +162,8 @@ public sealed partial class MainWindow
             Check(page == "library" && CatalogPanel.Visibility == Visibility.Visible, "Native library selection navigates");
             await Capture("05-library-1280");
             SearchSuggestions("Abby");
-            Check(searchResults.Count == 1 && GameGrid.Items.Count == 6, "Search suggestions show games without replacing page content");
+            Check(searchResults.Count == 1, "Search suggestions match the one game containing Abby");
+            Check(GameGrid.Items.Count == 6, "Opening suggestions does not replace the catalog");
             SearchSuggestions("no-match-ci"); Check(searchResults.Count > 0 && searchResults.All(x => x.Setting is not null), "Search falls back to settings suggestions");
             SearchBox.Text = ""; SearchBox.IsSuggestionListOpen = false;
             await LoadDetail(Catalog[0]); await Task.Delay(300);

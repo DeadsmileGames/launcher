@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace Deadsmile.Setup;
@@ -25,15 +26,38 @@ public partial class App : Application
     public App()
     {
         Log("App constructor entered");
-        UnhandledException += (_, e) => Log("Application UnhandledException: " + e.Message, e.Exception);
+        UnhandledException += (_, e) =>
+        {
+            var detail = "Application UnhandledException: " + e.Message + " (HRESULT=0x" +
+                e.Exception.HResult.ToString("X8") + ")";
+            var context = e.Exception.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(property => property.Name is "LineNumber" or "LinePosition" or "BaseUri" or "KeyContext" or "NameContext" or "UidContext")
+                .Select(property =>
+                {
+                    try { return property.Name + "=" + property.GetValue(e.Exception); }
+                    catch (Exception) { return null; }
+                })
+                .Where(value => !string.IsNullOrWhiteSpace(value));
+            Log(detail + (context.Any() ? Environment.NewLine + string.Join("; ", context) : ""), e.Exception);
+        };
         try
         {
             RequestedTheme = ApplicationTheme.Dark;
             InitializeComponent();
             Log("Application XAML initialized");
-            // Keep startup ordering identical to the known-working WinUI 3 unpackaged entry point.
-            // Creating the native setup window from OnLaunched was failing before that callback ran
-            // in the published self-contained installer on the Windows CI runner.
+        }
+        catch (Exception ex)
+        {
+            Log("Application initialization failed", ex);
+            throw;
+        }
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        Log("OnLaunched entered");
+        try
+        {
             window = new MainWindow(Program.Arguments);
             Log("MainWindow constructor returned");
             window.Activate();
@@ -41,7 +65,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Log("Application startup failed", ex);
+            Log("OnLaunched failed", ex);
             throw;
         }
     }

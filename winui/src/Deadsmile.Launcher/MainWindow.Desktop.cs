@@ -15,7 +15,6 @@ public sealed partial class MainWindow
     private TrayService? tray;
     private DesktopNotifications? notifications;
     private bool exiting;
-    private readonly HashSet<int> hintedGames = [];
     private readonly HashSet<long> notifiedEvents = [];
     private void InitializeDesktop()
     {
@@ -175,24 +174,5 @@ public sealed partial class MainWindow
         else if (type is "launcher.updated" or "launcher.released")
             DesktopNotice(Locale.T("Launcher update available"), title.Length > 0 ? title : Locale.T("A new launcher version is available."));
     }
-    private void GameStartedHint()
-    {
-        foreach (var game in Games.Running)
-        {
-            if (!hintedGames.Add(game.Process.Id)) continue;
-            _ = ShowGameHint(game);
-        }
-        var active = Games.Running.Select(x => x.Process.Id).ToHashSet(); hintedGames.RemoveWhere(x => !active.Contains(x));
-    }
-    private async Task ShowGameHint(RunningGame game)
-    {
-        if (!OverlayToggle.IsOn) return;
-        LauncherLog.Info("DeadBar", $"game-start hint scheduled; game={game.Game.Id}; pid={game.Process.Id}");
-        for (var attempt = 0; attempt < 25 && !game.Process.HasExited && game.Process.MainWindowHandle == IntPtr.Zero; attempt++) { await Task.Delay(200); game.Process.Refresh(); }
-        if (game.Process.HasExited) return;
-        var toast = new AchievementWindow(this, "DeadBar", Locale.T("Ctrl + D for DeadBar"), hint: true);
-        toast.ShowOn(game.Process.MainWindowHandle, centered: true);
-    }
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
 }

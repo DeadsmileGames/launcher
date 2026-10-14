@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/deadsmilegames/launcher/blob/main/public/readme.png" width="120px" alt="Deadsmile Games">
+  <img src="blob:https://github.com/06addf33-0ef1-4054-9824-22bb3f012986" width="120px" alt="Deadsmile Games">
 </p>
 
 <h3 align="center">

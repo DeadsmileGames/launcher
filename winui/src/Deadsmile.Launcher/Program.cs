@@ -50,7 +50,6 @@ internal static class Program
         Application.Start(parameters =>
         {
             var queue = DispatcherQueue.GetForCurrentThread();
-            // Windows.UI.Composition system backdrops require the system queue in addition to WinUI's queue.
             queue.EnsureSystemDispatcherQueue();
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(queue));
             _ = new App();
@@ -77,7 +76,6 @@ internal static class Program
 
     private static void ReportStartupFailure(Exception exception)
     {
-        // The full sanitized exception is already in the single central launcher.log.
         var message = "O Deadsmile Games Launcher não conseguiu iniciar." + Environment.NewLine + Environment.NewLine +
             "Detalhes: " + exception.GetBaseException().Message + Environment.NewLine + Environment.NewLine +
             "Log: " + LauncherLog.LogPath;

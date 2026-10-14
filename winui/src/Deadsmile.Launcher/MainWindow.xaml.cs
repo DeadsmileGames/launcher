@@ -1237,7 +1237,7 @@ public sealed partial class MainWindow : Window
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         foreach (var j in downloads.Jobs) downloads.Cancel(j.Id);
         while (downloads.Jobs.Any(x => downloads.Busy(x.Id))) await Task.Delay(100);
-        exiting = true; Close();
+        Close();
         } finally { closeDialog = false; }
     }
     private void ShowForActivation()

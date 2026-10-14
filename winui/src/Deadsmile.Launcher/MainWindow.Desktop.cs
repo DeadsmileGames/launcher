@@ -4,7 +4,6 @@ using Deadsmile.Core;
 using Deadsmile.Launcher.Services;
 using Deadsmile.Launcher.Views;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -12,7 +11,11 @@ namespace Deadsmile.Launcher;
 
 public sealed partial class MainWindow
 {
+#if UI_VALIDATION
+    private DesktopNotifications? notifications = null;
+#else
     private DesktopNotifications? notifications;
+#endif
     private readonly HashSet<long> notifiedEvents = [];
     private void InitializeDesktop()
     {

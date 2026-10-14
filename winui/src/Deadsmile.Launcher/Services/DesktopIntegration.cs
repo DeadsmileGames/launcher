@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Deadsmile.Core;
-using Microsoft.UI.Xaml;
 using Microsoft.Win32;
 
 namespace Deadsmile.Launcher.Services;

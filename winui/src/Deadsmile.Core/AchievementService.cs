@@ -32,7 +32,8 @@ public sealed class AchievementService(ApiClient api, Storage storage)
         {
             while (!ct.IsCancellationRequested)
             {
-                try { await Sync(userId); } catch (Exception) { storage.Log("ACHIEVEMENT_SYNC_PENDING"); }
+                try { await Sync(userId); }
+                catch (Exception ex) { LauncherLog.Error("Achievements", "sync attempt failed; retry will continue", ex); }
                 await Task.Delay(30000, ct);
             }
         }

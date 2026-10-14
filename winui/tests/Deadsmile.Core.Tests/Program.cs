@@ -129,6 +129,11 @@ Add("Launcher log writes useful events to the launcher root and redacts secrets"
     Check(contents.Contains("SESSION_RESTORE_UNAVAILABLE"));
     Check(contents.Contains("[REDACTED]"));
     Check(!contents.Contains("unit-test-password") && !contents.Contains("unit-test-token"));
+    LauncherLog.WriteAtRoot(logRoot, "WARN", "LiveLibrary",
+        "socket URL wss://example.invalid/api/live?ticket=unit-test-ticket&mode=live refresh_token=unit-test-refresh");
+    contents = File.ReadAllText(logPath);
+    Check(contents.Contains("ticket=[REDACTED]") && contents.Contains("refresh_token=[REDACTED]"));
+    Check(!contents.Contains("unit-test-ticket") && !contents.Contains("unit-test-refresh"));
 });
 Add("Storage paths cannot escape settings", () =>
 {

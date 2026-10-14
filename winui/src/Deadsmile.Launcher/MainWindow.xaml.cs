@@ -53,7 +53,9 @@ public sealed partial class MainWindow : Window
     private string? pendingLaunch;
     private Image? heroImage;
     private Windows.Media.Playback.MediaPlayer? homeBannerPlayer;
+#if !UI_VALIDATION
     private string? homeVideoGameId;
+#endif
     private int homeMediaRevision;
     private string[] heroImages = [];
     private int heroIndex;

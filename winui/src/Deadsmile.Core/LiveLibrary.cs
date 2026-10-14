@@ -45,9 +45,20 @@ public sealed class LiveLibrary(ApiClient api) : IDisposable
     }
     private async Task PollLoop(CancellationToken ct)
     {
-        try { while (!ct.IsCancellationRequested) { try { await Poll(ct); } catch (LauncherException) { } await Task.Delay(15000, ct); } }
-        catch (OperationCanceledException) { }
-        catch (Exception) { /* socket fallback remains active */ }
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try { await Poll(ct); }
+                catch (LauncherException ex)
+                {
+                    LauncherLog.Warning("LiveLibrary", $"event poll failed; status={ex.Status}; code={ex.Code}");
+                }
+                await Task.Delay(15000, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { LauncherLog.Error("LiveLibrary", "event poll loop failed", ex); }
     }
     private async Task SocketLoop(CancellationToken ct)
     {
@@ -85,7 +96,10 @@ public sealed class LiveLibrary(ApiClient api) : IDisposable
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                LauncherLog.Error("LiveLibrary", $"live socket failed; reconnect_attempt={attempt + 1}", ex);
+            }
             try { await Task.Delay(Math.Min(30000, 1000 * (1 << Math.Min(attempt++, 5))), ct); }
             catch (OperationCanceledException) { return; }
         }

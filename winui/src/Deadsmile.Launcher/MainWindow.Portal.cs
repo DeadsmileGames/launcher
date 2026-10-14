@@ -481,7 +481,9 @@ public sealed partial class MainWindow
     private void StopHomeVideo()
     {
         homeMediaRevision++;
+#if !UI_VALIDATION
         homeVideoGameId = null;
+#endif
         homeBannerPlayer?.Dispose();
         homeBannerPlayer = null;
         FeaturedVideo.Visibility = Visibility.Collapsed;

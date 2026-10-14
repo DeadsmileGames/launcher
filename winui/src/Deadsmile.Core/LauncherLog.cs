@@ -10,7 +10,7 @@ public static class LauncherLog
 {
     private static readonly object Gate = new();
     private static readonly Regex SensitiveValue = new(
-        @"(?i)\b(password|passwd|token|secret|authorization|cookie|set-cookie|api[_-]?key|access[_-]?token|credential|signature|sig)\b(\s*[:=]\s*|\s+)([^\s,;]+)",
+        @"(?i)\b(password|passwd|token|secret|authorization|cookie|set-cookie|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|credential|signature|sig|ticket|client[_-]?secret|code[_-]?verifier|device[_-]?code|oauth[_-]?code|nonce|otp|totp)\b(\s*[:=]\s*|\s+)([^\s,;]+)",
         RegexOptions.Compiled);
     private static readonly Regex SensitiveHeader = new(
         @"(?im)\b(authorization|cookie|set-cookie)\b(\s*[:=]\s*)[^\r\n]+",
@@ -57,9 +57,8 @@ public static class LauncherLog
                 File.AppendAllText(path, entry, new UTF8Encoding(false));
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        catch (Exception)
         {
-
             try
             {
                 var fallback = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -72,7 +71,7 @@ public static class LauncherLog
                     File.AppendAllText(path, entry, new UTF8Encoding(false));
                 }
             }
-            catch (Exception) { /* Diagnostics must never crash the launcher. */ }
+            catch (Exception) { }
         }
     }
 

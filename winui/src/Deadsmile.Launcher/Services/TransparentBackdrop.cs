@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 namespace Deadsmile.Launcher.Services;
 
-// Window alpha and click-through must be verified against real Windows/DWM and graphics drivers.
 public sealed class TransparentBackdrop : SystemBackdrop
 {
     private Compositor? compositor;

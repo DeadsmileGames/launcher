@@ -278,6 +278,7 @@ public sealed partial class MainWindow
         body.HorizontalAlignment = HorizontalAlignment.Center;
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
         var contentWidth = Math.Min(width + 16, Math.Max(200, availableWidth - 48));
+        var availableHeight = Root.XamlRoot?.Size.Height ?? Root.ActualHeight;
         var article = new Border
         {
             Width = Math.Max(184, contentWidth - 8),
@@ -290,8 +291,8 @@ public sealed partial class MainWindow
             Width = contentWidth,
             HorizontalAlignment = HorizontalAlignment.Center,
             Content = article,
-            Height = Math.Max(180, Math.Min(560, Root.XamlRoot.Size.Height - 144)),
-            MaxHeight = Math.Max(180, Math.Min(600, Root.XamlRoot.Size.Height - 96)),
+            Height = Math.Max(180, Math.Min(560, availableHeight - 144)),
+            MaxHeight = Math.Max(180, Math.Min(600, availableHeight - 96)),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollMode = ScrollMode.Enabled,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,

@@ -34,7 +34,7 @@ A versão pública e a identidade do pacote MSIX para o primeiro lançamento sã
 
 ## Publicação
 
-Após integração à `main`, a publicação `v1.0.0` só deve ocorrer uma vez após todas as verificações de código e do pacote. A tag de produção é imutável e a release contém somente o MSIX de produção para o Partner Center.
+Após integração à `main`, a publicação `v1.0.0-winui` só deve ocorrer uma vez após todas as verificações de código e do pacote. A tag de produção é imutável e a release contém somente o MSIX de produção para o Partner Center.
 
 O workflow não envia nem aprova uma submissão da Store; essa etapa continua sendo feita no Partner Center.
 

@@ -25,6 +25,7 @@ public sealed partial class MainWindow
     private ContentDialog? loginDialog;
     private ContentDialog? accountDialog;
     private ContentDialog? newsDialog;
+    private bool newsDialogOpening;
     private readonly Stack<(string Page, Game? Game)> history = new();
     private JsonNode[] newsItems = [];
     private Action? arrangeNewswire;
@@ -232,6 +233,14 @@ public sealed partial class MainWindow
     }
     private async Task ShowNews(JsonNode summary)
     {
+        if (newsDialogOpening || newsDialog is not null)
+        {
+            LauncherLog.Info("UI", "duplicate news dialog request ignored");
+            return;
+        }
+        newsDialogOpening = true;
+        try
+        {
         var slug = summary.S("slug"); if (!Regex.IsMatch(slug, "^[a-z0-9-]{1,160}$")) throw new LauncherException("INVALID_RESPONSE");
         var item = await Api.Get("/newswire/" + slug);
         var availableWidth = Root.XamlRoot?.Size.Width ?? Root.ActualWidth;
@@ -243,7 +252,6 @@ public sealed partial class MainWindow
         var image = new Image { Width = pictureWidth, Height = pictureWidth * 9 / 16, Stretch = Stretch.UniformToFill,
             HorizontalAlignment = HorizontalAlignment.Center };
         SetImage(image, Urls.Image(item.S("image")) ?? ""); body.Children.Add(image);
-        // API HTML is rendered as native text, never evaluated as HTML/XAML.
         var text = Regex.Replace(item.S("body"), @"</(p|div|li|h[1-6])>|<br\s*/?>", "\n\n", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"<[^>]+>", ""); body.Children.Add(Text(WebUtility.HtmlDecode(text)));
         if (item.S("game_slug").Length > 0 && Catalog.FirstOrDefault(x => x.Slug == item.S("game_slug")) is { } related)
@@ -257,7 +265,14 @@ public sealed partial class MainWindow
             try { await viewer.ShowAsync(); } finally { newsDialog = null; } return;
         }
         newsDialog = NewsDialog(body, width); try { await newsDialog.ShowAsync(); } finally { newsDialog = null; }
+    
+        }
+        finally
+        {
+            newsDialogOpening = false;
+        }
     }
+
     private ContentDialog NewsDialog(StackPanel body, double width)
     {
         body.HorizontalAlignment = HorizontalAlignment.Center;

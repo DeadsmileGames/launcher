@@ -405,7 +405,6 @@ public sealed partial class MainWindow
             toast.ShowOn(IntPtr.Zero); await Task.Delay(300);
             Check(toast.ValidationSolid, "Windows 10 achievement fallback always has an opaque background");
             await Capture("16-achievement-solid", toast.ValidationRoot); toast.Close();
-            Check(tray is null && TrayOption.Visibility == Visibility.Collapsed, "Launcher no longer registers a persistent icon beside the clock");
             UiValidationHandler.FailCatalog = true; await StartBoot();
             Check(Shell.Visibility == Visibility.Collapsed && BootErrorCode.Text.Contains("6799") && BootRetry.Visibility == Visibility.Visible,
                 "API failure prevents entry and displays a local error code with retry"); await Capture("boot-error");

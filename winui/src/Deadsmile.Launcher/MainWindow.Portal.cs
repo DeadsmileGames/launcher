@@ -148,7 +148,7 @@ public sealed partial class MainWindow
                 searchResults.Add(new SearchEntry(game.Title, game));
             if (searchResults.Count == 0)
             {
-                var settings = new[] { "App theme", "Animations", "Language", "DeadBar", "Notifications", "Settings", "Profile", "Newswire", "Support" };
+                var settings = new[] { "App theme", "Animations", "Language", "Notifications", "Settings", "Profile", "Newswire", "Support" };
                 var matches = settings.Where(key => key.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
                     Locale.T(key).Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
                 foreach (var key in (matches.Length > 0 ? matches : settings))
@@ -181,7 +181,6 @@ public sealed partial class MainWindow
             "App theme" => ThemeChoice,
             "Animations" => AnimationToggle,
             "Language" => SettingsLanguage,
-            "DeadBar" => OverlayToggle,
             "Notifications" => NotificationsToggle,
             "Newswire" => NewswireToggle,
             "Support" => SupportSection,

@@ -13,7 +13,6 @@ namespace Deadsmile.Launcher;
 public sealed partial class MainWindow
 {
     private DesktopNotifications? notifications;
-    private bool exiting;
     private readonly HashSet<long> notifiedEvents = [];
     private void InitializeDesktop()
     {

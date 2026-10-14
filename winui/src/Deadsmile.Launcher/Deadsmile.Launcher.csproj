@@ -10,7 +10,7 @@
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <DefineConstants Condition="'$(ValidateNativeUi)' == 'true'">$(DefineConstants);UI_VALIDATION</DefineConstants>
   </PropertyGroup>
-  <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1"/><PackageReference Include="QRCoder" Version="1.6.0"/><PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all"/><ProjectReference Include="../Deadsmile.Core/Deadsmile.Core.csproj"/></ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1"/><PackageReference Include="QRCoder" Version="1.8.1"/><PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all"/><ProjectReference Include="../Deadsmile.Core/Deadsmile.Core.csproj"/></ItemGroup>
   <ItemGroup><Content Include="Assets/**/*" Exclude="Assets/*.targetsize-*.png"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content></ItemGroup>
   <Target Name="PrepareBrandIcons" BeforeTargets="PrepareForBuild">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/prepare-icons.ps1&quot;"/>

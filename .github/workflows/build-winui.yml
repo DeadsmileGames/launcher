@@ -38,6 +38,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Validate source and MSIX manifest
         run: python3 scripts/validate-source.py
+      - name: Audit dependencies for known vulnerabilities
+        run: dotnet list Deadsmile.sln package --vulnerable --include-transitive
       - name: Run C# tests
         run: dotnet run --project tests/Deadsmile.Core.Tests -c Release
 

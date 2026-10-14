@@ -240,6 +240,15 @@ Async("Unsafe installation records cannot authorize execution", async () =>
     await RejectAsync(() => service.Uninstall(id, _ => false));
     Check(File.Exists(Path.Combine(s.Games, "outside.exe")));
 });
+Add("API log routes omit private identifiers and query values", () =>
+{
+    const string sessionId = "secret-session%2Fvalue";
+    var sessionRoute = ApiClient.RouteForLog("account/sessions/" + sessionId + "?access_token=unit-test-secret");
+    Check(sessionRoute == "account/sessions/{sessionId}");
+    Check(!sessionRoute.Contains(sessionId) && !sessionRoute.Contains("unit-test-secret"));
+    Check(ApiClient.RouteForLog("platform/sessions/" + id + "/end?ticket=unit-test-ticket") == "platform/sessions/{sessionId}/end");
+    Check(ApiClient.RouteForLog("games/abby-restless-heart?page=1&limit=48") == "games/{slug}");
+});
 Async("API requests cannot escape the configured origin or route set", async () =>
 {
     using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(_ => throw new Exception("Must not send")));

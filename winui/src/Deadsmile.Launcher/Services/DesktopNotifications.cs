@@ -1,3 +1,4 @@
+using Deadsmile.Core;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
 

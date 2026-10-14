@@ -176,6 +176,7 @@ portal_code = (launcher / "MainWindow.Portal.cs").read_text(encoding="utf-8")
 appearance_code = (launcher / "MainWindow.Appearance.cs").read_text(encoding="utf-8")
 desktop_code = (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8")
 log_code = (root / "src" / "Deadsmile.Core" / "LauncherLog.cs").read_text(encoding="utf-8")
+api_code = (root / "src" / "Deadsmile.Core" / "ApiClient.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
 gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
 native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
@@ -185,6 +186,8 @@ check("private void ShowForActivation()" in main_code and "AppWindow.Show();" in
       "Secondary launcher activation explicitly restores a hidden window")
 check('Glyph="&#xEA8F;"' in main_xaml and 'NotificationIcon.Glyph = enabled ? "\\uEA8F" : "\\uE7ED";' in desktop_code,
       "Notifications use the paired Ringer/RingerSilent glyphs instead of ActionCenterNotification")
+check("var logRoute = RouteForLog(path);" in api_code and "route={logRoute}" in api_code,
+      "API logs normalize private path IDs and discard query strings")
 check('Path.Combine(directory, "launcher.log")' in log_code and
       "SensitiveValue" in log_code and "SensitiveHeader" in log_code and "MaxLogBytes" in log_code and
       'LauncherLog.WriteAtRoot(Root, "INFO", "Core", code)' in (root / "src" / "Deadsmile.Core" / "Storage.cs").read_text(encoding="utf-8"),

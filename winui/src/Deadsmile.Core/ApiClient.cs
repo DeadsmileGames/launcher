@@ -22,6 +22,22 @@ public sealed class ApiClient : IDisposable
     private static readonly Regex ContentRoutes = new(
         @"^(GET games\?page=[1-9][0-9]{0,2}&limit=48|GET launcher|GET newswire\?limit=24&offset=[0-9]{1,5}|GET newswire/[a-z0-9-]{1,160}|GET wishlist|POST wishlist|DELETE wishlist/[0-9a-f-]{36}|GET account|GET account/privacy|PUT account/privacy|GET account/sessions|DELETE account/sessions/[A-Za-z0-9_.%\-]{1,384}|GET account/totp/status|POST account/totp/setup|POST account/totp/enable|DELETE account/totp/disable|POST account/email/change|PATCH account)$", RegexOptions.Compiled);
 
+    public static string RouteForLog(string path)
+    {
+        var query = path.IndexOf('?');
+        var route = (query >= 0 ? path[..query] : path).Trim('/');
+        if (route.Length == 0) return "/";
+        var segments = route.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 2 && segments[0] == "games") segments[1] = "{slug}";
+        else if (segments.Length == 2 && segments[0] == "newswire") segments[1] = "{slug}";
+        else if (segments.Length == 3 && segments[0] == "account" && segments[1] == "sessions") segments[2] = "{sessionId}";
+        else if (segments.Length == 4 && segments[0] == "platform" && segments[1] == "sessions" && segments[3] == "end") segments[2] = "{sessionId}";
+        for (var i = 0; i < segments.Length; i++)
+            if (Guid.TryParseExact(segments[i], "D", out _)) segments[i] = "{id}";
+        return string.Join("/", segments);
+    }
+
+
     public ApiClient(Localization locale, CookieContainer? cookies = null, Action<CookieContainer>? persist = null,
         HttpMessageHandler? testHandler = null)
     {
@@ -56,12 +72,13 @@ public sealed class ApiClient : IDisposable
         lifetime.CancelAfter(TimeSpan.FromSeconds(45));
         ct = lifetime.Token;
         path = path.TrimStart('/');
+        var logRoute = RouteForLog(path);
         if (!Routes.IsMatch(method.Method + " " + path) && !ContentRoutes.IsMatch(method.Method + " " + path))
         {
             LauncherLog.Warning("API", $"blocked route; method={method.Method}");
             throw new LauncherException("BLOCKED_REQUEST");
         }
-        LauncherLog.Info("API", $"request started; method={method.Method}; route={path}");
+        LauncherLog.Info("API", $"request started; method={method.Method}; route={logRoute}");
         var authMutation = method == HttpMethod.Post && Regex.IsMatch(path, "^auth/(mobile-login|verify-2fa|logout)$");
         var generation = authMutation ? Interlocked.Increment(ref authGeneration) : Interlocked.Read(ref authGeneration);
         var token = method != HttpMethod.Get && method != HttpMethod.Head ? await Csrf(ct) : null;
@@ -79,17 +96,17 @@ public sealed class ApiClient : IDisposable
         try { response = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            LauncherLog.Warning("API", $"request timeout; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            LauncherLog.Warning("API", $"request timeout; method={method.Method}; route={logRoute}; elapsed_ms={timer.ElapsedMilliseconds}");
             throw new LauncherException("NETWORK_ERROR");
         }
         catch (OperationCanceledException)
         {
-            LauncherLog.Info("API", $"request cancelled; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            LauncherLog.Info("API", $"request cancelled; method={method.Method}; route={logRoute}; elapsed_ms={timer.ElapsedMilliseconds}");
             throw;
         }
         catch (HttpRequestException)
         {
-            LauncherLog.Warning("API", $"network failure; method={method.Method}; route={path}; elapsed_ms={timer.ElapsedMilliseconds}");
+            LauncherLog.Warning("API", $"network failure; method={method.Method}; route={logRoute}; elapsed_ms={timer.ElapsedMilliseconds}");
             throw new LauncherException("NETWORK_ERROR");
         }
         using (response)
@@ -110,7 +127,7 @@ public sealed class ApiClient : IDisposable
             {
                 var code = payload.At("error").S("code");
                 if (!Regex.IsMatch(code, "^[A-Z][A-Z0-9_]{1,79}$")) code = "UNKNOWN_ERROR";
-                LauncherLog.Warning("API", $"request failed; method={method.Method}; route={path}; status={(int)response.StatusCode}; code={code}; elapsed_ms={timer.ElapsedMilliseconds}");
+                LauncherLog.Warning("API", $"request failed; method={method.Method}; route={logRoute}; status={(int)response.StatusCode}; code={code}; elapsed_ms={timer.ElapsedMilliseconds}");
                 if (response.StatusCode == HttpStatusCode.Forbidden && code == "CSRF_VALIDATION_FAILED" && retry)
                 { csrf = null; LauncherLog.Info("API", "retrying once after CSRF refresh"); return await Request(method, "/" + path, body, ct, false); }
                 if (response.StatusCode == HttpStatusCode.Unauthorized && generation == Interlocked.Read(ref authGeneration))
@@ -118,7 +135,7 @@ public sealed class ApiClient : IDisposable
                 throw new LauncherException(code.Length > 0 ? code : "UNKNOWN_ERROR", (int)response.StatusCode);
             }
             if (authMutation) Interlocked.CompareExchange(ref authGeneration, generation + 1, generation);
-            LauncherLog.Info("API", $"request succeeded; method={method.Method}; route={path}; status={(int)response.StatusCode}; elapsed_ms={timer.ElapsedMilliseconds}");
+            LauncherLog.Info("API", $"request succeeded; method={method.Method}; route={logRoute}; status={(int)response.StatusCode}; elapsed_ms={timer.ElapsedMilliseconds}");
             return payload.At("data")?.DeepClone();
         }
     }

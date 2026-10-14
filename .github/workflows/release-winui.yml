@@ -70,7 +70,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $repo = $env:GITHUB_REPOSITORY
-          $tag = "v1.0.0"
+          $tag = "v1.0.0-winui"
           $title = "Deadsmile Games Launcher v1.0.0"
           $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
           @'

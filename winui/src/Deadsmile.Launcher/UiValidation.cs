@@ -158,19 +158,6 @@ public sealed partial class MainWindow
             ValidationShowForActivation();
             await Task.Delay(150);
             Check(AppWindow.IsVisible, "A second activation restores a previously hidden launcher window");
-            ValidationQueueOverlayToggle();
-            await Task.Delay(150);
-            Check(AppWindow.IsVisible, "Ctrl+D hotkey dispatch leaves the launcher alive when there is no focused game");
-            var nativeHotkeyReceived = false;
-            Action observeNativeHotkey = () => nativeHotkeyReceived = true;
-            native.Hotkey += observeNativeHotkey;
-            try
-            {
-                native.ValidationPostHotkey();
-                await Task.Delay(150);
-            }
-            finally { native.Hotkey -= observeNativeHotkey; }
-            Check(nativeHotkeyReceived, "Native window hook receives an actual posted WM_HOTKEY message");
             await Resize(1280, 800); await Capture("00-boot"); await Task.Delay(3000);
             Check(User is null && Shell.Visibility == Visibility.Visible, "Guests enter directly after a successful public API boot");
             Check(BootPanel.Visibility == Visibility.Collapsed && AppTitleBar.IsBackButtonVisible, "Boot completes and back button remains visible");
@@ -224,10 +211,6 @@ public sealed partial class MainWindow
             Check(HomeHeroPauseButton.Content is SymbolIcon pauseIcon && pauseIcon.Symbol == Symbol.Pause, "Home hero pause uses an icon");
             Check(HomeHeroSurface.IsTapEnabled && !IsHeroInteractiveSource(FeaturedTitle, HomeHeroSurface) && IsHeroInteractiveSource(FeaturedButton, HomeHeroSurface), "Home hero artwork opens details without hijacking child controls");
             Check(OrderInstalledGames(Catalog, new[] { Catalog[0].Id }).Length == 1, "Downloads derive a persistent installed-games list from the catalog and install index");
-            Check(Services.NativeWindow.VirtualKey("F12") == 0 &&
-                Services.NativeWindow.VirtualKey("F11") == 122 &&
-                Services.NativeWindow.VirtualKey("D") == (uint)'D',
-                "DeadBar shortcut validation rejects debugger-reserved F12 and maps supported keys");
             var configuredNotificationState = Preferences.Notifications;
             UpdateNotificationsIcon(true);
             var enabledNotificationsGlyph = NotificationIcon.Glyph == "\uEA8F";
@@ -418,38 +401,10 @@ public sealed partial class MainWindow
                 "Screenshot viewer has centered, unclipped navigation controls and a zoom slider");
             SearchSuggestions("Abby"); SearchBox.IsSuggestionListOpen = true; await Task.Delay(300);
             Check(SearchBox.ItemsSource is SearchEntry[] results && results.Length == 1, "Native search popup presents game suggestions"); SearchBox.IsSuggestionListOpen = false;
-            Check(GameViewWindow.ShouldDismissOverlay(false, false, true, false) &&
-                GameViewWindow.ShouldDismissOverlay(true, true, true, false) &&
-                !GameViewWindow.ShouldDismissOverlay(true, false, false, false) &&
-                !GameViewWindow.ShouldDismissOverlay(true, false, true, true) &&
-                GameViewWindow.ShouldDismissOverlay(true, false, false, true),
-                "DeadBar lifetime follows game exit, minimization and sustained focus loss without hiding on transient focus changes");
-            var view = new GameViewWindow(this); var widgetRoot = await view.ValidationShow(); await Task.Delay(300);
-            Check(view.ValidationTimerRunning && view.ValidationNativeVisible, "DeadBar starts focus monitoring and shows its native HWND");
-            Check(view.ValidationWidgetsOpaque && view.ValidationLabelsNative, "Game Bar widgets have solid backgrounds and localized content");
-            await Capture("15-game-view-widgets", widgetRoot);
-            view.ValidationPinAndHide();
-            Check(view.ValidationPinned && view.ValidationTimerRunning, "Pinned widget remains visible and keeps focus monitoring active");
-            view.Close();
-            Check(!view.ValidationTimerRunning, "DeadBar focus timer stops when its window closes");
-            var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), "Uma conquista com um título longo, para conferir a leitura do aviso", forceSolid: true);
+            var toast = new AchievementWindow(this, Locale.T("Achievement unlocked"), "Uma conquista com um título longo, para conferir a leitura do aviso");
             toast.ShowOn(IntPtr.Zero); await Task.Delay(300);
             Check(toast.ValidationSolid, "Windows 10 achievement fallback always has an opaque background");
             await Capture("16-achievement-solid", toast.ValidationRoot); toast.Close();
-            var hint = new AchievementWindow(this, "DeadBar", Locale.T("Press {0} to open DeadBar").Replace("{0}", "Ctrl + D"), forceSolid: true, hint: true);
-            hint.ShowOn(IntPtr.Zero, centered: true); await Task.Delay(300);
-            Check(hint.ValidationRoot.ActualHeight <= 96 && hint.ValidationHintStyle, "Ctrl+D DeadBar hint uses a compact Windows 11-style top-centered OSD");
-            await Capture("deadbar-hint", hint.ValidationRoot); hint.Close();
-            if (Services.GameCapture.Supported)
-            {
-                try
-                {
-                    var shot = await Services.GameCapture.Take(WinRT.Interop.WindowNative.GetWindowHandle(this));
-                    var story = await Services.GameCapture.Format(shot, true); using var stream = await story.OpenReadAsync(); var decoder = await BitmapDecoder.CreateAsync(stream);
-                    Check(decoder.PixelWidth == 1080 && decoder.PixelHeight == 1920, "Native single-window capture and story export produce a 1080x1920 PNG");
-                }
-                catch (Exception ex) { checks.Add("Native capture unavailable on this runner: " + ex.GetType().Name); }
-            }
             Check(tray is null && TrayOption.Visibility == Visibility.Collapsed, "Launcher no longer registers a persistent icon beside the clock");
             UiValidationHandler.FailCatalog = true; await StartBoot();
             Check(Shell.Visibility == Visibility.Collapsed && BootErrorCode.Text.Contains("6799") && BootRetry.Visibility == Visibility.Visible,

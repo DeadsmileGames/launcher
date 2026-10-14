@@ -204,6 +204,11 @@ check("native.Hotkey += QueueOverlayToggle;" in main_code and
 check("if (!timer.IsRunning)" in game_view_code and "timer.Start();" in game_view_code and
       "timer.Stop();" in game_view_code and "ValidationTimerRunning => timer.IsRunning" in game_view_code,
       "DeadBar focus polling runs only while the overlay is visible or has pinned widgets")
+check("panel.TransformToVisual(" not in game_view_code and
+      "Canvas.GetLeft(panel)" in game_view_code and "Canvas.GetTop(panel)" in game_view_code and
+      "ToolbarPanel.Margin.Top" in game_view_code and
+      "timer.Interval = TimeSpan.FromMilliseconds(50)" in game_view_code,
+      "DeadBar pointer hit-testing uses safe layout bounds and polls at a bounded rate during XAML startup")
 check("FocusedRunningGame" in main_code and "overlay.Show(focusedGame);" in main_code and
       "show requested; game=" in game_view_code and "NativeWindow.IsVisible(this)" in game_view_code and
       "overlay.Show();" not in main_code,

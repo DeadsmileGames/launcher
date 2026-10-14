@@ -64,7 +64,7 @@ Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos da
 - Atalho Game View livre e ocupado por outro programa.
 - Overlay em janela, sem bordas, fullscreen exclusivo e jogo minimizado.
 - Clique nos widgets, arraste, fixação, fechamento, restauração das posições, passagem de cliques fora deles, foco e ocultação.
-- Fixar um widget, fechar Ctrl+D e depois fechar/minimizar o jogo; não pode sobrar widget na tela.
+- Abrir e dispensar avisos de conquista durante a navegação sem ativar nem minimizar o launcher.
 - Toast: fundo sólido no Windows 10; no Windows 11 testar Mica e fallback com efeitos/transparência desativados.
 - Monitor do jogo, troca de monitor e escalas distintas.
 

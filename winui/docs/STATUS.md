@@ -16,7 +16,7 @@ Os textos de recuperação de boot e os títulos/descrições de conquistas tamb
 
 ## Revisão de UX em andamento
 
-Esta revisão removeu a DeadBar e a captura/compartilhamento de janela exclusivos dessa função, mantendo os avisos de conquista. O launcher continua com menu de bandeja nativo do Windows, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador verifica as chaves C#/XAML dos catálogos `en`, `pt-BR` e `es`.
+Esta revisão removeu a DeadBar e a captura/compartilhamento de janela exclusivos dessa função, mantendo os avisos de conquista. O launcher mantém notificações do Windows, avisos de conquista, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador verifica as chaves C#/XAML dos catálogos `en`, `pt-BR` e `es`.
 
 ## Histórico e estado da validação
 

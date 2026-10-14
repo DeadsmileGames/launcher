@@ -12,7 +12,6 @@ namespace Deadsmile.Launcher;
 
 public sealed partial class MainWindow
 {
-    private TrayService? tray;
     private DesktopNotifications? notifications;
     private bool exiting;
     private readonly HashSet<long> notifiedEvents = [];
@@ -22,7 +21,7 @@ public sealed partial class MainWindow
 #if !UI_VALIDATION
         try
         {
-            notifications = new DesktopNotifications(); notifications.Invoked += () => DispatcherQueue.TryEnqueue(RestoreFromTray);
+            notifications = new DesktopNotifications(); notifications.Invoked += () => DispatcherQueue.TryEnqueue(RestoreFromNotification);
             LauncherLog.Info("Desktop", "Windows app notifications initialized");
         }
         catch (Exception ex)
@@ -121,18 +120,7 @@ public sealed partial class MainWindow
     }
 
     private void NotificationsClick(object sender, RoutedEventArgs e) => RefreshNotificationMenu();
-    private void MinimizeToTray()
-    {
-        LauncherLog.Info("Desktop", "launcher minimizing to notification area");
-        AppWindow.Hide(); bannerPlayer?.Pause(); homeBannerPlayer?.Pause();
-        if (!storage.Read("winui-tray-tip.json", false))
-        {
-            var message = Locale.T("The launcher is still running in the notification area. Click its icon to return. You can change this in Settings.");
-            var accepted = notifications?.Show("Deadsmile Games Launcher", message) == true || tray?.Notify("Deadsmile Games Launcher", message) == true;
-            if (accepted) storage.Write("winui-tray-tip.json", true);
-        }
-    }
-    private void RestoreFromTray()
+    private void RestoreFromNotification()
     {
         LauncherLog.Info("Desktop", "launcher restore requested from notification");
         AppWindow.Show(); Activate();
@@ -141,18 +129,6 @@ public sealed partial class MainWindow
             bannerPlayer?.Play();
             if (page == "explore" && !homeHeroPaused) homeBannerPlayer?.Play();
         }
-    }
-    private void OpenTrayMenu()
-    {
-
-        var command = TrayService.ShowNativeMenu(this, Locale.T("Open launcher"), Locale.T("Exit"));
-        if (command == 1) RestoreFromTray();
-        else if (command == 2) _ = ExitFromTrayAsync();
-    }
-    private async Task ExitFromTrayAsync()
-    {
-        if (AllBusy) await ConfirmClose();
-        else { exiting = true; Close(); }
     }
     private void ContentNotification(JsonNode item)
     {

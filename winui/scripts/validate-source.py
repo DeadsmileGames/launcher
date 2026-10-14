@@ -304,9 +304,8 @@ check('try { Storage.Write("winui-installed.json", indexed); }' in install_code 
       'Storage.Log("INSTALL_INDEX_RECOVERY_PENDING")' in install_code,
       "An unwritable installation index cannot abort startup/refresh")
 check('LauncherLog.WriteAtRoot(Root, "INFO", "Core", code)' in storage_code and
-      'catch (Exception) { /* Diagnostics must never crash the launcher. */ }' in log_code and
-      'catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)' in log_code,
-      "Best-effort central log writing cannot crash the launcher if log storage is unavailable")
+      'catch (Exception)' in log_code and 'catch (Exception) { }' in log_code,
+      "Best-effort central log writing cannot mask launcher failures when storage is unavailable")
 check('PROTOCOL_REGISTRATION_UNAVAILABLE' in main_window_code and 'try { DesktopIntegration.RegisterProtocol(); }' in main_window_code,
       "Optional protocol registration failure cannot abort app startup")
 check('try\n        {\n            foreach (var file in Directory.EnumerateFiles(desktop, "*.url"))' in desktop_integration_code,

@@ -131,15 +131,13 @@ public sealed partial class MainWindow : Window
         { AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(255, 32, 32, 32); AppWindow.TitleBar.ButtonForegroundColor = Colors.White; }
         AppWindow.Closing += (_, args) =>
         {
-            if (!exiting && Preferences.CloseToTray && tray is { Available: true })
-            { args.Cancel = true; MinimizeToTray(); return; }
             if (Games.AnyBusy || downloads.AnyBusy || commandBusy)
             { args.Cancel = true; UI(ConfirmClose); }
         };
         Closed += (_, _) =>
         {
             LauncherLog.Info("Lifecycle", "main window closed; disposing launcher services");
-            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose();
+            live.Dispose(); achievements.Stop(); downloads.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose();
             downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;

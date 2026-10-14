@@ -110,7 +110,7 @@ public sealed class CloudSaveService(ApiClient api, Storage storage)
         {
             state.Conflict = true; byte[]? remote = null;
             try { var n = await api.Get("/platform/saves/" + id + "/default"); if (n is not null) remote = RemoteBytes(n); }
-            catch (LauncherException ex) { LauncherLog.Warning("CloudSave", $"remote snapshot unavailable during conflict; status={ex.Status}; code={ex.Code}"); }
+            catch (LauncherException snapshotError) { LauncherLog.Warning("CloudSave", $"remote snapshot unavailable during conflict; status={snapshotError.Status}; code={snapshotError.Code}"); }
             Backup(id, state.Target, remote); Conflict?.Invoke(id);
         }
     }

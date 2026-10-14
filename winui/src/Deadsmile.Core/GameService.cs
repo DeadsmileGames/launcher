@@ -69,7 +69,7 @@ public sealed class GameService(ApiClient api, InstallationService installs, Clo
                 PathGuard.RequireInside(installs.Storage.Games, installed.Path);
                 var info = new ProcessStartInfo(installed.Path) { WorkingDirectory = Path.GetDirectoryName(installed.Path),
                     UseShellExecute = false };
-                // Do not pass launcher bootstrap settings into a game's unrelated runtime.
+
                 foreach (var key in info.Environment.Keys.Where(x => x.StartsWith("MICROSOFT_WINDOWSAPPRUNTIME_",
                     StringComparison.OrdinalIgnoreCase) || x.StartsWith("DOTNET_STARTUP_", StringComparison.OrdinalIgnoreCase)).ToArray())
                     info.Environment.Remove(key);

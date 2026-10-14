@@ -1,6 +1,6 @@
 namespace Deadsmile.Core;
 
-// Stable local codes. Backend exception details and credentials are never rendered or logged.
+
 public static class LauncherErrors
 {
     public static int Number(Exception error) => error switch

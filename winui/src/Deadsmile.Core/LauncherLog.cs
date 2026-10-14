@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace Deadsmile.Core;
 
-/// <summary>
-/// Event-oriented launcher diagnostics. Request bodies, credentials, cookies and tokens are never logged.
-/// </summary>
+
+
+
 public static class LauncherLog
 {
     private static readonly object Gate = new();
@@ -27,7 +27,7 @@ public static class LauncherLog
     public static void Error(string source, string message, Exception? exception = null) =>
         Write("ERROR", source, message, exception);
 
-    // Storage uses its configured root (including isolated test roots), with the same format.
+
     public static void WriteAtRoot(string root, string level, string source, string message, Exception? exception = null) =>
         WriteCore(root, level, source, message, exception);
 
@@ -59,7 +59,7 @@ public static class LauncherLog
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            // Best effort if Documents is redirected or temporarily unwritable.
+
             try
             {
                 var fallback = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

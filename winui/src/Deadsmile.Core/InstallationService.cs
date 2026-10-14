@@ -27,8 +27,8 @@ public sealed class InstallationService(Storage storage)
                 PathGuard.RequireInside(Storage.Games, backup);
                 if (!busy(id) && !Directory.Exists(folder) && Directory.Exists(backup) && ReadRecord(backup, id) is not null)
                     Directory.Move(backup, folder);
-                // A crash can occur after the staged installation becomes the target but before
-                // the previous version's backup is deleted. Keep the valid target and clean that stale backup.
+
+
                 if (!busy(id) && Directory.Exists(folder) && Directory.Exists(backup) &&
                     ReadRecord(folder, id) is not null && ReadRecord(backup, id) is not null)
                 {

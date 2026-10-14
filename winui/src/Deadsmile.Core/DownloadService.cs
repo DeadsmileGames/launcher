@@ -94,7 +94,7 @@ public sealed class DownloadService(ApiClient api, InstallationService installs,
             Directory.CreateDirectory(job.WorkRoot);
             var archive = Path.Combine(job.WorkRoot, "game.zip");
             var offset = File.Exists(archive) ? new FileInfo(archive).Length : 0;
-            // An un-hashed partial cannot establish that a fresh signed URL serves the same bytes.
+
             if (metadata.Sha256 is null && offset > 0) { File.Delete(archive); offset = 0; }
             if (offset > metadata.Size) { File.Delete(archive); offset = 0; }
             job.Status = "downloading"; job.Received = offset; Changed?.Invoke();

@@ -39,11 +39,11 @@ public static class PublicCatalog
             }
             else
             {
-                // Public catalog fields are not an authorization source, even for a signed-in user.
+
                 data["owned"] = false;
                 data["inLibrary"] = false;
             }
-            // Detailed Store art is loaded only for products that have a Store listing.
+
             if (game.Data.At("microsoftStoreBadge") is not null)
             {
                 await gate.WaitAsync(ct);

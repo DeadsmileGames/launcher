@@ -36,11 +36,9 @@ public sealed partial class MainWindow : Window
     private readonly DownloadService downloads;
     private readonly LiveLibrary live;
     private readonly AchievementService achievements;
-    private readonly NativeWindow native;
     private readonly DispatcherQueueTimer downloadTimer;
     private readonly DispatcherQueueTimer heroTimer;
     private readonly DispatcherQueueTimer appToastTimer;
-    private GameViewWindow? overlay;
     private Game? selected;
     private Game? featuredGame;
     private readonly Game?[] featuredGames = new Game?[3];
@@ -50,62 +48,6 @@ public sealed partial class MainWindow : Window
     private bool homeHeroPaused, homeHeroAnimating, notificationsUnread, profileLoaded, profileLoading, changingNavigation;
     private string page = "explore";
     private string? loggedNavigationState;
-    public string OverlayShortcut { get; private set; } = "Control+D";
-    internal bool GameIsFocused
-    {
-        get
-        {
-            var foreground = GetForegroundWindow();
-            if (foreground == IntPtr.Zero) return false;
-            if (overlay is { IsOpen: true } activeOverlay &&
-                NativeWindow.RootOwner(foreground) == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
-            _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
-            return foregroundProcessId != 0 && Games.Running.Any(game =>
-                !game.Process.HasExited && (uint)game.Process.Id == foregroundProcessId &&
-                !NativeWindow.Minimized(game.Process.MainWindowHandle));
-        }
-    }
-    internal RunningGame? FocusedRunningGame
-    {
-        get
-        {
-            var foreground = GetForegroundWindow();
-            if (foreground == IntPtr.Zero) return null;
-            _ = GetWindowThreadProcessId(foreground, out var processId);
-            if (processId == 0) return null;
-            return Games.Running.FirstOrDefault(game =>
-            {
-                try
-                {
-                    game.Process.Refresh();
-                    return !game.Process.HasExited && (uint)game.Process.Id == processId &&
-                        !NativeWindow.Minimized(game.Process.MainWindowHandle);
-                }
-                catch (Exception) { return false; }
-            });
-        }
-    }
-
-    internal bool IsGameFocusedFor(string gameId)
-    {
-        var foreground = GetForegroundWindow();
-        if (foreground == IntPtr.Zero) return false;
-        if (overlay is { IsOpen: true } activeOverlay && NativeWindow.RootOwner(foreground) == WinRT.Interop.WindowNative.GetWindowHandle(activeOverlay)) return true;
-        var game = Games.Running.FirstOrDefault(entry => entry.Game.Id.Equals(gameId, StringComparison.OrdinalIgnoreCase));
-        if (game is null || game.Process.HasExited || NativeWindow.Minimized(game.Process.MainWindowHandle)) return false;
-        _ = GetWindowThreadProcessId(foreground, out var foregroundProcessId);
-        return foregroundProcessId != 0 && (uint)game.Process.Id == foregroundProcessId;
-    }
-    internal bool IsLauncherForeground
-    {
-        get
-        {
-            var foreground = GetForegroundWindow();
-            if (foreground == IntPtr.Zero) return false;
-            _ = GetWindowThreadProcessId(foreground, out var processId);
-            return processId == (uint)Environment.ProcessId;
-        }
-    }
     private bool ready, refreshing, refreshAgain, twoFactor, authenticating, changingLanguage, connecting, commandBusy, closeDialog, itchConfigured, itchConnected;
     private int downloadDirty = 1, detailRevision;
     private string? pendingLaunch;
@@ -139,12 +81,10 @@ public sealed partial class MainWindow : Window
         downloads = new DownloadService(Api, installs, Games.Busy);
         Games.DownloadBusy = downloads.Busy;
         live = new LiveLibrary(Api);
-        native = new NativeWindow(this) { Scale = () => Root.XamlRoot?.RasterizationScale ?? 1 };
-        native.Hotkey += QueueOverlayToggle;
         Api.Invalidated += () => { if (!booting && User is not null) UI(async () => { User = null; achievements.Stop(); await Enter(); }); };
         saves.Conflict += _ => UI(() => { Notify(Locale.Error("SAVE_CONFLICT")); return Task.CompletedTask; });
         Games.Failed += ex => UI(() => { Notify(Locale.Error(ex)); return Task.CompletedTask; });
-        Games.Changed += () => UI(() => { UpdateBusy(); UpdateFeaturedAction(); RefreshGameActions(); GameStartedHint(); return Task.CompletedTask; });
+        Games.Changed += () => UI(() => { UpdateBusy(); UpdateFeaturedAction(); RefreshGameActions(); return Task.CompletedTask; });
         achievements.Unlocked += (_, achievement) => UI(() => { ShowAchievement(achievement); return Task.CompletedTask; });
         downloads.Changed += () => Interlocked.Exchange(ref downloadDirty, 1);
         downloads.Installed += (install, game) => UI(async () =>
@@ -199,7 +139,7 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) =>
         {
             LauncherLog.Info("Lifecycle", "main window closed; disposing launcher services");
-            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose(); native.Dispose(); overlay?.Close();
+            live.Dispose(); achievements.Stop(); downloads.Dispose(); tray?.Dispose(); notifications?.Dispose(); bannerPlayer?.Dispose(); homeBannerPlayer?.Dispose();
             downloadTimer.Stop(); heroTimer.Stop(); appToastTimer.Stop(); systemUi.ColorValuesChanged -= SystemColorsChanged; Api.Dispose();
         };
         VersionLabel.Text = "Deadsmile Games Launcher " + BuildInfo.Version;
@@ -211,11 +151,6 @@ public sealed partial class MainWindow : Window
         ApplyAppearance();
         Root.ActualThemeChanged += (_, _) => ApplyCaptionColors();
         systemUi.ColorValuesChanged += SystemColorsChanged;
-        OverlayShortcut = storage.Read("game-view.json", new JsonObject()).S("shortcut");
-        if (string.IsNullOrWhiteSpace(OverlayShortcut)) OverlayShortcut = "Control+D";
-        OverlayToggle.IsOn = storage.Read("game-view.json", new JsonObject()).B("enabled") ||
-            !File.Exists(storage.FilePath("game-view.json"));
-        ShortcutText.Text = OverlayShortcut.Replace("Control", "Ctrl").Replace("+", " + ");
         ApplyLanguage();
         Root.Loaded += async (_, _) => await Boot();
         try { DesktopIntegration.RegisterProtocol(); }
@@ -1187,7 +1122,6 @@ public sealed partial class MainWindow : Window
     {
         if (!ready) return;
         LogoutButton.IsEnabled = !AllBusy; ItchButton.IsEnabled = !AllBusy && (User is null || itchConfigured || itchConnected); UpdateButton.IsEnabled = !AllBusy;
-        if (!native.Register(OverlayToggle.IsOn && Games.Running.Length > 0, OverlayShortcut)) Notify(Locale.Error("SHORTCUT_INVALID"));
     }
     private async void ItchClick(object sender, RoutedEventArgs e)
     {
@@ -1275,65 +1209,6 @@ public sealed partial class MainWindow : Window
         if (node is NavigationView navigation && navigation.Content is DependencyObject navContent) { Translate(navContent); return; }
         if (node is ContentControl control && control.Content is DependencyObject content) { Translate(content); return; }
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) Translate(VisualTreeHelper.GetChild(node, i));
-    }
-    private void OverlayToggled(object sender, RoutedEventArgs e)
-    {
-        if (!ready) return;
-        storage.Write("game-view.json", new { enabled = OverlayToggle.IsOn, shortcut = OverlayShortcut });
-        LauncherLog.Info("DeadBar", $"preference changed; enabled={OverlayToggle.IsOn}; shortcut={OverlayShortcut}");
-        if (!OverlayToggle.IsOn) overlay?.Hide(true); UpdateBusy();
-    }
-    private void QueueOverlayToggle()
-    {
-        LauncherLog.Info("DeadBar", "global hotkey received; dispatching toggle to the UI thread");
-        if (!DispatcherQueue.TryEnqueue(ToggleOverlay))
-        {
-            LauncherLog.Error("DeadBar", "UI dispatcher rejected the hotkey toggle");
-            try { storage.Log("OVERLAY_HOTKEY_DISPATCH_FAILED"); }
-            catch (Exception) { }
-        }
-    }
-#if UI_VALIDATION
-    internal void ValidationQueueOverlayToggle() => QueueOverlayToggle();
-#endif
-    private void ToggleOverlay()
-    {
-        try
-        {
-            if (!OverlayToggle.IsOn)
-            {
-                LauncherLog.Info("DeadBar", "toggle ignored because DeadBar is disabled in Settings");
-                return;
-            }
-            // Handle close first: while the no-activate overlay is open, Windows may report
-            // its HWND rather than the game as foreground. Do not run the open guard twice.
-            if (overlay is { IsOpen: true })
-            {
-                LauncherLog.Info("DeadBar", "toggle requested close");
-                overlay.Hide(true);
-                return;
-            }
-            var activeGames = Games.Running;
-            if (activeGames.Length == 0)
-            {
-                LauncherLog.Warning("DeadBar", "open blocked because no tracked game is running");
-                return;
-            }
-            var focusedGame = FocusedRunningGame;
-            if (focusedGame is null)
-            {
-                LauncherLog.Warning("DeadBar", $"open blocked because foreground window belongs to no tracked game; running_games={activeGames.Length}");
-                return;
-            }
-            overlay ??= new GameViewWindow(this);
-            LauncherLog.Info("DeadBar", $"opening overlay; game={focusedGame.Game.Id}; pid={focusedGame.Process.Id}");
-            overlay.Show(focusedGame);
-        }
-        catch (Exception ex)
-        {
-            LauncherLog.Error("DeadBar", "overlay toggle failed", ex);
-            Notify(Locale.Error(ex)); storage.Log("OVERLAY_UNAVAILABLE");
-        }
     }
     private void ShowAchievement(JsonNode achievement)
     {

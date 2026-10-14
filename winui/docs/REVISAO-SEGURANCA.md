@@ -22,15 +22,13 @@ Escopo: launcher WinUI, contratos dos ZIPs API(5)/Website(6), endpoints público
 | Arquivos | IDs/slug validados, paths protegidos, links/reparse points bloqueados e ZIPs com traversal/nomes reservados rejeitados. |
 | Downloads | Autorização de instalação no backend, tamanho/hash verificados, redirects controlados e destinos privados bloqueados. |
 | Atualização | O launcher não baixa nem executa instaladores próprios. Atualizações são instaladas pelo mesmo canal de distribuição do MSIX; para a Store, o gerenciamento de versão é da própria Microsoft Store. |
-| Captura | Uma janela de jogo escolhida pelo clique do usuário; sem gravação de áudio, captura contínua ou upload automático. |
-| Compartilhamento | Arquivo local/clipboard/tela nativa do Windows. A postagem exige confirmação na rede social escolhida. |
 | Banco | Credencial fora do repositório, binários, logs do app e artefatos. |
 
 ## Limitações observadas
 
 O website `https://deadsmilegames.vercel.app` respondeu **HTTP 402 / DEPLOYMENT_DISABLED** na Vercel. O código anexado compila e seus testes passaram, mas cadastro, recuperação de senha e gerenciamento externo da conta dependem da reativação desse deployment. O launcher não altera a hospedagem do site.
 
-Os testes de segurança do backend rodaram contra o ambiente isolado do próprio projeto. Em produção foram usados somente GETs de leitura/validação. Fluxos privados com uma conta real, compra no itch.io e jogos reais não foram executados com as credenciais de um usuário. A verificação automática no Windows Server 2025 não substitui testes manuais em desktops Windows 10/11, diferentes GPUs/DPI, HDR e fullscreen exclusivo.
+Os testes de segurança do backend rodaram contra o ambiente isolado do próprio projeto. Em produção foram usados somente GETs de leitura/validação. Fluxos privados com uma conta real, compra no itch.io e jogos reais não foram executados com as credenciais de um usuário. A DeadBar e seu subsistema de captura/compartilhamento de jogo foram removidos; os avisos nativos de conquista foram preservados. A verificação automática no Windows Server 2025 não substitui testes manuais em desktops Windows 10/11, diferentes GPUs/DPI, HDR e fullscreen exclusivo.
 
 O certificado autoassinado é criado temporariamente para o smoke test do MSIX no runner e não é publicado como artefato. A identidade oficial do pacote de produção é validada separadamente; a assinatura pública, certificação na Store e feed de atualização ainda dependem da configuração do publicador.
 
@@ -41,7 +39,6 @@ O certificado autoassinado é criado temporariamente para o smoke test do MSIX n
 - **Recuperação de atualizações:** uma instalação válida não é bloqueada por um backup válido que sobrou de uma interrupção; o backup só é removido quando ambos os registros identificam a instalação esperada.
 - **Autorização local:** um payload de catálogo público não pode tornar um visitante proprietário de um jogo marcando `owned` ou `inLibrary`; registros de instalação malformados são rejeitados sem abortar a varredura.
 - **Resiliência:** falhas de escrita do log não devem mascarar a exceção original; falhas opcionais ao registrar o protocolo ou remover atalhos não interrompem abertura do app nem uma remoção já efetivada.
-- **Captura:** o frame do Windows.Graphics.Capture é liberado se chegar depois do timeout.
 - **Localização:** mensagens de erro no boot e títulos/descrições das conquistas conhecidas possuem entradas explícitas para os três idiomas.
 
 Os testes de regressão foram ampliados. Essas correções só devem ser consideradas aprovadas após os testes Core, o build MSIX, o teste de instalação/abertura/desinstalação e a validação visual nativa passarem no mesmo commit.

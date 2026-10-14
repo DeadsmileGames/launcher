@@ -337,6 +337,7 @@
          <Button x:Name="ItchButton" Content="Connect itch.io" Click="ItchClick"/>
         </StackPanel></Border>
        </StackPanel>
+       <StackPanel Spacing="12">
         <Border x:Name="TrayOption" Style="{StaticResource Panel}" Padding="20,16" Visibility="Collapsed"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="BackToWindow" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Keep running when closed" Tag="Keep running when closed" TextWrapping="Wrap" VerticalAlignment="Center"/>

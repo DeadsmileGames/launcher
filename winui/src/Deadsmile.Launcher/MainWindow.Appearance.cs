@@ -27,7 +27,7 @@ public sealed partial class MainWindow
             NavigationChoice.SelectedIndex = Preferences.Navigation == "expanded" ? 1 : 0;
             AnimationToggle.IsOn = Preferences.Animations; BannerToggle.IsOn = Preferences.RotateBanners;
             MaterialsToggle.IsOn = Preferences.WindowsMaterials; ToastToggle.IsOn = Preferences.AchievementToasts;
-            TrayToggle.IsOn = Preferences.CloseToTray; NotificationsToggle.IsOn = Preferences.Notifications; VideoToggle.IsOn = Preferences.VideoBackgrounds;
+            NotificationsToggle.IsOn = Preferences.Notifications; VideoToggle.IsOn = Preferences.VideoBackgrounds;
             NewswireToggle.IsOn = Preferences.ShowNewswireOnHome;
             Shell.PaneDisplayMode = Preferences.Navigation == "expanded" ? NavigationViewPaneDisplayMode.Left : NavigationViewPaneDisplayMode.LeftCompact;
             Shell.IsPaneOpen = Preferences.Navigation == "expanded" && Root.ActualWidth >= 1008;
@@ -37,7 +37,7 @@ public sealed partial class MainWindow
             GameGrid.ItemContainerTransitions = MotionEnabled ? new TransitionCollection { new EntranceThemeTransition(), new RepositionThemeTransition() } : null;
             UpdateThemeCardSelection();
             UpdateNotificationsIcon(Preferences.Notifications);
-            ApplyCaptionColors(); overlay?.ApplyPreferences();
+            ApplyCaptionColors();
         }
         finally { applyingAppearance = false; }
     }
@@ -83,7 +83,7 @@ public sealed partial class MainWindow
             Navigation = (NavigationChoice.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "compact",
             Animations = AnimationToggle.IsOn, RotateBanners = BannerToggle.IsOn,
             WindowsMaterials = MaterialsToggle.IsOn, AchievementToasts = ToastToggle.IsOn,
-            CloseToTray = TrayToggle.IsOn, Notifications = NotificationsToggle.IsOn, VideoBackgrounds = VideoToggle.IsOn,
+            Notifications = NotificationsToggle.IsOn, VideoBackgrounds = VideoToggle.IsOn,
             ShowNewswireOnHome = NewswireToggle.IsOn
         };
         storage.Write("winui-appearance.json", Preferences); ApplyAppearance();
@@ -98,7 +98,7 @@ public sealed partial class MainWindow
         ((ComboBoxItem)NavigationChoice.Items[1]).Content = Locale.T("Expanded");
         foreach (var (toggle, label) in new[] { (AnimationToggle, "Animations"), (BannerToggle, "Rotate featured images"),
             (MaterialsToggle, "Windows visual effects"), (ToastToggle, "Achievement notifications"),
-            (TrayToggle, "Keep running when closed"), (NotificationsToggle, "Update and release notifications"), (VideoToggle, "Play video backgrounds"),
+            (NotificationsToggle, "Update and release notifications"), (VideoToggle, "Play video backgrounds"),
             (NewswireToggle, "Show Newswire on Home") })
         { toggle.Header = null; toggle.OnContent = Locale.T("On"); toggle.OffContent = Locale.T("Off"); }
     }

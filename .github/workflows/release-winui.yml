@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: production-release-v1-0-0
+  group: production-release
   cancel-in-progress: false
 
 jobs:
@@ -32,14 +32,523 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Build the Store-identity MSIX only
+      - name: Build the Store-identity MSIX using the project version
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $packageVersion = "1.0.0.0"
+          [xml]$props = Get-Content "winui/Directory.Build.props" -Raw
+          $projectVersion = [string]$props.Project.PropertyGroup.Version
+          if ($projectVersion -notmatch '^[1-9]\d*\.\d+\.\d+
+
+      - name: Verify manifest and MSIX-only output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ErrorActionPreference = "Stop"
+          $artifacts = "winui/artifacts"
+          $packages = @(Get-ChildItem $artifacts -Filter "*.msix" -File)
+          if ($packages.Count -ne 1) { throw "Expected exactly one MSIX artifact." }
+          $unexpected = @(Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".exe", ".msi", ".msp", ".appx", ".appxbundle", ".zip") })
+          if ($unexpected.Count -gt 0) { throw "Unexpected distribution file(s): $($unexpected.Name -join ', ')" }
+          $manifestPath = Join-Path $artifacts "msix-content/AppxManifest.xml"
+          if (!(Test-Path $manifestPath)) { throw "Production MSIX manifest was not generated." }
+
+          # The generated package is the source of truth for the release version.
+          # Also check that the script's filename and manifest agree with the project.
+          $filenameMatch = [regex]::Match($packages[0].Name, '^Deadsmile-Games-Launcher-WinUI-(\d+\.\d+\.\d+)-x64\.msix
+
+      - name: Publish only the MSIX to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = $env:GITHUB_REPOSITORY
+          $releaseVersion = $env:RELEASE_VERSION
+          if ([string]::IsNullOrWhiteSpace($releaseVersion)) { throw "Release version was not derived from the verified MSIX." }
+          $tag = "v$releaseVersion-winui"
+          $title = "Deadsmile Games Launcher v$releaseVersion"
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @"
+          ## Deadsmile Games Launcher $releaseVersion — WinUI 3
+
+          - Distribution artifact: one MSIX package only.
+          - Package version: $($env:STORE_PACKAGE_VERSION), read from the generated MSIX manifest.
+          - Project version and package version were verified before publication.
+          - Official Microsoft Store identity reserved in Partner Center.
+          - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.
+          "@ | Set-Content -Path $notesPath -Encoding utf8
+
+          $currentMain = gh api "repos/$repo/git/ref/heads/main" --jq ".object.sha"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read main branch." }
+          if ($currentMain.Trim() -ne $env:SOURCE_SHA) {
+            Write-Host "main has advanced beyond this successful build; a newer successful build will publish instead."
+            exit 0
+          }
+
+          $msix = @(Get-ChildItem "winui/artifacts" -Filter "*.msix" -File)
+          if ($msix.Count -ne 1 -or $msix[0].Name -ne $env:MSIX_FILENAME) {
+            throw "Expected the single verified production MSIX $($env:MSIX_FILENAME)."
+          }
+
+          $tagJson = gh api "repos/$repo/git/ref/tags/$tag" 2>$null
+          $tagExists = $LASTEXITCODE -eq 0
+          if ($tagExists) {
+            $tagRef = $tagJson | ConvertFrom-Json
+            if ($tagRef.object.sha -ne $env:SOURCE_SHA) {
+              throw "Refusing to move immutable production tag $tag from its existing source commit."
+            }
+          } else {
+            gh api --method POST "repos/$repo/git/refs" -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE_SHA" *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the production tag $tag." }
+          }
+
+          $existingJson = gh release view $tag --repo $repo --json assets 2>$null
+          $hasRelease = $LASTEXITCODE -eq 0
+          if ($hasRelease) {
+            $existing = $existingJson | ConvertFrom-Json
+            if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
+              exit 0
+            }
+            if ($existing.assets.Count -gt 0) {
+              throw "The immutable release $tag has different assets; refusing to replace release contents."
+            }
+            gh release edit $tag --repo $repo --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not update notes for the existing empty release $tag." }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not create release $tag." }
+          }
+
+          gh release upload $tag $msix[0].FullName --repo $repo
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the production MSIX release asset." }
+          Write-Host "Published version $releaseVersion (MSIX $($env:STORE_PACKAGE_VERSION)) to $repo/releases/tag/$tag"
+) {
+            throw "winui/Directory.Build.props must define Version as major.minor.patch."
+          }
+          "PROJECT_VERSION=$projectVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Building production MSIX from project version $projectVersion"
+          # build-windows.ps1 derives PackageVersion and the filename from Directory.Build.props.
+          ./winui/scripts/build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw "MSIX build failed." }
+
+      - name: Verify manifest and MSIX-only output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $artifacts = "winui/artifacts"
+          $packages = @(Get-ChildItem $artifacts -Filter "*.msix" -File)
+          if ($packages.Count -ne 1) { throw "Expected exactly one MSIX artifact." }
+          $unexpected = @(Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".exe", ".msi", ".msp", ".appx", ".appxbundle", ".zip") })
+          if ($unexpected.Count -gt 0) { throw "Unexpected distribution file(s): $($unexpected.Name -join ', ')" }
+          $manifestPath = Join-Path $artifacts "msix-content/AppxManifest.xml"
+          if (!(Test-Path $manifestPath)) { throw "Production MSIX manifest was not generated." }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = $archive.GetEntry("AppxManifest.xml")
+            if ($null -eq $entry) { throw "Packaged MSIX does not contain AppxManifest.xml." }
+            $reader = [System.IO.StreamReader]::new($entry.Open())
+            try { $manifest = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
+          $identity = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Identity']")
+          $properties = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Properties']")
+          if ($identity.GetAttribute("Name") -ne "DeadsmileGames.DeadsmileGamesLauncher") { throw "Store package Name mismatch." }
+          if ($identity.GetAttribute("Publisher") -ne "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE") { throw "Store Publisher mismatch." }
+          if ($identity.GetAttribute("Version") -ne $env:STORE_PACKAGE_VERSION) { throw "Unexpected Store package version." }
+          if ($properties.SelectSingleNode("*[local-name()='PublisherDisplayName']").InnerText -ne "Deadsmile Games") { throw "Publisher display name mismatch." }
+          Write-Host "PASS official Store identity and package version $($env:STORE_PACKAGE_VERSION)"
+          Write-Host "Only distribution package: $($packages[0].Name)"
+
+      - name: Publish only the MSIX to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = "v1.0.0-winui"
+          $title = "Deadsmile Games Launcher v1.0.0"
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @'
+          ## Deadsmile Games Launcher 1.0.0 — WinUI 3
+
+          - Distribution artifact: one MSIX package only.
+          - Official Microsoft Store identity reserved in Partner Center.
+          - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+
+          $currentMain = gh api "repos/$repo/git/ref/heads/main" --jq ".object.sha"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read main branch." }
+          if ($currentMain.Trim() -ne $env:SOURCE_SHA) {
+            Write-Host "main has advanced beyond this successful build; a newer successful build will publish instead."
+            exit 0
+          }
+
+          $msix = @(Get-ChildItem "winui/artifacts" -Filter "*.msix" -File)
+          if ($msix.Count -ne 1 -or $msix[0].Name -ne "Deadsmile-Games-Launcher-WinUI-1.0.0-x64.msix") {
+            throw "Expected exactly the version 1.0.0 production MSIX."
+          }
+
+          $tagJson = gh api "repos/$repo/git/ref/tags/$tag" 2>$null
+          $tagExists = $LASTEXITCODE -eq 0
+          if ($tagExists) {
+            $tagRef = $tagJson | ConvertFrom-Json
+            if ($tagRef.object.sha -ne $env:SOURCE_SHA) {
+              throw "Refusing to move immutable production tag $tag from its existing source commit."
+            }
+          } else {
+            gh api --method POST "repos/$repo/git/refs" -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE_SHA" *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the v1.0.0 production tag." }
+          }
+
+          $existingJson = gh release view $tag --repo $repo --json assets 2>$null
+          $hasRelease = $LASTEXITCODE -eq 0
+          if ($hasRelease) {
+            $existing = $existingJson | ConvertFrom-Json
+            if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
+              exit 0
+            }
+            if ($existing.assets.Count -gt 0) {
+              throw "The immutable v1.0.0 release has different assets; refusing to replace release contents."
+            }
+            gh release edit $tag --repo $repo --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not update notes for the existing empty v1.0.0 release." }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not create v1.0.0 release." }
+          }
+
+          gh release upload $tag $msix[0].FullName --repo $repo
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the production MSIX release asset." }
+          Write-Host "Published the version 1.0.0 MSIX-only release to $repo/releases/tag/$tag"
+)
+          if (!$filenameMatch.Success) { throw "Unexpected MSIX filename: $($packages[0].Name)" }
+          if ($filenameMatch.Groups[1].Value -ne $env:PROJECT_VERSION) {
+            throw "MSIX filename version does not match the project version $($env:PROJECT_VERSION)."
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = $archive.GetEntry("AppxManifest.xml")
+            if ($null -eq $entry) { throw "Packaged MSIX does not contain AppxManifest.xml." }
+            $reader = [System.IO.StreamReader]::new($entry.Open())
+            try { $manifest = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
+
+          $identity = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Identity']")
+          $properties = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Properties']")
+          $packageVersion = $identity.GetAttribute("Version")
+          $projectPackageVersion = "$($env:PROJECT_VERSION).0"
+          if ($identity.GetAttribute("Name") -ne "DeadsmileGames.DeadsmileGamesLauncher") { throw "Store package Name mismatch." }
+          if ($identity.GetAttribute("Publisher") -ne "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE") { throw "Store Publisher mismatch." }
+          if ($packageVersion -notmatch '^(\d+\.\d+\.\d+)\.0
+
+      - name: Publish only the MSIX to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = "v1.0.0-winui"
+          $title = "Deadsmile Games Launcher v1.0.0"
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @'
+          ## Deadsmile Games Launcher 1.0.0 — WinUI 3
+
+          - Distribution artifact: one MSIX package only.
+          - Official Microsoft Store identity reserved in Partner Center.
+          - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+
+          $currentMain = gh api "repos/$repo/git/ref/heads/main" --jq ".object.sha"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read main branch." }
+          if ($currentMain.Trim() -ne $env:SOURCE_SHA) {
+            Write-Host "main has advanced beyond this successful build; a newer successful build will publish instead."
+            exit 0
+          }
+
+          $msix = @(Get-ChildItem "winui/artifacts" -Filter "*.msix" -File)
+          if ($msix.Count -ne 1 -or $msix[0].Name -ne "Deadsmile-Games-Launcher-WinUI-1.0.0-x64.msix") {
+            throw "Expected exactly the version 1.0.0 production MSIX."
+          }
+
+          $tagJson = gh api "repos/$repo/git/ref/tags/$tag" 2>$null
+          $tagExists = $LASTEXITCODE -eq 0
+          if ($tagExists) {
+            $tagRef = $tagJson | ConvertFrom-Json
+            if ($tagRef.object.sha -ne $env:SOURCE_SHA) {
+              throw "Refusing to move immutable production tag $tag from its existing source commit."
+            }
+          } else {
+            gh api --method POST "repos/$repo/git/refs" -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE_SHA" *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the v1.0.0 production tag." }
+          }
+
+          $existingJson = gh release view $tag --repo $repo --json assets 2>$null
+          $hasRelease = $LASTEXITCODE -eq 0
+          if ($hasRelease) {
+            $existing = $existingJson | ConvertFrom-Json
+            if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
+              exit 0
+            }
+            if ($existing.assets.Count -gt 0) {
+              throw "The immutable v1.0.0 release has different assets; refusing to replace release contents."
+            }
+            gh release edit $tag --repo $repo --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not update notes for the existing empty v1.0.0 release." }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not create v1.0.0 release." }
+          }
+
+          gh release upload $tag $msix[0].FullName --repo $repo
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the production MSIX release asset." }
+          Write-Host "Published the version 1.0.0 MSIX-only release to $repo/releases/tag/$tag"
+) {
+            throw "winui/Directory.Build.props must define Version as major.minor.patch."
+          }
+          "PROJECT_VERSION=$projectVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Building production MSIX from project version $projectVersion"
+          # build-windows.ps1 derives PackageVersion and the filename from Directory.Build.props.
+          ./winui/scripts/build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw "MSIX build failed." }
+
+      - name: Verify manifest and MSIX-only output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $artifacts = "winui/artifacts"
+          $packages = @(Get-ChildItem $artifacts -Filter "*.msix" -File)
+          if ($packages.Count -ne 1) { throw "Expected exactly one MSIX artifact." }
+          $unexpected = @(Get-ChildItem $artifacts -File | Where-Object { $_.Extension -in @(".exe", ".msi", ".msp", ".appx", ".appxbundle", ".zip") })
+          if ($unexpected.Count -gt 0) { throw "Unexpected distribution file(s): $($unexpected.Name -join ', ')" }
+          $manifestPath = Join-Path $artifacts "msix-content/AppxManifest.xml"
+          if (!(Test-Path $manifestPath)) { throw "Production MSIX manifest was not generated." }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = $archive.GetEntry("AppxManifest.xml")
+            if ($null -eq $entry) { throw "Packaged MSIX does not contain AppxManifest.xml." }
+            $reader = [System.IO.StreamReader]::new($entry.Open())
+            try { $manifest = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
+          $identity = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Identity']")
+          $properties = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Properties']")
+          if ($identity.GetAttribute("Name") -ne "DeadsmileGames.DeadsmileGamesLauncher") { throw "Store package Name mismatch." }
+          if ($identity.GetAttribute("Publisher") -ne "CN=A4BCCCEE-CD9B-459A-A0BC-BFDD3D7DBDFE") { throw "Store Publisher mismatch." }
+          if ($identity.GetAttribute("Version") -ne $env:STORE_PACKAGE_VERSION) { throw "Unexpected Store package version." }
+          if ($properties.SelectSingleNode("*[local-name()='PublisherDisplayName']").InnerText -ne "Deadsmile Games") { throw "Publisher display name mismatch." }
+          Write-Host "PASS official Store identity and package version $($env:STORE_PACKAGE_VERSION)"
+          Write-Host "Only distribution package: $($packages[0].Name)"
+
+      - name: Publish only the MSIX to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = "v1.0.0-winui"
+          $title = "Deadsmile Games Launcher v1.0.0"
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @'
+          ## Deadsmile Games Launcher 1.0.0 — WinUI 3
+
+          - Distribution artifact: one MSIX package only.
+          - Official Microsoft Store identity reserved in Partner Center.
+          - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+
+          $currentMain = gh api "repos/$repo/git/ref/heads/main" --jq ".object.sha"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read main branch." }
+          if ($currentMain.Trim() -ne $env:SOURCE_SHA) {
+            Write-Host "main has advanced beyond this successful build; a newer successful build will publish instead."
+            exit 0
+          }
+
+          $msix = @(Get-ChildItem "winui/artifacts" -Filter "*.msix" -File)
+          if ($msix.Count -ne 1 -or $msix[0].Name -ne "Deadsmile-Games-Launcher-WinUI-1.0.0-x64.msix") {
+            throw "Expected exactly the version 1.0.0 production MSIX."
+          }
+
+          $tagJson = gh api "repos/$repo/git/ref/tags/$tag" 2>$null
+          $tagExists = $LASTEXITCODE -eq 0
+          if ($tagExists) {
+            $tagRef = $tagJson | ConvertFrom-Json
+            if ($tagRef.object.sha -ne $env:SOURCE_SHA) {
+              throw "Refusing to move immutable production tag $tag from its existing source commit."
+            }
+          } else {
+            gh api --method POST "repos/$repo/git/refs" -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE_SHA" *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the v1.0.0 production tag." }
+          }
+
+          $existingJson = gh release view $tag --repo $repo --json assets 2>$null
+          $hasRelease = $LASTEXITCODE -eq 0
+          if ($hasRelease) {
+            $existing = $existingJson | ConvertFrom-Json
+            if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
+              exit 0
+            }
+            if ($existing.assets.Count -gt 0) {
+              throw "The immutable v1.0.0 release has different assets; refusing to replace release contents."
+            }
+            gh release edit $tag --repo $repo --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not update notes for the existing empty v1.0.0 release." }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not create v1.0.0 release." }
+          }
+
+          gh release upload $tag $msix[0].FullName --repo $repo
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the production MSIX release asset." }
+          Write-Host "Published the version 1.0.0 MSIX-only release to $repo/releases/tag/$tag"
+) { throw "Unsupported MSIX package version: $packageVersion" }
+          if ($packageVersion -ne $projectPackageVersion) {
+            throw "MSIX manifest version $packageVersion does not match project version $projectPackageVersion."
+          }
+          if ($properties.SelectSingleNode("*[local-name()='PublisherDisplayName']").InnerText -ne "Deadsmile Games") { throw "Publisher display name mismatch." }
+
+          $releaseVersion = $Matches[1]
           "STORE_PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          Write-Host "Production Store package version: $packageVersion"
-          ./winui/scripts/build-windows.ps1 -PackageVersion $packageVersion
+          "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "MSIX_FILENAME=$($packages[0].Name)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "PASS official Store identity and generated MSIX version $packageVersion"
+          Write-Host "Release version: $releaseVersion"
+          Write-Host "Only distribution package: $($packages[0].Name)"
+
+      - name: Publish only the MSIX to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = "v1.0.0-winui"
+          $title = "Deadsmile Games Launcher v1.0.0"
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @'
+          ## Deadsmile Games Launcher 1.0.0 — WinUI 3
+
+          - Distribution artifact: one MSIX package only.
+          - Official Microsoft Store identity reserved in Partner Center.
+          - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+
+          $currentMain = gh api "repos/$repo/git/ref/heads/main" --jq ".object.sha"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read main branch." }
+          if ($currentMain.Trim() -ne $env:SOURCE_SHA) {
+            Write-Host "main has advanced beyond this successful build; a newer successful build will publish instead."
+            exit 0
+          }
+
+          $msix = @(Get-ChildItem "winui/artifacts" -Filter "*.msix" -File)
+          if ($msix.Count -ne 1 -or $msix[0].Name -ne "Deadsmile-Games-Launcher-WinUI-1.0.0-x64.msix") {
+            throw "Expected exactly the version 1.0.0 production MSIX."
+          }
+
+          $tagJson = gh api "repos/$repo/git/ref/tags/$tag" 2>$null
+          $tagExists = $LASTEXITCODE -eq 0
+          if ($tagExists) {
+            $tagRef = $tagJson | ConvertFrom-Json
+            if ($tagRef.object.sha -ne $env:SOURCE_SHA) {
+              throw "Refusing to move immutable production tag $tag from its existing source commit."
+            }
+          } else {
+            gh api --method POST "repos/$repo/git/refs" -f "ref=refs/tags/$tag" -f "sha=$env:SOURCE_SHA" *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the v1.0.0 production tag." }
+          }
+
+          $existingJson = gh release view $tag --repo $repo --json assets 2>$null
+          $hasRelease = $LASTEXITCODE -eq 0
+          if ($hasRelease) {
+            $existing = $existingJson | ConvertFrom-Json
+            if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
+              exit 0
+            }
+            if ($existing.assets.Count -gt 0) {
+              throw "The immutable v1.0.0 release has different assets; refusing to replace release contents."
+            }
+            gh release edit $tag --repo $repo --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not update notes for the existing empty v1.0.0 release." }
+          } else {
+            gh release create $tag --repo $repo --verify-tag --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw "Could not create v1.0.0 release." }
+          }
+
+          gh release upload $tag $msix[0].FullName --repo $repo
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the production MSIX release asset." }
+          Write-Host "Published the version 1.0.0 MSIX-only release to $repo/releases/tag/$tag"
+) {
+            throw "winui/Directory.Build.props must define Version as major.minor.patch."
+          }
+          "PROJECT_VERSION=$projectVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Building production MSIX from project version $projectVersion"
+          # build-windows.ps1 derives PackageVersion and the filename from Directory.Build.props.
+          ./winui/scripts/build-windows.ps1
           if ($LASTEXITCODE -ne 0) { throw "MSIX build failed." }
 
       - name: Verify manifest and MSIX-only output

@@ -30,7 +30,7 @@ A ação adicional “Verificar instalação” foi removida da UI. “Verificar
 
 O pipeline compila o aplicativo e produz um único pacote de distribuição MSIX. Uma compilação separada com `ValidateNativeUi=true` ativa fixtures e captura a própria árvore XAML por RenderTargetBitmap. Esse código de validação é excluído dos binários de distribuição pelo pré-processador; o pipeline verifica essa exclusão.
 
-O teste visual nativo no workflow atual verifica login, navegação, busca, detalhes, redimensionamento, posicionamento dos controles, cores, limites da galeria, tema claro, persistência de preferências, localização em português/espanhol, colunas adaptáveis da Newswire, widgets fixados e fundo sólido do toast. Consulte a execução atual do Actions antes de considerar esses checks aprovados. As capturas usam dados e imagens locais de teste; não representam uma conta ou biblioteca real. Testes com jogos/contas reais permanecem fora da validação automática de layout.
+O teste visual nativo no workflow atual verifica login, navegação, busca, detalhes, redimensionamento, posicionamento dos controles, cores, limites da galeria, tema claro, persistência de preferências, localização em português/espanhol, colunas adaptáveis da Newswire e o fundo sólido do toast de conquista. Consulte a execução atual do Actions antes de considerar esses checks aprovados. As capturas usam dados e imagens locais de teste; não representam uma conta ou biblioteca real. Testes com jogos/contas reais permanecem fora da validação automática de layout.
 
 
 O ícone é derivado da arte quadrada existente. A falta de variantes targetsize/unplated fazia o Windows escolher a representação de tile com placa e redução. Gerar os tamanhos adequados também evita reutilizar apenas o ICO antigo de 256 pixels.
@@ -53,7 +53,6 @@ As decisões usam navegação consistente, hierarquia tipográfica, espaçamento
 - [Construção do ícone Windows](https://learn.microsoft.com/en-us/windows/apps/design/iconography/app-icon-construction)
 
 - [MediaPlayerElement e transporte](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/media-playback)
-- [Captura de janela](https://learn.microsoft.com/en-us/windows/apps/develop/media-authoring-processing/screen-capture)
 - [Compartilhamento WinRT com HWND](https://learn.microsoft.com/en-us/windows/apps/develop/ui/display-ui-objects)
 - [App notifications](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart)
 - [Segoe Fluent Icons / Windows 10](https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-fluent-icons-font)

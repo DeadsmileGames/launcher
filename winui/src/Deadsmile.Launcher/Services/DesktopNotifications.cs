@@ -10,7 +10,7 @@ public sealed class DesktopNotifications : IDisposable
     public DesktopNotifications()
     {
         try { AppNotificationManager.Default.NotificationInvoked += NotificationInvoked; AppNotificationManager.Default.Register(); registered = true; }
-        catch (Exception) { /* Shell tray notifications remain available when the runtime registration is unavailable. */ }
+        catch (Exception ex) { LauncherLog.Warning("Notifications", $"Windows notification registration failed; exception={ex.GetType().Name}"); }
     }
     private void NotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args) => Invoked?.Invoke();
     public bool Show(string title, string text)
@@ -26,11 +26,15 @@ public sealed class DesktopNotifications : IDisposable
             AppNotificationManager.Default.Show(notification);
             return true;
         }
-        catch (Exception) { return false; }
+        catch (Exception ex)
+        {
+            LauncherLog.Warning("Notifications", $"Windows notification delivery failed; exception={ex.GetType().Name}");
+            return false;
+        }
     }
     public void Dispose()
     {
         try { AppNotificationManager.Default.NotificationInvoked -= NotificationInvoked; if (registered) AppNotificationManager.Default.Unregister(); }
-        catch (Exception) { }
+        catch (Exception ex) { LauncherLog.Warning("Notifications", $"Windows notification cleanup failed; exception={ex.GetType().Name}"); }
     }
 }

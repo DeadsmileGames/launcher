@@ -43,7 +43,7 @@ public sealed partial class GameViewWindow : Window
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         { presenter.SetBorderAndTitleBar(false, false); presenter.IsResizable = false; presenter.IsAlwaysOnTop = true; }
         NativeWindow.Overlay(this);
-        timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(16);
+        timer = DispatcherQueue.CreateTimer(); timer.Interval = TimeSpan.FromMilliseconds(50);
         timer.Tick += (_, _) =>
         {
             try { Monitor(); }
@@ -196,15 +196,45 @@ public sealed partial class GameViewWindow : Window
     private bool IsPointerOverInteractiveSurface()
     {
         if (captureDialog is not null || dragging is not null) return true;
+
+        // ShowInactive() can make the HWND visible before WinUI has attached every
+        // element to its XamlRoot. TransformToVisual throws in that brief interval.
+        // The widgets live directly on WidgetCanvas, so their Canvas coordinates and
+        // measured sizes provide the same hit-test without querying the visual tree.
+        var root = OverlayRoot;
+        var xamlRoot = root.XamlRoot;
+        if (!root.IsLoaded || xamlRoot is null || root.ActualWidth <= 0 || root.ActualHeight <= 0)
+            return false;
+
         var point = NativeWindow.Cursor(this);
-        var scale = OverlayRoot.XamlRoot?.RasterizationScale ?? 1;
+        var scale = xamlRoot.RasterizationScale;
+        if (scale <= 0 || double.IsNaN(scale) || double.IsInfinity(scale)) scale = 1;
         point = new(point.X / scale, point.Y / scale);
-        return Widgets.Append(ToolbarPanel).Any(panel =>
+
+        foreach (var panel in Widgets)
         {
-            if (panel.Visibility != Visibility.Visible) return false;
-            var rect = panel.TransformToVisual(OverlayRoot).TransformBounds(new Rect(0, 0, panel.ActualWidth, panel.ActualHeight));
-            return rect.Contains(point);
-        });
+            if (panel.Visibility != Visibility.Visible || panel.ActualWidth <= 0 || panel.ActualHeight <= 0)
+                continue;
+
+            var left = Canvas.GetLeft(panel);
+            var top = Canvas.GetTop(panel);
+            if (double.IsNaN(left)) left = 0;
+            if (double.IsNaN(top)) top = 0;
+            if (new Rect(left, top, panel.ActualWidth, panel.ActualHeight).Contains(point))
+                return true;
+        }
+
+        // ToolbarPanel is centered horizontally at the top of OverlayRoot.
+        if (ToolbarPanel.Visibility == Visibility.Visible &&
+            ToolbarPanel.ActualWidth > 0 && ToolbarPanel.ActualHeight > 0)
+        {
+            var left = (root.ActualWidth - ToolbarPanel.ActualWidth) / 2;
+            var top = ToolbarPanel.Margin.Top;
+            if (new Rect(left, top, ToolbarPanel.ActualWidth, ToolbarPanel.ActualHeight).Contains(point))
+                return true;
+        }
+
+        return false;
     }
 
     private void Monitor()

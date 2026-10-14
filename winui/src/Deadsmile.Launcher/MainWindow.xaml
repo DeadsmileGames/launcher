@@ -338,11 +338,6 @@
         </StackPanel></Border>
        </StackPanel>
        <StackPanel Spacing="12">
-        <Border x:Name="TrayOption" Style="{StaticResource Panel}" Padding="20,16" Visibility="Collapsed"><Grid ColumnSpacing="16" MinHeight="36">
-         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-         <SymbolIcon Symbol="BackToWindow" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Keep running when closed" Tag="Keep running when closed" TextWrapping="Wrap" VerticalAlignment="Center"/>
-         <ToggleSwitch x:Name="TrayToggle" Grid.Column="2" Toggled="AppearanceToggled"/>
-        </Grid></Border>
         <Border Style="{StaticResource Panel}" Padding="20,16"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="Message" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Update and release notifications" Tag="Update and release notifications" TextWrapping="Wrap" VerticalAlignment="Center"/>

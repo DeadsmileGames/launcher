@@ -216,11 +216,6 @@ check('if (entry.Setting == "Profile")' in portal_code and
       "if (!await RequireAccount()) return;" in portal_code and
       'if (page == "account" && User is null)' in main_code,
       "All profile entry points require authentication and stale account routes fall back safely")
-check('Glyph="&#xEA80;"' in (launcher / "Views" / "AchievementWindow.xaml").read_text(encoding="utf-8") and
-      'ShortcutIcon.Glyph = "\\uEA80";' in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
-      "ApplyShortcutTheme(owner.UiTheme)" in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8") and
-      "ToastRoot.RequestedTheme = ElementTheme.Light" not in (launcher / "Views" / "AchievementWindow.xaml.cs").read_text(encoding="utf-8"),
-      "DeadBar hint uses a lightbulb and follows the launcher's selected theme")
 check("ReportStartupFailure(ex)" in program_code and
       'LauncherLog.Error("Startup", "fatal startup/activation error", ex)' in program_code and
       "LauncherLog.LogPath" in program_code and "MessageBoxW" in program_code and

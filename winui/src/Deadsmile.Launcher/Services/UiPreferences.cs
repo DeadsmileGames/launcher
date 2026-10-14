@@ -10,7 +10,6 @@ public sealed record UiPreferences
     public bool RotateBanners { get; init; } = true;
     public bool AchievementToasts { get; init; } = true;
     public bool WindowsMaterials { get; init; } = true;
-    public bool CloseToTray { get; init; } = true;
     public bool Notifications { get; init; } = true;
     public bool VideoBackgrounds { get; init; } = true;
     public bool ShowNewswireOnHome { get; init; } = true;

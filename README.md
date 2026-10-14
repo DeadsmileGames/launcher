@@ -16,4 +16,4 @@ A página [Releases](https://github.com/DeadsmileGames/launcher/releases/latest)
 
 O pacote de produção usa a identidade oficial configurada no Partner Center. A Microsoft Store assina o MSIX depois que ele passa pela certificação. Não é necessário armazenar certificado privado da Store no repositório ou nos GitHub Actions.
 
-A versão pública WinUI pretendida é `1.0.0`; o workflow incrementa a versão interna do pacote MSIX para cumprir o versionamento da Microsoft Store.
+A versão do aplicativo WinUI é `1.0.0`; o pacote MSIX inicial usa a versão de pacote `1.0.0.0`. A release do GitHub usa a tag `v1.0.0-winui` para preservar a tag `v1.0.0` histórica do launcher anterior.

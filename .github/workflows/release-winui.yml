@@ -53,7 +53,14 @@ jobs:
           if ($unexpected.Count -gt 0) { throw "Unexpected distribution file(s): $($unexpected.Name -join ', ')" }
           $manifestPath = Join-Path $artifacts "msix-content/AppxManifest.xml"
           if (!(Test-Path $manifestPath)) { throw "Production MSIX manifest was not generated." }
-          $manifest = [xml](Get-Content $manifestPath -Raw)
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entry = $archive.GetEntry("AppxManifest.xml")
+            if ($null -eq $entry) { throw "Packaged MSIX does not contain AppxManifest.xml." }
+            $reader = [System.IO.StreamReader]::new($entry.Open())
+            try { $manifest = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
           $identity = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Identity']")
           $properties = $manifest.DocumentElement.SelectSingleNode("*[local-name()='Properties']")
           if ($identity.GetAttribute("Name") -ne "DeadsmileGames.DeadsmileGamesLauncher") { throw "Store package Name mismatch." }
@@ -110,7 +117,18 @@ jobs:
           if ($hasRelease) {
             $existing = $existingJson | ConvertFrom-Json
             if ($existing.assets.Count -eq 1 -and $existing.assets[0].name -eq $msix[0].Name) {
-              Write-Host "The immutable v1.0.0 release already contains its single MSIX; leaving the existing release unchanged."
+              $verifyDir = Join-Path $env:RUNNER_TEMP "existing-production-release"
+              New-Item -ItemType Directory -Path $verifyDir -Force | Out-Null
+              gh release download $tag --repo $repo --pattern $msix[0].Name --dir $verifyDir
+              if ($LASTEXITCODE -ne 0) { throw "Could not verify the existing release asset." }
+              $existingAsset = Join-Path $verifyDir $msix[0].Name
+              if (!(Test-Path $existingAsset)) { throw "The release asset download did not produce the expected MSIX." }
+              $existingHash = (Get-FileHash $existingAsset -Algorithm SHA256).Hash
+              $currentHash = (Get-FileHash $msix[0].FullName -Algorithm SHA256).Hash
+              if ($existingHash -ne $currentHash) {
+                throw "The immutable release asset differs from the deterministic package rebuilt from the same commit."
+              }
+              Write-Host "The immutable release contains the exact validated MSIX bytes; leaving it unchanged."
               exit 0
             }
             if ($existing.assets.Count -gt 0) {

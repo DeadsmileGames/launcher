@@ -4,7 +4,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Version>1.0.0</Version><AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Deterministic>true</Deterministic><DebugType>portable</DebugType>
-    <NuGetAudit>true</NuGetAudit><NuGetAuditLevel>high</NuGetAuditLevel>
-    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+    <NuGetAudit>true</NuGetAudit><NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
 </Project>

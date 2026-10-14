@@ -84,7 +84,7 @@ public sealed partial class MainWindow
         var content = new StackPanel { Spacing = 16, Width = width };
         var picture = new Image { Width = width, Height = width * 9 / 16, Stretch = Stretch.UniformToFill };
         try { var launcher = await Api.Get("/launcher"); SetImage(picture, launcher.At("screenshots").Items().FirstOrDefault().S("url")); }
-        catch (Exception) { /* Account access remains usable if optional Store artwork is unavailable. */ }
+        catch (Exception ex) { LauncherLog.Warning("UI", $"optional account artwork unavailable; exception={ex.GetType().Name}"); }
         content.Children.Add(new Border { CornerRadius = new CornerRadius(8), Child = picture });
         content.Children.Add(Text(Locale.T("Keep your library together, sync supported saves and achievements, and manage your games with a Deadsmile Games account.")));
         var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, RequestedTheme = UiTheme,
@@ -502,7 +502,12 @@ public sealed partial class MainWindow
         FeaturedVideo.Visibility = Visibility.Collapsed;
         try
         {
-            if (!Uri.TryCreate(game.BackgroundVideo, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return;
+            var uri = Urls.Https(game.BackgroundVideo);
+            if (uri is null)
+            {
+                LauncherLog.Warning("Media", "featured background video URL rejected");
+                return;
+            }
             MediaSource? source;
             if (uri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
             {
@@ -524,7 +529,11 @@ public sealed partial class MainWindow
             { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; });
             player.Play();
         }
-        catch (Exception) { if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed; }
+        catch (Exception ex)
+        {
+            LauncherLog.Warning("Media", $"featured background video unavailable; exception={ex.GetType().Name}");
+            if (revision == homeMediaRevision) FeaturedVideo.Visibility = Visibility.Collapsed;
+        }
 #endif
     }
     private static LinearGradientBrush CreateHeroShade(Windows.UI.Color accent)
@@ -543,7 +552,8 @@ public sealed partial class MainWindow
         var revision = detailRevision;
         try
         {
-            var uri = new Uri(game.BackgroundVideo); MediaSource? source;
+            var uri = Urls.Https(game.BackgroundVideo) ?? throw new LauncherException("INVALID_RESPONSE");
+            MediaSource? source;
             if (uri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
             {
                 var adaptive = await AdaptiveMediaSource.CreateFromUriAsync(uri);
@@ -583,6 +593,6 @@ public sealed partial class MainWindow
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(pause, Locale.T("Pause")); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(mute, Locale.T("Sound"));
             controls.Children.Add(pause); controls.Children.Add(mute); hero.Children.Add(controls); player.Play();
         }
-        catch (Exception) { /* The database cover remains visible when media cannot be decoded. */ }
+        catch (Exception ex) { LauncherLog.Warning("Media", $"game background video unavailable; game={game.Id}; exception={ex.GetType().Name}"); }
     }
 }

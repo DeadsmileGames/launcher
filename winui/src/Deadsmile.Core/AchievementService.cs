@@ -64,17 +64,21 @@ public sealed class AchievementService(ApiClient api, Storage storage)
             { cached = (DateTimeOffset.UtcNow, (await api.Get("/platform/achievements/" + Urls.Id(game.Id))).Items().ToArray()); catalogCache[cacheKey] = cached; }
             var catalog = cached.Items;
             var queue = storage.Read("achievement-sync.json", new List<PendingAchievement>());
+            var queueChanged = false;
             foreach (var key in keys)
             {
                 if (catalog.Any(x => x.S("key") == key && (x.At("unlocked_at", "unlockedAt") is not null))) continue;
                 if (!queue.Any(x => x.GameId == game.Id && x.Key == key && x.UserId == userId))
+                {
                     queue.Add(new(game.Id, key, userId, 0, DateTimeOffset.UtcNow));
+                    queueChanged = true;
+                }
                 var d = Abby.First(x => x.Key == key);
                 if (shown.Add(userId + ":" + game.Id + ":" + key))
                     Unlocked?.Invoke(game.Id, J.Obj(("key", d.Key), ("title", d.Title), ("description", d.Description),
                         ("points", d.Points), ("hidden", d.Hidden), ("unlocked_at", DateTimeOffset.UtcNow.ToString("O"))));
             }
-            storage.Write("achievement-sync.json", queue);
+            if (queueChanged) storage.Write("achievement-sync.json", queue);
         }
         finally { gate.Release(); }
         await Sync(userId);
@@ -84,9 +88,12 @@ public sealed class AchievementService(ApiClient api, Storage storage)
         await gate.WaitAsync();
         try
         {
-            if ((await api.Get("/auth/me")).S("id") != userId) return;
             var queue = storage.Read("achievement-sync.json", new List<PendingAchievement>());
-            foreach (var item in queue.Where(x => x.UserId == userId && x.NextAttemptAt <= DateTimeOffset.UtcNow).Take(2).ToArray())
+            var due = queue.Where(x => x.UserId == userId && x.NextAttemptAt <= DateTimeOffset.UtcNow)
+                .Take(2).ToArray();
+            if (due.Length == 0) return;
+            if ((await api.Get("/auth/me")).S("id") != userId) return;
+            foreach (var item in due)
             {
                 if (!Guid.TryParse(item.GameId, out _) || !Regex.IsMatch(item.Key, "^[a-z0-9_]{2,80}$"))
                 { queue.Remove(item); continue; }

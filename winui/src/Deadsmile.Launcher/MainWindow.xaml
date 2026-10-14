@@ -337,13 +337,6 @@
          <Button x:Name="ItchButton" Content="Connect itch.io" Click="ItchClick"/>
         </StackPanel></Border>
        </StackPanel>
-       <StackPanel Spacing="12">
-        <TextBlock Tag="DeadBar" Text="DeadBar" Style="{StaticResource SubtitleTextBlockStyle}"/>
-        <Border Style="{StaticResource Panel}"><Grid ColumnSpacing="24">
-         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-         <StackPanel Spacing="8"><TextBlock Tag="DeadBar" Text="DeadBar"/><TextBlock x:Name="ShortcutText" Tag="Ctrl + D" Text="Ctrl + D" Foreground="{ThemeResource LauncherMutedTextBrush}"/></StackPanel>
-         <ToggleSwitch x:Name="OverlayToggle" Grid.Column="1" Toggled="OverlayToggled" IsOn="True"/>
-        </Grid></Border>
         <Border x:Name="TrayOption" Style="{StaticResource Panel}" Padding="20,16" Visibility="Collapsed"><Grid ColumnSpacing="16" MinHeight="36">
          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
          <SymbolIcon Symbol="BackToWindow" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Keep running when closed" Tag="Keep running when closed" TextWrapping="Wrap" VerticalAlignment="Center"/>

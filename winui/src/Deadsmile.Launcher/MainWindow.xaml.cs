@@ -1110,7 +1110,7 @@ public sealed partial class MainWindow : Window
     {
         if (Games.Busy(game.Id) || !await RequireAccount()) return;
         if (!AppWindow.IsVisible || NativeWindow.Minimized(WinRT.Interop.WindowNative.GetWindowHandle(this)))
-            RestoreFromTray();
+            RestoreFromNotification();
         await Guard(() => Games.Launch(game));
     }
     private static string Bytes(long value) => value >= 1073741824 ? (value / 1073741824.0).ToString("0.0") + " GB" :

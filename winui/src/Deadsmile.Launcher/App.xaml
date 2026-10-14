@@ -1,0 +1,50 @@
+<Application x:Class="Deadsmile.Launcher.App"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Application.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries>
+    <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"/>
+   </ResourceDictionary.MergedDictionaries>
+   <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Default">
+     <SolidColorBrush x:Key="SidebarBrush" Color="#202020"/>
+     <SolidColorBrush x:Key="BaseBrush" Color="#272727"/>
+     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#202020"/>
+     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#202020"/>
+     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#272727"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="#272727"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#202020"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="#FFB8B8B8"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Light">
+     <SolidColorBrush x:Key="SidebarBrush" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="BaseBrush" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#EEF1F5"/>
+     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="#F7F8FB"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="#E7EBF1"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="#FF4B5563"/>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="HighContrast">
+     <SolidColorBrush x:Key="SidebarBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="BaseBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="WidgetBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="WidgetHeaderBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+     <SolidColorBrush x:Key="LauncherMutedTextBrush" Color="{ThemeResource SystemColorGrayTextColor}"/>
+    </ResourceDictionary>
+   </ResourceDictionary.ThemeDictionaries>
+   <x:Double x:Key="ContentDialogMaxWidth">900</x:Double>
+   <Style x:Key="Panel" TargetType="Border">
+    <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+    <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="24"/>
+   </Style>
+  </ResourceDictionary>
+ </Application.Resources>
+</Application>

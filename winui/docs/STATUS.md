@@ -1,0 +1,33 @@
+# Status da implementação — launcher nativo WinUI 3
+
+A implementação nativa está na [PR #10](https://github.com/DeadsmileGames/launcher/pull/10), branch `codex/winui-native-20261012`. A PR ainda não foi integrada à `main`; o Electron legado não faz parte desta branch de produção.
+
+## Formato de distribuição atual
+
+O único pacote de distribuição é MSIX. O projeto separado `Deadsmile.Setup`, o contêiner NSIS/EXE e o teste de instalação desse assistente foram removidos. O workflow de validação constrói um MSIX assinado com certificado efêmero de desenvolvimento, instala o pacote no runner Windows, testa a abertura da janela principal, desinstala o pacote e confere a preservação dos dados do usuário. O Actions publica apenas o arquivo `.msix`; o certificado de teste não é publicado.
+
+A release de produção gera um MSIX com a identidade oficial do Partner Center, sem assinatura local, destinado à submissão à Microsoft Store. A Store assina o pacote depois da certificação. O MSIX pré-submissão não é diretamente instalável até ter uma assinatura confiável.
+
+## Revisão de código e integridade em andamento
+
+A revisão completa também reforçou os limites de segurança dos serviços: hash SHA-256 remoto malformado agora é rejeitado, o extrator ZIP conta bytes realmente descompactados (não apenas o tamanho declarado no cabeçalho), backups de uma atualização interrompida são limpos somente quando a instalação nova e a anterior têm registros válidos, registros locais malformados não derrubam a leitura do catálogo e a ausência de acesso ao arquivo de log não interrompe recuperação. A captura Direct3D descarta frames tardios após timeout; o catálogo público ignora flags de propriedade/biblioteca de visitantes; erros de registro do protocolo e atalhos do desktop não podem interromper o boot ou uma desinstalação já concluída.
+
+Os textos de recuperação de boot e os títulos/descrições de conquistas também foram incluídos no catálogo `en`, `pt-BR` e `es`, e foram adicionados testes Core e validações estruturais para preservar essas regras. Isso continua pendente de aprovação no Actions do commit atual.
+
+## Revisão de UX em andamento
+
+Esta revisão removeu a DeadBar e a captura/compartilhamento de janela exclusivos dessa função, mantendo os avisos de conquista. O launcher mantém notificações do Windows, avisos de conquista, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador verifica as chaves C#/XAML dos catálogos `en`, `pt-BR` e `es`.
+
+## Histórico e estado da validação
+
+A execução [Actions #107](https://github.com/DeadsmileGames/launcher/actions/runs/38436519747), no commit anterior à migração para MSIX-only, passou na compilação e empacotamento, mas falhou ao tentar abrir a janela do assistente EXE. O fluxo de assistente que causou esse erro foi removido; o resultado #107 não valida nem aprova o novo fluxo MSIX.
+
+A fonte de verdade para o estado atual é o [workflow Build Deadsmile WinUI MSIX](https://github.com/DeadsmileGames/launcher/actions/workflows/build-winui.yml) executado no commit desta revisão. Não marque a mudança como resolvida apenas porque a validação estrutural ou a compilação passou: o smoke test de instalação, inicialização e desinstalação do MSIX também precisa passar.
+
+## Homologação manual pendente
+
+O CI em Windows Server 2025 não substitui testes interativos em desktops Windows 10/11. Ainda devem ser validados com uma conta e jogos reais: login/2FA e itch.io; download, instalação e execução de jogos autorizados; sincronização real de saves/conquistas; escalas de DPI distintas, múltiplos monitores, GPU; leitor de tela e alto contraste em máquina física.
+
+A release pública WinUI `v1.0.0` continua dependente do merge e de uma execução bem-sucedida do workflow em `main`. A submissão/certificação no Partner Center é uma etapa separada e não é executada pelo CI.
+
+Consulte [REVISAO-SEGURANCA.md](REVISAO-SEGURANCA.md), [UI-WINUI.md](UI-WINUI.md) e [VALIDACAO-WINDOWS.md](VALIDACAO-WINDOWS.md) para escopo de segurança, interface e cenários manuais restantes.

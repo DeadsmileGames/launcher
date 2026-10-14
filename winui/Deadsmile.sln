@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Core", "src\Deadsmile.Core\Deadsmile.Core.csproj", "{064AB3B6-6822-464A-973F-A4E7AEE2053F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Launcher", "src\Deadsmile.Launcher\Deadsmile.Launcher.csproj", "{A49E1983-A65C-4513-A815-59C2E4522A14}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Deadsmile.Core.Tests", "tests\Deadsmile.Core.Tests\Deadsmile.Core.Tests.csproj", "{287582E8-EA06-4F73-8877-ED185A8B68D7}"
+EndProject
+Global
+ GlobalSection(SolutionConfigurationPlatforms) = preSolution
+  Debug|x64 = Debug|x64
+  Release|x64 = Release|x64
+ EndGlobalSection
+ GlobalSection(ProjectConfigurationPlatforms) = postSolution
+  {064AB3B6-6822-464A-973F-A4E7AEE2053F}.Debug|x64.ActiveCfg = Debug|Any CPU
+  {064AB3B6-6822-464A-973F-A4E7AEE2053F}.Debug|x64.Build.0 = Debug|Any CPU
+  {064AB3B6-6822-464A-973F-A4E7AEE2053F}.Release|x64.ActiveCfg = Release|Any CPU
+  {064AB3B6-6822-464A-973F-A4E7AEE2053F}.Release|x64.Build.0 = Release|Any CPU
+  {A49E1983-A65C-4513-A815-59C2E4522A14}.Debug|x64.ActiveCfg = Debug|x64
+  {A49E1983-A65C-4513-A815-59C2E4522A14}.Debug|x64.Build.0 = Debug|x64
+  {A49E1983-A65C-4513-A815-59C2E4522A14}.Release|x64.ActiveCfg = Release|x64
+  {A49E1983-A65C-4513-A815-59C2E4522A14}.Release|x64.Build.0 = Release|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Debug|x64.Build.0 = Debug|x64
+  {CFF0A2D8-36A0-44D0-8B32-6F10E1E6B2E5}.Release|x64.Build.0 = Release|x64
+  {287582E8-EA06-4F73-8877-ED185A8B68D7}.Debug|x64.ActiveCfg = Debug|Any CPU
+  {287582E8-EA06-4F73-8877-ED185A8B68D7}.Debug|x64.Build.0 = Debug|Any CPU
+  {287582E8-EA06-4F73-8877-ED185A8B68D7}.Release|x64.ActiveCfg = Release|Any CPU
+  {287582E8-EA06-4F73-8877-ED185A8B68D7}.Release|x64.Build.0 = Release|Any CPU
+ EndGlobalSection
+EndGlobal
+

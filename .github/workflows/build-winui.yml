@@ -1,0 +1,83 @@
+name: Build Deadsmile WinUI MSIX
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'winui/**'
+      - '.github/workflows/build-winui.yml'
+      - '.github/workflows/release-winui.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'winui/**'
+      - '.github/workflows/build-winui.yml'
+      - '.github/workflows/release-winui.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    name: Core tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: winui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate source and MSIX manifest
+        run: python3 scripts/validate-source.py
+      - name: Audit dependencies for known vulnerabilities
+        run: dotnet list Deadsmile.sln package --vulnerable --include-transitive
+      - name: Run C# tests
+        run: dotnet run --project tests/Deadsmile.Core.Tests -c Release
+
+  windows:
+    name: Windows x64 MSIX
+    needs: core-tests
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: winui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build the single development MSIX
+        run: ./scripts/build-windows.ps1 -IdentityName "DeadsmileGames.Launcher.Development" -Publisher "CN=Deadsmile Games Development" -PublisherDisplayName "Deadsmile Games" -PackageVersion ("1.0.{0}.0" -f $env:GITHUB_RUN_NUMBER) -DevelopmentCertificate
+      - name: Test MSIX installation, startup and uninstallation
+        run: ./scripts/test-msix.ps1
+      - name: Validate native WinUI navigation and layout
+        run: ./scripts/test-native-ui.ps1
+      - name: Upload the MSIX package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Deadsmile-WinUI-MSIX-x64
+          path: winui/artifacts/*.msix
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Deadsmile-WinUI-Build-Diagnostics
+          path: winui/artifacts/*.binlog
+          if-no-files-found: ignore
+          retention-days: 7

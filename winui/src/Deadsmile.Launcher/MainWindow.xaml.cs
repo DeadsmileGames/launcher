@@ -1166,7 +1166,6 @@ public sealed partial class MainWindow : Window
             SignInMenuItem.Text = Locale.T("Sign in"); SettingsMenuItem.Text = Locale.T("Settings"); MyAccountMenuItem.Text = Locale.T("My account"); UpdateAccount();
             LogoutButton.Text = Locale.T("Sign out"); WebsiteMenuItem.Text = Locale.T("Website");
             FeaturedButton.Content = Locale.T("View details");
-            OverlayToggle.OnContent = Locale.T("On"); OverlayToggle.OffContent = Locale.T("Off");
             AppearanceLabels();
             UpdateHomeHeroControls(); RefreshTwoFactorLabels();
             AutomationProperties.SetName(AccountButton, Locale.T(User is null ? "Sign in" : "Settings"));

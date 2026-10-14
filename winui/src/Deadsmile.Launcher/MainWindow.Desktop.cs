@@ -27,7 +27,7 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             LauncherLog.Error("Desktop", "Windows app notifications unavailable", ex);
-            storage.Log("TRAY_UNAVAILABLE");
+            storage.Log("DESKTOP_NOTIFICATIONS_UNAVAILABLE");
         }
 #endif
     }

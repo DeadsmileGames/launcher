@@ -16,7 +16,6 @@ Execute os cenários manuais em ambiente de teste, com cópia dos saves e dos da
 ## Interface
 
 - [ ] CI deve conferir navegação, busca, detalhes, galeria com zoom e navegação sem corte, cores, preferências, localização PT/ES e responsividade da Newswire (3→2→3 colunas) na execução atual.
-- [ ] Confirmar que mudar o foco para outra janela não fecha a DeadBar e que fechar Ctrl+D mantém widgets fixados sem bordas quadradas/pretas.
 - [ ] Confirmar que o menu da bandeja usa a interface nativa do Windows e que toasts flutuantes têm cantos sem artefatos.
 - [ ] Confirmar o recorte circular da foto de perfil, zoom centrado e arraste antes de salvar.
 - [ ] Confirmar que desativar 2FA exige o código atual e que Minha conta fica separada de Configurações.

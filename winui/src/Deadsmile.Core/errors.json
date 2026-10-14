@@ -142,7 +142,6 @@
     "USERNAME_INVALID": "Use only letters, numbers and underscores in your username.",
     "IMAGE_INVALID": "Use a PNG, JPG or WEBP image up to 5 MB.",
     "IMAGE_PROCESSING_FAILED": "The image could not be processed. Choose another image.",
-    "SCREENSHOT_FAILED": "The screenshot could not be saved. Check your folder permissions.",
     "SHORTCUT_UNAVAILABLE": "This shortcut is unavailable. Choose another shortcut.",
     "SHORTCUT_INVALID": "Choose a valid shortcut.",
     "UPDATE_IN_PROGRESS": "An update is already in progress. Wait for it to finish.",
@@ -173,7 +172,6 @@
     "UPDATE_SIGNATURE_INVALID": "The update signature could not be verified.",
     "GAME_INSTALL_BACKUP_EXISTS": "An installation backup requires recovery before updating.",
     "UPDATE_CHECKSUM_MISSING": "The update is missing a verification hash.",
-    "CAPTURE_UNAVAILABLE": "The game window cannot be captured right now.",
     "PROFILE_IMAGE_TOO_LARGE": "The adjusted profile image is too large. Zoom out or choose another photo."
   },
   "pt-BR": {
@@ -319,7 +317,6 @@
     "USERNAME_INVALID": "Use apenas letras, números e sublinhados no nome de usuário.",
     "IMAGE_INVALID": "Use uma imagem PNG, JPG ou WEBP de até 5 MB.",
     "IMAGE_PROCESSING_FAILED": "Não foi possível processar a imagem. Escolha outra imagem.",
-    "SCREENSHOT_FAILED": "Não foi possível salvar a captura. Verifique as permissões da pasta.",
     "SHORTCUT_UNAVAILABLE": "Este atalho está indisponível. Escolha outro atalho.",
     "SHORTCUT_INVALID": "Escolha um atalho válido.",
     "UPDATE_IN_PROGRESS": "Uma atualização já está em andamento. Aguarde a conclusão.",
@@ -350,7 +347,6 @@
     "UPDATE_SIGNATURE_INVALID": "Não foi possível verificar a assinatura da atualização.",
     "GAME_INSTALL_BACKUP_EXISTS": "Um backup de instalação precisa ser recuperado antes da atualização.",
     "UPDATE_CHECKSUM_MISSING": "A atualização não possui um hash de verificação.",
-    "CAPTURE_UNAVAILABLE": "Não foi possível capturar a janela do jogo agora.",
     "PROFILE_IMAGE_TOO_LARGE": "A foto ajustada ficou grande demais. Reduza o zoom ou escolha outra imagem."
   },
   "es": {
@@ -496,7 +492,6 @@
     "USERNAME_INVALID": "Usa solo letras, números y guiones bajos en tu nombre de usuario.",
     "IMAGE_INVALID": "Usa una imagen PNG, JPG o WEBP de hasta 5 MB.",
     "IMAGE_PROCESSING_FAILED": "No se pudo procesar la imagen. Elige otra imagen.",
-    "SCREENSHOT_FAILED": "No se pudo guardar la captura. Comprueba los permisos de la carpeta.",
     "SHORTCUT_UNAVAILABLE": "Este atajo no está disponible. Elige otro atajo.",
     "SHORTCUT_INVALID": "Elige un atajo válido.",
     "UPDATE_IN_PROGRESS": "Ya hay una actualización en curso. Espera a que termine.",
@@ -527,7 +522,6 @@
     "UPDATE_SIGNATURE_INVALID": "No se pudo verificar la firma de la actualización.",
     "GAME_INSTALL_BACKUP_EXISTS": "Se debe recuperar la copia de instalación antes de actualizar.",
     "UPDATE_CHECKSUM_MISSING": "La actualización no tiene un hash de verificación.",
-    "CAPTURE_UNAVAILABLE": "No se puede capturar la ventana del juego ahora.",
     "PROFILE_IMAGE_TOO_LARGE": "La foto ajustada es demasiado grande. Reduce el zoom o elige otra imagen."
   }
 }

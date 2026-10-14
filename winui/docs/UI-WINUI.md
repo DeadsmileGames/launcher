@@ -17,8 +17,6 @@ A UI segue as quatro imagens de referência fornecidas: WinUI 3 Gallery, página
 | Galeria | ContentDialog com largura adaptável, Stretch.Uniform, navegação anterior/próxima e controles de zoom com ajuste e redefinição; imagens panorâmicas e verticais podem ser ampliadas e reposicionadas por rolagem sem cortar os botões. |
 | Downloads | ProgressBar, botões padrão e InfoBadge na navegação. |
 | Configurações | Tema escuro/claro/sistema, navegação compacta/expandida, animações, rotação do banner, efeitos do Windows e avisos de conquistas; controles padrão. |
-| DeadBar/Ctrl+D | Barra compacta com relógio real e widgets flutuantes de perfil, biblioteca, conquistas, saves e captura; arraste, fixação, fechamento e restauração. A troca de foco não fecha a barra; ela encerra automaticamente após terminar o processo do jogo. Widgets com recorte arredondado nativo. |
-| Captura | Windows.Graphics.Capture de uma janela; PNG local, formatos story/post sem distorção e compartilhamento nativo. |
 | Tray/notificações | Shell notification icon; menu de abrir/sair desenhado pelo menu nativo do Windows. App notifications com fallback de notificações do Shell. Preferências e aviso inicial único. Toasts flutuantes usam região HWND arredondada para evitar cantos pretos. |
 | Conquistas | Aviso XAML com fundo sólido no Windows 10; Mica opaco e cantos do DWM no Windows 11 quando disponíveis. O fallback do Mica continua opaco. |
 | Ícone | ICO com 15 tamanhos e assets MSIX targetsize com variantes unplated/lightunplated; sem margem extra adicionada no build. |
@@ -34,7 +32,6 @@ O pipeline compila o aplicativo e produz um único pacote de distribuição MSIX
 
 O teste visual nativo no workflow atual verifica login, navegação, busca, detalhes, redimensionamento, posicionamento dos controles, cores, limites da galeria, tema claro, persistência de preferências, localização em português/espanhol, colunas adaptáveis da Newswire, widgets fixados e fundo sólido do toast. Consulte a execução atual do Actions antes de considerar esses checks aprovados. As capturas usam dados e imagens locais de teste; não representam uma conta ou biblioteca real. Testes com jogos/contas reais permanecem fora da validação automática de layout.
 
-Os widgets reproduzem a organização da referência da Game Bar usando controles WinUI. Seus botões apresentam apenas as funções já existentes do launcher; não há métricas fictícias de desempenho. A captura usa Windows.Graphics.Capture e é iniciada pelo usuário. Fixar mantém o widget sobre o jogo quando Ctrl+D fecha a barra; fechar o jogo ou desativar o Game View oculta todos os widgets.
 
 O ícone é derivado da arte quadrada existente. A falta de variantes targetsize/unplated fazia o Windows escolher a representação de tile com placa e redução. Gerar os tamanhos adequados também evita reutilizar apenas o ICO antigo de 256 pixels.
 

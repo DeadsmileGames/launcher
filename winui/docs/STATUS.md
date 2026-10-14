@@ -16,7 +16,7 @@ Os textos de recuperação de boot e os títulos/descrições de conquistas tamb
 
 ## Revisão de UX em andamento
 
-Esta revisão cobre persistência da DeadBar ao mudar o foco, recorte arredondado dos widgets e toasts, menu de bandeja nativo do Windows, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador passa a comparar chaves C#/XAML com os catálogos completos `en`, `pt-BR` e `es`; esses ajustes só devem ser considerados aprovados após o Actions do commit atual.
+Esta revisão removeu a DeadBar e a captura/compartilhamento de janela exclusivos dessa função, mantendo os avisos de conquista. O launcher continua com menu de bandeja nativo do Windows, centralização da Newswire, galeria de screenshots com zoom, editor circular de foto de perfil, confirmação TOTP ao desativar 2FA, separação Configurações/Minha conta, controles anterior/pausar/próximo no hero e alinhamento do detalhe de jogos sem ícone. O validador verifica as chaves C#/XAML dos catálogos `en`, `pt-BR` e `es`.
 
 ## Histórico e estado da validação
 
@@ -26,7 +26,7 @@ A fonte de verdade para o estado atual é o [workflow Build Deadsmile WinUI MSIX
 
 ## Homologação manual pendente
 
-O CI em Windows Server 2025 não substitui testes interativos em desktops Windows 10/11. Ainda devem ser validados com uma conta e jogos reais: login/2FA e itch.io; download, instalação e execução de jogos autorizados; sincronização real de saves/conquistas; escalas de DPI distintas, múltiplos monitores, GPU, fullscreen exclusivo e HDR na DeadBar; leitor de tela e alto contraste em máquina física.
+O CI em Windows Server 2025 não substitui testes interativos em desktops Windows 10/11. Ainda devem ser validados com uma conta e jogos reais: login/2FA e itch.io; download, instalação e execução de jogos autorizados; sincronização real de saves/conquistas; escalas de DPI distintas, múltiplos monitores, GPU; leitor de tela e alto contraste em máquina física.
 
 A release pública WinUI `v1.0.0` continua dependente do merge e de uma execução bem-sucedida do workflow em `main`. A submissão/certificação no Partner Center é uma etapa separada e não é executada pelo CI.
 

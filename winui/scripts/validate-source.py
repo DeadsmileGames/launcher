@@ -179,7 +179,7 @@ for path in launcher.rglob("*.xaml"):
                 continue
             check(value in message_keys, f"{path}: visible XAML literal missing translation: {value}")
 
-# Guard UX regressions for native overlay lifetime, windows and localization.
+# Guard launcher activation, window behavior and localization.
 main_xaml = (launcher / "MainWindow.xaml").read_text(encoding="utf-8")
 app_xaml = (launcher / "App.xaml").read_text(encoding="utf-8")
 main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
@@ -189,46 +189,18 @@ desktop_code = (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8")
 log_code = (root / "src" / "Deadsmile.Core" / "LauncherLog.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
 gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
-game_view_code = (launcher / "Views" / "GameViewWindow.xaml.cs").read_text(encoding="utf-8")
 tray_code = (launcher / "Services" / "TrayService.cs").read_text(encoding="utf-8")
 native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
 program_code = (launcher / "Program.cs").read_text(encoding="utf-8")
 check("private void ShowForActivation()" in main_code and "AppWindow.Show();" in main_code and
       "ShowForActivation();" in main_code and "ValidationShowForActivation" in main_code,
       "Secondary launcher activation explicitly restores a hidden window")
-check("native.Hotkey += QueueOverlayToggle;" in main_code and
-      "DispatcherQueue.TryEnqueue(ToggleOverlay)" in main_code and
-      "ValidationQueueOverlayToggle" in main_code and
-      "try { Hotkey?.Invoke(); }" in native_code,
-      "Ctrl+D handling is dispatched to WinUI instead of opening/closing windows inside native WndProc")
-check("if (!timer.IsRunning)" in game_view_code and "timer.Start();" in game_view_code and
-      "timer.Stop();" in game_view_code and "ValidationTimerRunning => timer.IsRunning" in game_view_code,
-      "DeadBar focus polling runs only while the overlay is visible or has pinned widgets")
-check("panel.TransformToVisual(" not in game_view_code and
-      "Canvas.GetLeft(panel)" in game_view_code and "Canvas.GetTop(panel)" in game_view_code and
-      "ToolbarPanel.Margin.Top" in game_view_code and
-      "timer.Interval = TimeSpan.FromMilliseconds(50)" in game_view_code,
-      "DeadBar pointer hit-testing uses safe layout bounds and polls at a bounded rate during XAML startup")
-check("FocusedRunningGame" in main_code and "overlay.Show(focusedGame);" in main_code and
-      "show requested; game=" in game_view_code and "NativeWindow.IsVisible(this)" in game_view_code and
-      "overlay.Show();" not in main_code,
-      "DeadBar opens from one foreground-game snapshot and verifies the native HWND after showing")
 check('Glyph="&#xEA8F;"' in main_xaml and 'NotificationIcon.Glyph = enabled ? "\\uEA8F" : "\\uE7ED";' in desktop_code,
       "Notifications use the paired Ringer/RingerSilent glyphs instead of ActionCenterNotification")
 check('Path.Combine(directory, "launcher.log")' in log_code and
       "SensitiveValue" in log_code and "SensitiveHeader" in log_code and "MaxLogBytes" in log_code and
       'LauncherLog.WriteAtRoot(Root, "INFO", "Core", code)' in (root / "src" / "Deadsmile.Core" / "Storage.cs").read_text(encoding="utf-8"),
       "Launcher diagnostics are centralized in Documents/Deadsmile Games Launcher/launcher.log with redaction and bounded growth")
-check("ValidationPostHotkey()" in native_code and "PostMessageW" in native_code and
-      "Native window hook receives an actual posted WM_HOTKEY message" in (launcher / "UiValidation.cs").read_text(encoding="utf-8"),
-      "Windows UI validation exercises the real HWND WM_HOTKEY subclass callback instead of bypassing it")
-check("SetWindowSubclass(hwnd, handler, subclassId, UIntPtr.Zero)" in native_code and
-      "DefSubclassProc(h, message, wp, lp)" in native_code and
-      "RemoveWindowSubclass(hwnd, handler, subclassId)" in native_code and
-      "SetWindowLongPtr(hwnd, -4, Marshal.GetFunctionPointerForDelegate(handler))" not in native_code,
-      "Native HWND hooks use removable common-controls subclassing and preserve the WinUI WndProc chain")
-check('if (normalized == "F12") return 0;' in native_code and "uint key = VirtualKey(keyName);" in native_code,
-      "DeadBar key parsing rejects the F12 key reserved by Windows for debuggers")
 check('x:Name="NotificationIcon"' in main_xaml and 'Glyph="&#xEA8F;"' in main_xaml and
       'UpdateNotificationsIcon(Preferences.Notifications)' in appearance_code and
       "NotificationIcon.Glyph = enabled ?" in desktop_code and
@@ -301,12 +273,6 @@ check('"Zoom out"' in gallery_code and '"Zoom in"' in gallery_code and
       "imageScroll.AddHandler(UIElement.PointerPressedEvent" in gallery_code and
       "panStartX - (point.Position.X - panOrigin.X)" in gallery_code,
       "Screenshot gallery adapts to source aspect ratio and supports mouse drag panning")
-check("ShouldDismissOverlay(bool processRunning, bool gameMinimized, bool gameFocused, bool focusLossGraceElapsed)" in game_view_code and
-      "owner.IsGameFocusedFor(game.Game.Id)" in game_view_code and
-      "NativeWindow.Minimized(gameWindow)" in game_view_code and
-      "IsPointerOverInteractiveSurface" in game_view_code and "owner.IsLauncherForeground" in game_view_code and
-      "NativeWindow.RootOwner(foreground)" in main_code and "FocusLossGrace" in game_view_code and "!processRunning || gameMinimized" in game_view_code,
-      "DeadBar closes on game exit, minimization or sustained loss of focus")
 check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMessage" in tray_code,
       "Native Windows context-menu implementation remains available")
 check("new TrayService(this, native)" not in (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8") and
@@ -327,9 +293,6 @@ check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
 
 # Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")
-capture_code = (launcher / "Services" / "GameCapture.cs").read_text(encoding="utf-8")
-share_code = (launcher / "Services" / "CaptureShare.cs").read_text(encoding="utf-8")
-share_ui_code = (launcher / "Views" / "GameViewWindow.Capture.cs").read_text(encoding="utf-8")
 install_code = (core / "InstallationService.cs").read_text(encoding="utf-8")
 catalog_code = (core / "PublicCatalog.cs").read_text(encoding="utf-8")
 storage_code = (core / "Storage.cs").read_text(encoding="utf-8")
@@ -366,11 +329,6 @@ check('PROTOCOL_REGISTRATION_UNAVAILABLE' in main_window_code and 'try { Desktop
       "Optional protocol registration failure cannot abort app startup")
 check('try\n        {\n            foreach (var file in Directory.EnumerateFiles(desktop, "*.url"))' in desktop_integration_code,
       "A bad desktop shortcut cannot abort successful game uninstallation")
-check("result.TrySetCanceled()" in capture_code and "result.Task.Result.Dispose()" in capture_code,
-      "A late Direct3D capture frame is released after capture timeout")
-check("missingScreenshotMessage" in share_code and
-      'owner.Locale.T("Choose a screenshot first.")' in share_ui_code,
-      "Screenshot share failure text uses localization")
 check('Locale.HasKey(rawTitle) ? Locale.T(rawTitle) : rawTitle' in main_code,
       "Achievement titles use translations when a localized key exists")
 check(not (root / "src" / "Deadsmile.Setup").exists(), "Separate setup EXE project must not remain in the MSIX-only pipeline")

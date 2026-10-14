@@ -1,5 +1,5 @@
 #if UI_VALIDATION
-// This file is compiled only into the separate CI validation executable.
+
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -277,7 +277,7 @@ public sealed partial class MainWindow
                     zoomControls.Children.OfType<Slider>().Any(slider =>
                         AutomationProperties.GetName(slider) == Locale.T("Zoom")),
                     "Screenshot viewer keeps previous/next/reset buttons and zoom controls");
-                // Extreme source aspect ratios expose oversized natural-size image layout.
+
                 var w = square ? 720 : portrait ? 180 : 1200; var h = square ? 720 : portrait ? 1200 : 180;
                 var pixels = new byte[w * h * 4];
                 for (var y = 0; y < h; y++) for (var x = 0; x < w; x++)

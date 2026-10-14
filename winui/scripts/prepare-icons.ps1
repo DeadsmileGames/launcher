@@ -1,4 +1,3 @@
-# Format and DPI variants for the existing square brand artwork. No added inset or system plate.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $assetDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'src/Deadsmile.Launcher/Assets'

@@ -295,7 +295,7 @@ public sealed partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    // Keep the last known wishlist if the optional endpoint is temporarily unavailable.
+
                     storage.Log(ex is LauncherException le ? le.Code : "WISHLIST_REFRESH_UNAVAILABLE");
                 }
             }
@@ -348,7 +348,7 @@ public sealed partial class MainWindow : Window
     private void NavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (!ready || changingNavigation) return;
-        // My account is opened from the avatar menu and intentionally has no NavigationView item.
+
         if (!args.IsSettingsSelected && args.SelectedItem is null && page == "account") return;
         RememberPage();
         page = args.IsSettingsSelected ? "settings" : (args.SelectedItem as NavigationViewItem)?.Tag as string ?? "explore";
@@ -359,7 +359,7 @@ public sealed partial class MainWindow : Window
     private void TitlePaneToggleRequested(TitleBar sender, object args) => Shell.IsPaneOpen = !Shell.IsPaneOpen;
     private void ShowPage()
     {
-        // A stale history entry must never expose private account content after sign-out.
+
         if (page == "account" && User is null)
         {
             page = "explore";

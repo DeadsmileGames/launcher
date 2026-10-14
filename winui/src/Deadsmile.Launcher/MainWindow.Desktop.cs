@@ -144,7 +144,7 @@ public sealed partial class MainWindow
     }
     private void OpenTrayMenu()
     {
-        // Ask the Windows shell to draw the notification-area context menu.
+
         var command = TrayService.ShowNativeMenu(this, Locale.T("Open launcher"), Locale.T("Exit"));
         if (command == 1) RestoreFromTray();
         else if (command == 2) _ = ExitFromTrayAsync();

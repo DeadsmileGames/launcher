@@ -186,8 +186,8 @@ public sealed partial class MainWindow
                 Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent)
             };
             viewport.Children.Add(preview);
-            // UIElement.Clip only accepts RectangleGeometry in WinUI. Use the composition
-            // visual layer for a real circular mask instead of assigning an incompatible XAML geometry.
+
+
             var compositor = ElementCompositionPreview.GetElementVisual(Root).Compositor;
             var cropGeometry = compositor.CreateEllipseGeometry();
             cropGeometry.Center = new Vector2(140, 140);

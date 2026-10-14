@@ -339,13 +339,13 @@ public sealed partial class MainWindow
             var newsGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, ColumnSpacing = 16, RowSpacing = 18 };
             void ArrangeNews()
             {
-                // The ScrollViewer's content can report its extent rather than the host viewport.
-                // PageLayout is the window-bound element and changes whenever the native window is resized.
+
+
                 var viewport = PageLayout.ActualWidth;
                 if (viewport <= 0) viewport = ContentPage.ActualWidth;
                 var width = Math.Max(260, viewport - 48);
-                // 300 DIPs matches a 240-DIP card plus its text/image margins and spacing.
-                // This permits three readable cards at a 955-DIP viewport and two at 871 DIPs.
+
+
                 var columns = Math.Clamp((int)((width + 16) / 300), 1, 4);
                 var cellWidth = Math.Clamp((width - 16 * (columns - 1)) / columns, 240, 420);
                 newsGrid.Width = width;

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Portable structural checks. Does not replace MSBuild, C# tests or Windows UI verification."""
 from pathlib import Path
 import json
@@ -24,13 +23,11 @@ for path in root.rglob("*.json"):
     try: json.loads(path.read_text(encoding="utf-8")); check(True, str(path))
     except ValueError as ex: check(False, f"{path}: {ex}")
 
-# Every XAML event handler must exist in its code-behind.
 events = {"Click", "Loaded", "SelectionChanged", "TextChanged", "ItemClick", "Checked", "Unchecked", "Toggled", "KeyDown", "BackRequested", "PaneToggleRequested", "QuerySubmitted", "PointerPressed", "PointerMoved", "PointerReleased", "PointerCanceled", "PointerCaptureLost"}
 for path in root.rglob("*.xaml"):
     document = ET.parse(path)
     code_file = Path(str(path) + ".cs")
     if not code_file.exists(): continue
-    # Partial window implementations also contain XAML handlers.
     code = "\n".join(p.read_text() for p in path.parent.glob(path.stem + "*.cs"))
     for element in document.iter():
         for name, value in element.attrib.items():
@@ -78,8 +75,6 @@ for path in (root / "src").rglob("*.csproj"):
     for ref in doc.findall(".//ProjectReference"):
         check((path.parent / ref.attrib["Include"]).is_file(), f"Missing project reference: {ref.attrib['Include']}")
 
-# Lexical delimiter check, respecting comments, normal/verbatim strings and characters.
-# This deliberately does not claim to type-check C#.
 def delimiter_errors(source):
     i = 0; stack = []
     while i < len(source):
@@ -129,7 +124,6 @@ for name, catalog in texts.items():
 
 messages = texts["messages.json"]
 message_keys = set(messages["en"])
-# Audit literal localization calls and action labels so missing keys cannot silently fall back to English.
 for path in launcher.rglob("*.cs"):
     if path.name == "UiValidation.cs":
         continue
@@ -141,7 +135,6 @@ for path in launcher.rglob("*.cs"):
         key = json.loads('"' + match.group(1) + '"')
         check(key in message_keys, f"{path}: Action label missing from messages.json: {key}")
 
-# Visible XAML literals are expected to carry a Tag that matches a translated key.
 for path in launcher.rglob("*.xaml"):
     document = ET.parse(path)
     for element in document.iter():
@@ -152,7 +145,6 @@ for path in launcher.rglob("*.xaml"):
         if visible:
             check(tag in message_keys, f"{path}: visible XAML string missing translation key: {tag}")
 
-# Audit all static phrase choices inside localization expressions, including ternary/switch labels.
 for path in launcher.rglob("*.cs"):
     if path.name == "UiValidation.cs":
         continue
@@ -161,12 +153,10 @@ for path in launcher.rglob("*.cs"):
         argument = call.group(1)
         for literal in re.finditer(r'"((?:\\.|[^"\\])*)"', argument):
             key = json.loads('"' + literal.group(1) + '"')
-            # Lowercase slugs, IDs, enum values and protocol keys are data, not visible phrases.
             if re.fullmatch(r'[a-z0-9][a-z0-9_.:/-]*', key):
                 continue
             check(key in message_keys, f"{path}: string choice in Locale.T is missing from messages.json: {key}")
 
-# Validate every fixed visible XAML phrase, not just elements already tagged for translation.
 xaml_exceptions = {"Deadsmile Games", "Deadsmile Games Launcher", "Português", "English", "Español", "0", "1", "2", "‹", "›", "−", "+"}
 for path in launcher.rglob("*.xaml"):
     raw = path.read_text(encoding="utf-8")
@@ -179,7 +169,6 @@ for path in launcher.rglob("*.xaml"):
                 continue
             check(value in message_keys, f"{path}: visible XAML literal missing translation: {value}")
 
-# Guard launcher activation, window behavior and localization.
 main_xaml = (launcher / "MainWindow.xaml").read_text(encoding="utf-8")
 app_xaml = (launcher / "App.xaml").read_text(encoding="utf-8")
 main_code = (launcher / "MainWindow.xaml.cs").read_text(encoding="utf-8")
@@ -286,7 +275,6 @@ check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'LauncherMutedTextBrush' in app_xaml and 'LauncherMutedTextBrush' in main_xaml,
       "Downloads place the queue before a responsive installed games grid and pages fill their viewport")
 
-# Review regression checks: remote save integrity, extraction size limits, recovery and localized dynamic text.
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")
 install_code = (core / "InstallationService.cs").read_text(encoding="utf-8")
 catalog_code = (core / "PublicCatalog.cs").read_text(encoding="utf-8")

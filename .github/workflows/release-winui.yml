@@ -51,7 +51,6 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $ErrorActionPreference = "Stop"
           $artifacts = "winui/artifacts"
           $packages = @(Get-ChildItem $artifacts -Filter "*.msix" -File)
           if ($packages.Count -ne 1) { throw "Expected exactly one MSIX artifact." }
@@ -97,7 +96,7 @@ jobs:
           Write-Host "Release version: $releaseVersion"
           Write-Host "Only distribution package: $($packages[0].Name)"
 
-      - name: Publish only the MSIX to the v1.0.0 release
+      - name: Publish the verified MSIX using its generated version
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh

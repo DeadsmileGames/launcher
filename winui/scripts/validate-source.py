@@ -178,7 +178,6 @@ desktop_code = (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8")
 log_code = (root / "src" / "Deadsmile.Core" / "LauncherLog.cs").read_text(encoding="utf-8")
 profile_code = (launcher / "MainWindow.Profile.cs").read_text(encoding="utf-8")
 gallery_code = (launcher / "MainWindow.Gallery.cs").read_text(encoding="utf-8")
-tray_code = (launcher / "Services" / "TrayService.cs").read_text(encoding="utf-8")
 native_code = (launcher / "Services" / "NativeWindow.cs").read_text(encoding="utf-8")
 program_code = (launcher / "Program.cs").read_text(encoding="utf-8")
 check("private void ShowForActivation()" in main_code and "AppWindow.Show();" in main_code and
@@ -257,11 +256,11 @@ check('"Zoom out"' in gallery_code and '"Zoom in"' in gallery_code and
       "imageScroll.AddHandler(UIElement.PointerPressedEvent" in gallery_code and
       "panStartX - (point.Position.X - panOrigin.X)" in gallery_code,
       "Screenshot gallery adapts to source aspect ratio and supports mouse drag panning")
-check("TrackPopupMenu" in tray_code and "AppendMenuW" in tray_code and "PostMessage" in tray_code,
-      "Native Windows context-menu implementation remains available")
-check("new TrayService(this, native)" not in (launcher / "MainWindow.Desktop.cs").read_text(encoding="utf-8") and
-      'x:Name="TrayOption"' in main_xaml and 'Visibility="Collapsed"' in main_xaml.split('x:Name="TrayOption"', 1)[1][:150],
-      "Launcher startup does not register a persistent notification-area icon")
+check(not (launcher / "Services" / "TrayService.cs").exists() and
+      "TrayService" not in main_code and "tray" not in desktop_code and
+      "CloseToTray" not in (launcher / "Services" / "UiPreferences.cs").read_text(encoding="utf-8") and
+      'x:Name="TrayToggle"' not in main_xaml,
+      "Unused persistent notification-area tray service and hidden preference are removed")
 check('MaxWidth="1000"' not in main_xaml and 'MaxWidth="1600"' not in main_xaml and
       'HorizontalScrollMode="Disabled"' in main_xaml,
       "Main pages use their full viewport width instead of narrow left-aligned content")

@@ -5,14 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Hosting;
-using Microsoft.UI.Composition;
-using System.Numerics;
 using QRCoder;
-using Windows.Graphics.Imaging;
-using Windows.Storage.Pickers;
-using Windows.Storage.Streams;
 
 namespace Deadsmile.Launcher;
 
@@ -74,7 +67,6 @@ public sealed partial class MainWindow
             ProfileFullName.Text = account.S("fullName", "full_name");
             ProfileUsername.Text = account.S("username"); ProfileBio.Text = account.S("bio");
             ProfileWebsite.Text = account.S("websiteUrl"); ProfileLocation.Text = account.S("location");
-            ProfileAvatarUrl.Text = account.S("avatarUrl");
             ProfileDisplayName.Text = account.S("fullName", "full_name", "username");
             ProfileDisplayEmail.Text = account.S("email");
             await SetProfilePicture(ProfileSettingsAvatar, account.S("avatarUrl"));
@@ -141,166 +133,6 @@ public sealed partial class MainWindow
     private async void ProfileSignInClick(object sender, RoutedEventArgs e)
     { if (await RequireAccount()) { profileLoaded = false; await LoadProfileSettings(); } }
 
-    private async void ChooseProfilePhotoClick(object sender, RoutedEventArgs e)
-    {
-        if (User is null) { await RequireAccount(); return; }
-        var picker = new FileOpenPicker();
-        picker.FileTypeFilter.Add(".png"); picker.FileTypeFilter.Add(".jpg");
-        picker.FileTypeFilter.Add(".jpeg"); picker.FileTypeFilter.Add(".webp");
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
-        var file = await picker.PickSingleFileAsync(); if (file is null) return;
-        var properties = await file.GetBasicPropertiesAsync();
-        if (properties.Size > 350_000) { Notify(Locale.T("The profile photo must be smaller than 350 KB.")); return; }
-        try
-        {
-            var preview = new Image
-            {
-                Stretch = Stretch.Fill,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            using (var source = await file.OpenAsync(Windows.Storage.FileAccessMode.Read))
-            {
-                var bitmap = new BitmapImage();
-                await bitmap.SetSourceAsync(source);
-                if (bitmap.PixelWidth == 0 || bitmap.PixelHeight == 0 || bitmap.PixelWidth > 4096 || bitmap.PixelHeight > 4096)
-                    throw new LauncherException("PROFILE_IMAGE_INVALID");
-                var aspect = bitmap.PixelWidth / (double)bitmap.PixelHeight;
-                preview.Width = aspect >= 1 ? 280 * aspect : 280;
-                preview.Height = aspect >= 1 ? 280 : 280 / aspect;
-                preview.Source = bitmap;
-            }
-
-            var transform = new CompositeTransform
-            {
-                CenterX = preview.Width / 2,
-                CenterY = preview.Height / 2,
-                ScaleX = 1,
-                ScaleY = 1
-            };
-            preview.RenderTransform = transform;
-            var viewport = new Grid
-            {
-                Width = 280,
-                Height = 280,
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent)
-            };
-            viewport.Children.Add(preview);
-
-
-            var compositor = ElementCompositionPreview.GetElementVisual(Root).Compositor;
-            var cropGeometry = compositor.CreateEllipseGeometry();
-            cropGeometry.Center = new Vector2(140, 140);
-            cropGeometry.Radius = new Vector2(140, 140);
-            ElementCompositionPreview.GetElementVisual(viewport).Clip = compositor.CreateGeometricClip(cropGeometry);
-            var zoom = new Slider
-            {
-                Header = Locale.T("Zoom"),
-                Minimum = 1,
-                Maximum = 3,
-                Value = 1,
-                StepFrequency = 0.05,
-                Width = 300
-            };
-            var rotation = 0d;
-            Windows.Foundation.Point? dragPoint = null;
-            void ClampImage()
-            {
-                var quarterTurn = ((int)rotation % 180) != 0;
-                var scaledWidth = (quarterTurn ? preview.Height : preview.Width) * transform.ScaleX;
-                var scaledHeight = (quarterTurn ? preview.Width : preview.Height) * transform.ScaleY;
-                var limitX = Math.Max(0, (scaledWidth - 280) / 2);
-                var limitY = Math.Max(0, (scaledHeight - 280) / 2);
-                transform.TranslateX = Math.Clamp(transform.TranslateX, -limitX, limitX);
-                transform.TranslateY = Math.Clamp(transform.TranslateY, -limitY, limitY);
-            }
-            zoom.ValueChanged += (_, args) =>
-            {
-                transform.ScaleX = transform.ScaleY = args.NewValue;
-                ClampImage();
-            };
-            viewport.PointerPressed += (_, args) =>
-            {
-                dragPoint = args.GetCurrentPoint(viewport).Position;
-                viewport.CapturePointer(args.Pointer);
-                args.Handled = true;
-            };
-            viewport.PointerMoved += (_, args) =>
-            {
-                if (dragPoint is not { } previous) return;
-                var point = args.GetCurrentPoint(viewport).Position;
-                transform.TranslateX += point.X - previous.X;
-                transform.TranslateY += point.Y - previous.Y;
-                dragPoint = point;
-                ClampImage();
-                args.Handled = true;
-            };
-            void EndDrag(object _, PointerRoutedEventArgs args)
-            {
-                dragPoint = null;
-                viewport.ReleasePointerCaptures();
-            }
-            viewport.PointerReleased += EndDrag;
-            viewport.PointerCanceled += EndDrag;
-            viewport.PointerCaptureLost += EndDrag;
-
-            var rotationRow = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            var rotateLeft = new Button { Content = Locale.T("Rotate left") };
-            var rotateRight = new Button { Content = Locale.T("Rotate right") };
-            rotateLeft.Click += (_, _) => { rotation = (rotation - 90 + 360) % 360; transform.Rotation = rotation; ClampImage(); };
-            rotateRight.Click += (_, _) => { rotation = (rotation + 90) % 360; transform.Rotation = rotation; ClampImage(); };
-            rotationRow.Children.Add(rotateLeft); rotationRow.Children.Add(rotateRight);
-            var editor = new StackPanel
-            {
-                Spacing = 12,
-                Width = 320,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            editor.Children.Add(viewport);
-            editor.Children.Add(Text(Locale.T("Drag to reposition image")));
-            editor.Children.Add(zoom);
-            editor.Children.Add(rotationRow);
-            var dialog = new ContentDialog
-            {
-                XamlRoot = Root.XamlRoot,
-                RequestedTheme = UiTheme,
-                Title = Locale.T("Adjust profile photo"),
-                Content = editor,
-                PrimaryButtonText = Locale.T("Use photo"),
-                CloseButtonText = Locale.T("Cancel"),
-                DefaultButton = ContentDialogButton.Primary
-            };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            var rendered = new RenderTargetBitmap();
-            await rendered.RenderAsync(viewport, 280, 280);
-            var pixels = await rendered.GetPixelsAsync();
-            var bgra = new byte[pixels.Length];
-            using (var reader = DataReader.FromBuffer(pixels)) reader.ReadBytes(bgra);
-            using var pngStream = new InMemoryRandomAccessStream();
-            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, pngStream);
-            encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-                (uint)rendered.PixelWidth, (uint)rendered.PixelHeight, 96, 96, bgra);
-            await encoder.FlushAsync();
-            if (pngStream.Size is <= 0 or > 350000)
-                throw new LauncherException("PROFILE_IMAGE_TOO_LARGE");
-            pngStream.Seek(0);
-            var png = new byte[(int)pngStream.Size];
-            using (var reader = new DataReader(pngStream))
-            {
-                await reader.LoadAsync((uint)png.Length);
-                reader.ReadBytes(png);
-            }
-            ProfileAvatarUrl.Text = "data:image/png;base64," + Convert.ToBase64String(png);
-            await SetProfilePicture(ProfileSettingsAvatar, ProfileAvatarUrl.Text);
-        }
-        catch (Exception ex) { Notify(Locale.Error(ex)); }
-    }
-
     private async void SaveProfileClick(object sender, RoutedEventArgs e)
     {
         if (User is null || profileLoading) return;
@@ -312,7 +144,6 @@ public sealed partial class MainWindow
                 fullName = ProfileFullName.Text.Trim(),
                 username = ProfileUsername.Text.Trim(), bio = ProfileBio.Text,
                 websiteUrl = ProfileWebsite.Text.Trim(), location = ProfileLocation.Text.Trim(),
-                avatarUrl = ProfileAvatarUrl.Text.Trim()
             });
             if (result is null) throw new LauncherException("INVALID_RESPONSE");
             User = result.DeepClone();

@@ -679,6 +679,16 @@ public sealed partial class MainWindow : Window
     }
     private async Task Download(Game game)
     {
+        if (!game.IsReleased)
+        {
+            Notify(Locale.Error(new LauncherException("GAME_NOT_RELEASED", 409)));
+            return;
+        }
+        if (!game.DownloadAvailable)
+        {
+            Notify(Locale.Error(new LauncherException("GAME_RELEASE_NOT_CONFIGURED", 409)));
+            return;
+        }
         if (!await RequireAccount()) return;
         await accountGate.WaitAsync();
         try

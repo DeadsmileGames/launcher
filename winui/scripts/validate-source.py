@@ -246,9 +246,10 @@ check('var host = new Grid { Width = viewportWidth + 48, HorizontalAlignment = H
       "dialog.MinWidth" not in gallery_code and "dialog.MaxWidth" not in gallery_code and
       'x:Key="ContentDialogMaxWidth">900</x:Double>' in app_xaml,
       "Screenshot dialog avoids forced sizing that breaks native centering and reserves room for controls")
-check("EllipseGeometry" in profile_code and "viewport.PointerMoved" in profile_code and
-      "CenterX = preview.Width / 2" in profile_code and "CenterY = preview.Height / 2" in profile_code,
-      "Profile-photo editor uses centered circular crop, zoom and pointer-drag positioning")
+check("ChooseProfilePhotoClick" not in profile_code and "ProfileAvatarUrl" not in profile_code and
+      "EllipseGeometry" not in profile_code and 'x:Name="ProfileSettingsAvatar"' in main_xaml and
+      'Click="ChooseProfilePhotoClick"' not in main_xaml and 'x:Name="ProfileAvatarUrl"' not in main_xaml,
+      "Profile photo editing is removed while account avatar remains display-only")
 check("twoFactorDisabling" in profile_code and
       'Api.Request(HttpMethod.Delete, "/account/totp/disable", new { token }' in profile_code and
       "TwoFactorTokenBox.Visibility = TwoFactorConfirmButton.Visibility = Visibility.Visible" in profile_code,

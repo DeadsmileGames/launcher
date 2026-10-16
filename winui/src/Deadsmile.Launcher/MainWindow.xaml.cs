@@ -723,8 +723,11 @@ public sealed partial class MainWindow : Window
         DetailContent.Children.Clear(); heroImages = game.HeroImages; heroIndex = 0;
         var hero = new Grid { Height = 360, MaxHeight = 360, CornerRadius = new CornerRadius(8) };
         var hasStoreScreenshots = game.Store.At("screenshots").Items().Any();
-        var backdropUrl = hasStoreScreenshots ? game.HeroImages.FirstOrDefault() ?? game.Cover :
-            game.Poster.Length > 0 ? game.Poster : game.Cover;
+        var hasBackgroundVideo = game.BackgroundVideo.Length > 0;
+        var backdropUrl = hasBackgroundVideo
+            ? game.Cover.Length > 0 ? game.Cover : game.Poster
+            : hasStoreScreenshots ? game.HeroImages.FirstOrDefault() ?? game.Cover
+            : game.Poster.Length > 0 ? game.Poster : game.Cover;
         hero.Background = Root.Background;
         hero.Children.Add(new Border
         {
@@ -735,10 +738,10 @@ public sealed partial class MainWindow : Window
         {
             Height = 360, MaxHeight = 360, Stretch = Stretch.UniformToFill,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Visibility = hasStoreScreenshots ? Visibility.Visible : Visibility.Collapsed
+            Visibility = hasStoreScreenshots && !hasBackgroundVideo ? Visibility.Visible : Visibility.Collapsed
         };
         var banner = heroImage;
-        if (hasStoreScreenshots) SetImage(heroImage, backdropUrl);
+        if (hasStoreScreenshots && !hasBackgroundVideo) SetImage(heroImage, backdropUrl);
         hero.Children.Add(heroImage);
         var accentOverlay = new Border
         {

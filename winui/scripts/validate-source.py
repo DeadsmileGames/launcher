@@ -278,6 +278,13 @@ check('OrderInstalledGames(Catalog, installs.Installed.Keys)' in main_code and
       'LauncherMutedTextBrush' in app_xaml and 'LauncherMutedTextBrush' in main_xaml,
       "Downloads place the queue before a responsive installed games grid and pages fill their viewport")
 
+check('var hasBackgroundVideo = game.BackgroundVideo.Length > 0;' in main_code and
+       'var backdropUrl = hasBackgroundVideo' in main_code and
+       '? game.Cover.Length > 0 ? game.Cover : game.Poster' in main_code and
+       'Visibility = hasStoreScreenshots && !hasBackgroundVideo ? Visibility.Visible : Visibility.Collapsed' in main_code and
+       'if (hasStoreScreenshots && !hasBackgroundVideo) SetImage(heroImage, backdropUrl);' in main_code,
+       "Game background video uses its cover rather than a screenshot; screenshot rotation is retained when no video is active")
+
 cloud_code = (core / "CloudSaveService.cs").read_text(encoding="utf-8")
 install_code = (core / "InstallationService.cs").read_text(encoding="utf-8")
 catalog_code = (core / "PublicCatalog.cs").read_text(encoding="utf-8")

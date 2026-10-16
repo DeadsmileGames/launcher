@@ -63,10 +63,11 @@ public sealed class Game(JsonNode data)
     public string Engine => Data.S("engine");
     public string Description => Data.S("description");
     public string Version => Data.S("version");
+    public bool IsReleased => Data.S("status").Equals("released", StringComparison.OrdinalIgnoreCase);
     public bool InLibrary => Data.B("inLibrary");
     public bool Owned => Data.B("owned");
-    public bool CanLaunch => Data.S("accessType") == "paid" ? Owned && InLibrary :
-        Data.S("accessType") == "free" && InLibrary;
+    public bool CanLaunch => IsReleased && (Data.S("accessType") == "paid" ? Owned && InLibrary :
+        Data.S("accessType") == "free" && InLibrary);
     public string SearchText
     {
         get
@@ -114,7 +115,7 @@ public sealed class Game(JsonNode data)
             if (!string.IsNullOrWhiteSpace(text)) values.Add(text);
         }
     }
-    public bool DownloadAvailable => Data.B("downloadAvailable");
+    public bool DownloadAvailable => IsReleased && Data.B("downloadAvailable");
     public bool CloudEnabled => Data.B("cloudSavesEnabled");
     public string SaveTemplate => Data.S("savePathTemplate");
     public string Trailer => Urls.Https(Data.S("trailerUrl", "trailer_url", "backgroundVideo", "background_video"))?.AbsoluteUri ?? "";

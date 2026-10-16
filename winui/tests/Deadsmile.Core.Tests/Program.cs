@@ -327,7 +327,7 @@ Async("Partial private library records cannot inherit public ownership flags", a
 });
 Async("Authenticated catalog merges ownership without mutating public data", async () =>
 {
-    var source = J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "paid"));
+    var source = J.Obj(("id", id), ("slug", "demo"), ("title", "Demo"), ("accessType", "paid"), ("status", "released"));
     using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(req => Reply(200,
         new JsonObject { ["data"] = req.RequestUri!.AbsolutePath.EndsWith("/games") ?
             J.Obj(("items", new[] { source }), ("pagination", J.Obj(("totalPages", 1)))) :
@@ -336,12 +336,15 @@ Async("Authenticated catalog merges ownership without mutating public data", asy
 });
 Add("Paid games require ownership and library membership", () =>
 {
-    var outside = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", true), ("inLibrary", false)));
-    var inLibrary = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", true), ("inLibrary", true)));
-    var unowned = new Game(J.Obj(("id", id), ("accessType", "paid"), ("owned", false), ("inLibrary", true)));
+    var outside = new Game(J.Obj(("id", id), ("status", "released"), ("accessType", "paid"), ("owned", true), ("inLibrary", false)));
+    var inLibrary = new Game(J.Obj(("id", id), ("status", "released"), ("accessType", "paid"), ("owned", true), ("inLibrary", true)));
+    var unowned = new Game(J.Obj(("id", id), ("status", "released"), ("accessType", "paid"), ("owned", false), ("inLibrary", true)));
+    var unreleased = new Game(J.Obj(("id", id), ("status", "announced"), ("accessType", "paid"),
+        ("owned", true), ("inLibrary", true), ("downloadAvailable", true)));
     Check(!outside.CanLaunch);
     Check(inLibrary.CanLaunch);
     Check(!unowned.CanLaunch);
+    Check(!unreleased.CanLaunch && !unreleased.DownloadAvailable);
 });
 Add("Search text includes languages and catalog tags", () =>
 {

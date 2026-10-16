@@ -374,9 +374,7 @@
           <PersonPicture x:Name="ProfileSettingsAvatar" Width="76" Height="76" DisplayName="Profile" VerticalAlignment="Center"/>
           <StackPanel Spacing="6" VerticalAlignment="Center">
            <TextBlock x:Name="ProfileDisplayName" Style="{StaticResource BodyStrongTextBlockStyle}" Text="My profile"/>
-           <TextBlock x:Name="ProfileDisplayEmail" Foreground="{ThemeResource LauncherMutedTextBrush}" TextWrapping="Wrap"/>
-           <Button Tag="Choose a profile photo" Content="Choose a profile photo" Click="ChooseProfilePhotoClick" HorizontalAlignment="Left"/>
-          </StackPanel>
+           <TextBlock x:Name="ProfileDisplayEmail" Foreground="{ThemeResource LauncherMutedTextBrush}" TextWrapping="Wrap"/>          </StackPanel>
          </StackPanel>
          <StackPanel x:Name="ProfileSignInPrompt" Spacing="10" Visibility="Collapsed">
           <TextBlock Tag="Sign in to edit your profile, security and privacy settings." Text="Sign in to edit your profile, security and privacy settings." TextWrapping="Wrap"/>
@@ -388,10 +386,7 @@
           <TextBox x:Name="ProfileBio" Tag="Bio" Header="Bio" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"/>
           <TextBox x:Name="ProfileWebsite" Tag="Website URL" Header="Website URL" MaxLength="2000"/>
           <TextBox x:Name="ProfileLocation" Tag="Location" Header="Location" MaxLength="120"/>
-          <TextBox x:Name="ProfileAvatarUrl" Tag="Profile image URL (optional)" Header="Profile image URL (optional)" MaxLength="500000"
-           Height="62" MinHeight="62" MaxHeight="62" AcceptsReturn="True" TextWrapping="Wrap"
-           ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollMode="Enabled"
-           VerticalContentAlignment="Top"/>
+
           <Button x:Name="SaveProfileButton" Tag="Save profile" Content="Save profile" Click="SaveProfileClick" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
          </StackPanel>
         </StackPanel></Border>

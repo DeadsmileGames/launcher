@@ -309,7 +309,7 @@ public sealed partial class MainWindow : Window
         var canMigrateLegacyFolders = true;
         foreach (var game in catalog)
         {
-            if (!game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!game.IsReleased || !game.Data.S("accessType").Equals("free", StringComparison.OrdinalIgnoreCase)) continue;
             try
             {
                 if (string.IsNullOrWhiteSpace(game.Slug)) continue;
@@ -679,6 +679,16 @@ public sealed partial class MainWindow : Window
     }
     private async Task Download(Game game)
     {
+        if (!game.IsReleased)
+        {
+            Notify(Locale.Error(new LauncherException("GAME_NOT_RELEASED", 409)));
+            return;
+        }
+        if (!game.DownloadAvailable)
+        {
+            Notify(Locale.Error(new LauncherException("GAME_RELEASE_NOT_CONFIGURED", 409)));
+            return;
+        }
         if (!await RequireAccount()) return;
         await accountGate.WaitAsync();
         try

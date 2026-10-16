@@ -32,6 +32,13 @@ Por padrão, o build usa a identidade oficial e produz o MSIX sem assinatura loc
 
 A versão do projeto desta revisão é `1.0.3`; o pacote MSIX correspondente usa a versão `1.0.3.0`, derivada de `winui/Directory.Build.props`.
 
+## Compatibilidade com o serviço atual
+
+- Site público: `https://deadsmilegames.onrender.com`.
+- API pública: `https://api-ust8.onrender.com/api`; o launcher não acessa o banco de dados diretamente.
+- O host da API e os caminhos de autenticação/CSRF permanecem centralizados em `Deadsmile.Core.ApiClient`; não substitua a URL da API pela URL do site.
+- A versão do pacote é derivada de `Directory.Build.props` e validada pelo workflow antes de qualquer publicação.
+
 ## Publicação
 
 O workflow `Build Deadsmile WinUI MSIX` valida o commit, executa os testes Core e o smoke test nativo de instalação/inicialização/desinstalação. Após sucesso, o workflow de publicação gera a tag imutável `v1.0.3-winui` para esta versão e anexa somente o MSIX de produção para o Partner Center. Confirme o resultado da execução associada ao commit antes de considerar a publicação concluída.

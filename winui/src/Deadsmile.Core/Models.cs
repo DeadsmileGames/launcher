@@ -182,7 +182,7 @@ public static class Versions
 
 public static class Urls
 {
-    public const string Website = "https://deadsmilegames.vercel.app";
+    public const string Website = "https://deadsmilegames.onrender.com";
     public static Uri? Https(string? value)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||

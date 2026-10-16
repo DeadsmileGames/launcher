@@ -28,13 +28,13 @@ Escopo: launcher WinUI, contratos dos ZIPs API(5)/Website(6), endpoints público
 
 ## Limitações observadas
 
-O website `https://deadsmilegames.vercel.app` respondeu **HTTP 402 / DEPLOYMENT_DISABLED** na Vercel. O código anexado compila e seus testes passaram, mas cadastro, recuperação de senha e gerenciamento externo da conta dependem da reativação desse deployment. O launcher não altera a hospedagem do site.
+A resposta **HTTP 402 / DEPLOYMENT_DISABLED** anotada nesta auditoria refere-se somente ao domínio legado `https://deadsmilegames.vercel.app`, observado na verificação histórica de 13/10/2026; não é o status do site atual. O endereço canônico configurado nesta revisão é `https://deadsmilegames.onrender.com`. A migração dos links no launcher não equivale, por si só, a uma verificação de disponibilidade ao vivo do novo domínio.
 
 Os testes de segurança do backend rodaram contra o ambiente isolado do próprio projeto. Em produção foram usados somente GETs de leitura/validação. Fluxos privados com uma conta real, compra no itch.io e jogos reais não foram executados com as credenciais de um usuário. A DeadBar e seu subsistema de captura/compartilhamento de jogo foram removidos; os avisos nativos de conquista foram preservados. A verificação automática no Windows Server 2025 não substitui testes manuais em desktops Windows 10/11, diferentes GPUs/DPI e HDR.
 
-O certificado autoassinado é criado temporariamente para o smoke test do MSIX no runner e não é publicado. O workflow de produção constrói o MSIX `1.0.0.0` com a identidade oficial e o publica como pacote para submissão ao Partner Center, intencionalmente sem assinatura local. No fluxo da Microsoft Store, a Microsoft assina novamente o MSIX após a certificação; credenciais de login do Partner Center não são um certificado de assinatura de código. O workflow do GitHub não submete o pacote automaticamente à Store. Para distribuição direta fora da Store seria necessário um certificado de assinatura confiável separado.
+O certificado de desenvolvimento é criado temporariamente para o smoke test do MSIX no runner e não é publicado. O pacote de produção usa a identidade oficial e a versão de projeto de `winui/Directory.Build.props` (atualmente `1.0.3` nesta revisão); o workflow publica um único MSIX para submissão ao Partner Center, intencionalmente sem assinatura local. No fluxo da Microsoft Store, a Microsoft assina o MSIX após a certificação; credenciais de login do Partner Center não são um certificado de assinatura de código. O workflow do GitHub não submete o pacote automaticamente à Store. Para distribuição direta fora da Store seria necessário um certificado de assinatura confiável separado.
 
-## Achados da revisão integral (corrigidos no código, aguardando CI)
+## Achados da revisão integral (corrigidos no código; confira o CI do commit atual)
 
 - **Integridade de saves:** qualquer `sha256` não vazio precisa ter 64 dígitos hexadecimais; um valor malformado não é tratado como se não houvesse hash.
 - **Extração de arquivos:** o limite de 40 GiB é aplicado também à contagem real de bytes descompactados e o tamanho escrito precisa coincidir com o tamanho declarado pelo ZIP.

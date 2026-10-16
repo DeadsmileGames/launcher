@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/STATUS-OPERATIONAL-green" alt="Status: Operational">
-  <img src="https://img.shields.io/badge/VERSION-1.0.2-gold" alt="Version 1.0.2">
+  <img src="https://img.shields.io/badge/VERSION-1.0.3-gold" alt="Version 1.0.2">
   <img src="https://img.shields.io/badge/PLATFORM-WINDOWS-red" alt="Platform: Windows">
   <img src="https://img.shields.io/badge/TECH-WinUI%203%20%7C%20C%23-blue" alt="WinUI 3 and C sharp">
   <img src="https://img.shields.io/badge/LICENSE-MIT-lightgrey" alt="License: MIT">
@@ -22,11 +22,11 @@
 </p>
 
 <p align="center">
-  <a href="https://deadsmilegames.vercel.app">
+  <a href="https://deadsmilegames.onrender.com">
     Website
   </a>
   •
-  <a href="https://deadsmilegames.vercel.app">
+  <a href="https://deadsmilegames.onrender.com">
     Games
   </a>
   •

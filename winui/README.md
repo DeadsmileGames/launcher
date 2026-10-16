@@ -30,11 +30,11 @@ Esse MSIX de desenvolvimento usa identidade diferente da versão da Store e serv
 
 Por padrão, o build usa a identidade oficial e produz o MSIX sem assinatura local para envio ao Partner Center. A Microsoft Store assina o pacote depois da certificação. O arquivo pré-submissão não é diretamente instalável em um computador de usuário até ser assinado por uma cadeia confiável. Para um pacote assinado de desenvolvimento, passe explicitamente `-DevelopmentCertificate` e uma identidade de teste cujo Publisher coincida com o Subject do certificado.
 
-A versão pública atual do launcher é `1.0.1`; a versão do pacote MSIX é `1.0.1.0`.
+A versão do projeto desta revisão é `1.0.3`; o pacote MSIX correspondente usa a versão `1.0.3.0`, derivada de `winui/Directory.Build.props`.
 
 ## Publicação
 
-Após integração à `main`, a publicação `v1.0.1-winui` só deve ocorrer uma vez após todas as verificações de código e do pacote. A tag de produção é imutável e a release contém somente o MSIX de produção para o Partner Center.
+O workflow `Build Deadsmile WinUI MSIX` valida o commit, executa os testes Core e o smoke test nativo de instalação/inicialização/desinstalação. Após sucesso, o workflow de publicação gera a tag imutável `v1.0.3-winui` para esta versão e anexa somente o MSIX de produção para o Partner Center. Confirme o resultado da execução associada ao commit antes de considerar a publicação concluída.
 
 O workflow não envia nem aprova uma submissão da Store; essa etapa continua sendo feita no Partner Center.
 

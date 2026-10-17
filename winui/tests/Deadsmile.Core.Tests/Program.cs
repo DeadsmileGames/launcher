@@ -268,6 +268,11 @@ Async("CSRF refresh retries one write with a fresh token", async () =>
     Check((await api.Post("/auth/mobile-login", new { email = "test", password = "test" })).S("id") == "user");
     Check(tokens == 2 && writes == 2);
 });
+Async("Launcher blocks legacy direct itch OAuth initiation locally", async () =>
+{
+    using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(_ => throw new Exception("Must not send")));
+    await RejectAsync(() => api.Post("/integrations/itch/connect", new { client = "launcher", locale = "en" }));
+});
 Async("API unauthorized responses notify session invalidation", async () =>
 {
     using var api = new ApiClient(new Localization(), testHandler: new FakeHttp(_ => Reply(401, "{\"error\":{\"code\":\"UNAUTHENTICATED\"}}")));

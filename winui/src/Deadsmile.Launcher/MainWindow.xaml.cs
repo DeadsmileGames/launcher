@@ -1144,10 +1144,9 @@ public sealed partial class MainWindow : Window
             var connection = await Api.Get("/integrations/itch");
             if (connection.B("connected"))
             { await Api.Delete("/integrations/itch"); await Refresh(); return; }
-            var n = await Api.Post("/integrations/itch/connect", new { client = "launcher", locale = Locale.Language });
-            var url = Urls.ItchOAuth(n.S("authorizeUrl")) ?? throw new LauncherException("INVALID_RESPONSE");
-            DesktopIntegration.Open(url.AbsoluteUri); ItchButton.Content = Locale.T("Connecting…");
-            var until = DateTimeOffset.UtcNow.AddMinutes(2);
+            DesktopIntegration.Open(Urls.Website + "/account#games");
+            ItchButton.Content = Locale.T("Connecting…");
+            var until = DateTimeOffset.UtcNow.AddMinutes(5);
             while (DateTimeOffset.UtcNow < until)
             {
                 await Task.Delay(4000); var state = await Api.Get("/integrations/itch");

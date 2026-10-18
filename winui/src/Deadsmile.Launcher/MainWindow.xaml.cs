@@ -219,7 +219,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var n = twoFactor ? await Api.Post("/auth/verify-2fa", new { token = CodeBox.Text.Trim() }) :
-                await Api.Post("/auth/mobile-login", new { email = EmailBox.Text.Trim(), password = PasswordBox.Password });
+                await Api.Post("/auth/launcher-login", new { email = EmailBox.Text.Trim(), password = PasswordBox.Password });
             if (n.B("requiresTwoFactor"))
             {
                 twoFactor = true; LoginHeading.Text = Locale.T("Verify sign in"); LoginBackButton.Visibility = Visibility.Visible; CredentialsPanel.Visibility = Visibility.Collapsed; CodeBox.Visibility = Visibility.Visible;

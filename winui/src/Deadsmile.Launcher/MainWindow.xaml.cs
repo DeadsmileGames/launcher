@@ -1150,7 +1150,7 @@ public sealed partial class MainWindow : Window
             var until = DateTimeOffset.UtcNow.AddMinutes(5);
             while (DateTimeOffset.UtcNow < until)
             {
-                await Task.Delay(4000); var state = await Api.Get("/integrations/itch");
+                await Task.Delay(8000); var state = await Api.Get("/integrations/itch");
                 if (!state.B("connected")) continue;
                 await Api.Post("/library/sync"); await Refresh(); return;
             }

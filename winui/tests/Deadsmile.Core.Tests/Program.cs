@@ -265,7 +265,7 @@ Async("CSRF refresh retries one write with a fresh token", async () =>
         writes++; Check(req.Headers.GetValues("X-CSRF-Token").Single() == "token" + tokens);
         return writes == 1 ? Reply(403, "{\"error\":{\"code\":\"CSRF_VALIDATION_FAILED\"}}") : Reply(200, "{\"data\":{\"id\":\"user\"}}");
     }));
-    Check((await api.Post("/auth/mobile-login", new { email = "test", password = "test" })).S("id") == "user");
+    Check((await api.Post("/auth/launcher-login", new { email = "test", password = "test" })).S("id") == "user");
     Check(tokens == 2 && writes == 2);
 });
 Async("API unauthorized responses notify session invalidation", async () =>
@@ -383,7 +383,7 @@ Async("A stale unauthorized response cannot invalidate a newer login", async () 
         req.RequestUri!.AbsolutePath.EndsWith("/auth/me") ? pending.Task :
         Task.FromResult(Reply(200, req.RequestUri.AbsolutePath.EndsWith("/csrf") ? "{\"data\":{\"token\":\"csrf\"}}" : "{\"data\":{\"id\":\"new-session\"}}"))));
     var invalidated = false; api.Invalidated += () => invalidated = true;
-    var stale = api.Get("/auth/me"); await api.Post("/auth/mobile-login", new { email = "fixture", password = "fixture" });
+    var stale = api.Get("/auth/me"); await api.Post("/auth/launcher-login", new { email = "fixture", password = "fixture" });
     pending.SetResult(Reply(401, "{\"error\":{\"code\":\"UNAUTHENTICATED\"}}"));
     await RejectAsync(async () => await stale); Check(!invalidated);
 });

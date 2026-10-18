@@ -36,7 +36,7 @@ internal sealed class UiValidationHandler : HttpMessageHandler
         JsonNode? data = null; var status = 200;
         if (FailCatalog && path.EndsWith("/games")) status = 503;
         else if (path.EndsWith("/csrf")) data = J.Obj(("token", "ci-layout-token"));
-        else if (path.EndsWith("/auth/mobile-login")) { authenticated = true; data = J.Obj(("id", "ci-layout")); }
+        else if (path.EndsWith("/auth/launcher-login")) { authenticated = true; data = J.Obj(("id", "ci-layout")); }
         else if (path.EndsWith("/auth/me"))
         { if (authenticated) data = J.Obj(("id", "ci-layout"), ("username", "Conta de teste")); else status = 401; }
         else if (path.EndsWith("/integrations/itch")) data = J.Obj(("configured", true), ("connected", false));

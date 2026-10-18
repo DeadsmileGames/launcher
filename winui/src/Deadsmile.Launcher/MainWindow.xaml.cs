@@ -219,7 +219,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var n = twoFactor ? await Api.Post("/auth/verify-2fa", new { token = CodeBox.Text.Trim() }) :
-                await Api.Post("/auth/mobile-login", new { email = EmailBox.Text.Trim(), password = PasswordBox.Password });
+                await Api.Post("/auth/launcher-login", new { email = EmailBox.Text.Trim(), password = PasswordBox.Password });
             if (n.B("requiresTwoFactor"))
             {
                 twoFactor = true; LoginHeading.Text = Locale.T("Verify sign in"); LoginBackButton.Visibility = Visibility.Visible; CredentialsPanel.Visibility = Visibility.Collapsed; CodeBox.Visibility = Visibility.Visible;
@@ -1144,13 +1144,13 @@ public sealed partial class MainWindow : Window
             var connection = await Api.Get("/integrations/itch");
             if (connection.B("connected"))
             { await Api.Delete("/integrations/itch"); await Refresh(); return; }
-            var n = await Api.Post("/integrations/itch/connect", new { client = "launcher", locale = Locale.Language });
-            var url = Urls.ItchOAuth(n.S("authorizeUrl")) ?? throw new LauncherException("INVALID_RESPONSE");
-            DesktopIntegration.Open(url.AbsoluteUri); ItchButton.Content = Locale.T("Connecting…");
-            var until = DateTimeOffset.UtcNow.AddMinutes(2);
+            DesktopIntegration.Open(Urls.Website + "/account#games");
+            Notify(Locale.T("Complete the itch.io connection in your browser using this same Deadsmile account."));
+            ItchButton.Content = Locale.T("Connecting…");
+            var until = DateTimeOffset.UtcNow.AddMinutes(5);
             while (DateTimeOffset.UtcNow < until)
             {
-                await Task.Delay(4000); var state = await Api.Get("/integrations/itch");
+                await Task.Delay(8000); var state = await Api.Get("/integrations/itch");
                 if (!state.B("connected")) continue;
                 await Api.Post("/library/sync"); await Refresh(); return;
             }

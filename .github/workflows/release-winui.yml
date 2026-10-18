@@ -91,6 +91,8 @@ jobs:
           $releaseVersion = $versionMatch.Groups[1].Value
           "STORE_PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $msixSha256 = (Get-FileHash $packages[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "MSIX_SHA256=$msixSha256" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "MSIX_FILENAME=$($packages[0].Name)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "PASS official Store identity and generated MSIX version $packageVersion"
           Write-Host "Release version: $releaseVersion"
@@ -113,6 +115,7 @@ jobs:
 
           - Distribution artifact: one MSIX package only.
           - Package version: $($env:STORE_PACKAGE_VERSION), read from the generated MSIX manifest.
+          - SHA-256: $($env:MSIX_SHA256)
           - Project version and package version were verified before publication.
           - Official Microsoft Store identity reserved in Partner Center.
           - This is the MSIX submission package. Microsoft signs the Store-distributed package after certification; this pre-submission MSIX is not directly installable unless a trusted signature is applied.

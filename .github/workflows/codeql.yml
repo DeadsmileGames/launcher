@@ -1,0 +1,41 @@
+name: CodeQL security analysis
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "winui/**"
+      - ".github/workflows/codeql.yml"
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "31 4 * * 1"
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: codeql-csharp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze C# core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: "10.0.x"
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee
+        with:
+          languages: csharp
+          build-mode: manual
+      - name: Build the platform-independent core for analysis
+        run: dotnet build winui/src/Deadsmile.Core/Deadsmile.Core.csproj --configuration Release
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee
